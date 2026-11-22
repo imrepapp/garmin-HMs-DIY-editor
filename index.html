@@ -135,6 +135,8 @@ h2 .sp{flex:1}
 .swatch.sm{width:20px;height:20px;cursor:default;border-radius:4px}
 .dc td .swatch{width:30px;height:24px}
 .hexlab{font:11px var(--f-mono);color:var(--mute)}
+.nightbtn{display:inline-flex;align-items:center;gap:5px;margin-left:auto}
+.nightbtn .swatch.sm{width:16px;height:16px;cursor:pointer}
 #cl-grid{display:grid;grid-template-columns:repeat(16,1fr);gap:2px;margin:6px 0 10px}
 #cl-grid button{aspect-ratio:1;border:1px solid var(--line);border-radius:2px;padding:0;cursor:pointer;min-width:0}
 #cl-grid button.on{outline:2px solid var(--accent);outline-offset:1px;position:relative;z-index:1}
@@ -736,18 +738,20 @@ function pickColor(cur,cb){
   $('#cl-hex').value=cur; $('#cl-native').value='#'+(/^[0-9A-F]{6}$/.test(cur)?cur:'000000'); $('#dlg-color').showModal();
 }
 function useColor(c){ if(!/^[0-9a-f]{6}$/i.test(c)){ toast('Enter a colour as six hex digits, for example FF5500.'); return; } $('#dlg-color').close(); const cb=colorCb; colorCb=null; if(cb) cb(c.toUpperCase()); }
+/* Night mode sits next to the colour: the data field inverts the colour itself, so only this switch is stored. */
+function nightBtn(e,col){ const on=e.a.daynight==='true';
+  return el('button',{type:'button',class:'btn sm nightbtn'+(on?' on':''),id:'p-daynight','aria-pressed':String(on),title:(on?'In night mode the data field inverts this colour.':'The colour stays the same in night mode.')+' The night colour is computed, not stored. Click to switch.',
+    onclick:()=>{ e.a.daynight=String(!on); commit(); refresh(); }},'Night:',col?el('span',{class:'swatch sm',style:'background:#'+(on?invert(col):col)}):null,on?'inverted':'same');
+}
 function colorSection(e){
   const box=el('div',{}), dc=dcFor(e.a.color), fill=FILL.includes(e.a.eletype);
   box.append(el('h2',{},'Colour'));
-  if(dc){ box.append(dcEditor(dc,e), el('div',{class:'dlgbar',style:'margin-top:0'}, el('button',{class:'btn sm',onclick:()=>{ const rows=[...dc.dc].sort((a,b)=>b.val-a.val); e.a.color=rows.length?rows[rows.length-1].col:'000000'; if(!dcUsers(dc).length) S.els=S.els.filter(x=>x!==dc); commit(); refresh(); }},'Back to a single fixed colour'))); }
+  if(dc){ box.append(el('div',{class:'colrow',style:'margin-bottom:8px'},el('span',{class:'hexlab'},'Colour follows a value'),nightBtn(e,null)),dcEditor(dc,e), el('div',{class:'dlgbar',style:'margin-top:0'}, el('button',{class:'btn sm',onclick:()=>{ const rows=[...dc.dc].sort((a,b)=>b.val-a.val); e.a.color=rows.length?rows[rows.length-1].col:'000000'; if(!dcUsers(dc).length) S.els=S.els.filter(x=>x!==dc); commit(); refresh(); }},'Back to a single fixed colour'))); }
   else {
-    const night=e.a.daynight==='true';
-    box.append(el('div',{class:'colrow'},colorBtn(e.a.color,c=>{ e.a.color=c; commit(); refresh(); },'p-color'),el('span',{class:'hexlab'},'#'+e.a.color),
-      night?el('span',{class:'hexlab',title:'Night-mode colour, computed by inverting the colour'},'☾'):null, night?el('span',{class:'swatch sm',style:'background:#'+invert(e.a.color),title:'Night-mode colour #'+invert(e.a.color).toUpperCase()+' (computed, not stored)'}):null,
-      el('span',{class:'sp'}),el('button',{class:'btn sm',title:'Make the colour (or fill level) follow a live value',onclick:()=>{ attachDyn(e); commit(); refresh(); }},fill?'Link to a value…':'Change with a value…')));
+    box.append(el('div',{class:'colrow'},colorBtn(e.a.color,c=>{ e.a.color=c; commit(); refresh(); },'p-color'),el('span',{class:'hexlab'},'#'+e.a.color),nightBtn(e,e.a.color)),
+      el('div',{class:'colrow',style:'margin-top:8px'},el('button',{class:'btn sm',title:'Make the colour (or fill level) follow a live value',onclick:()=>{ attachDyn(e); commit(); refresh(); }},fill?'Link to a value…':'Change with a value…')));
     if(fill) box.append(el('div',{class:'hint'},'The bar only moves on the device when it is linked to a value: empty at the lowest threshold, full at the highest.'));
   }
-  box.append(fChk(e,'daynight','Invert colour in night mode'),el('div',{class:'hint'},'The night colour is not stored: the data field inverts the colour itself when the device switches to its dark background.'));
   return box;
 }
 function dcEditor(dc, user){
@@ -780,12 +784,12 @@ function renderPanelBody(){
   }
   if(s.length>1){
     p.append(el('h2',{},s.length+' elements selected'),el('div',{class:'hint'},'Drag or use the arrow keys to move them together. Ctrl/Cmd+G puts them in a group.'),
-      el('div',{class:'dlgbar'},el('button',{class:'btn',onclick:groupSel},'Group'),el('button',{class:'btn',onclick:dupSel},'Duplicate'),el('button',{class:'btn',onclick:askDelete},'Delete')));
+      el('div',{class:'dlgbar'},el('button',{class:'btn',onclick:groupSel},'Group')));
     return;
   }
   const e=s[0], a=e.a, k=kind(e);
   if(k==='sep'){ const m=groupOf(e); p.append(el('h2',{class:'t3'},'Group'),el('div',{class:'row one'},fTxt(e,'text','Group name')),el('div',{class:'hint'},m.length+' layer'+(m.length===1?'':'s')+' in this group. Arrow keys move them together; the group row in the list collapses, locks or hides them, and dragging it moves the whole group. Groups are an editing aid and are not sent to the device.'),
-      el('div',{class:'dlgbar'},el('button',{class:'btn sm',onclick:ungroupSel},'Ungroup'),el('button',{class:'btn sm',onclick:dupSel},'Duplicate'),el('button',{class:'btn sm',onclick:askDelete},'Delete group'))); }
+      el('div',{class:'dlgbar'},el('button',{class:'btn sm',onclick:ungroupSel},'Ungroup'))); }
   else if(k==='dyn'){ p.append(el('h2',{class:'t2'},'Dynamic colour'),dcEditor(dc_(e),null),el('div',{class:'hint'},'Used by: ',dcUsers(e).map(nameOf).join(', ')||'no element')); }
   else if(k==='text'){
     const isVal=a.fixedtext!=='true', v=VT[a.eletype];
@@ -825,7 +829,6 @@ function renderPanelBody(){
     if(a.valuetype&&a.valuetype!=='FX'&&k!=='dir'){ p.append(el('div',{class:'row'},sampleField(e),fNum(e,'nr_values','Averaging (s)',{min:1}))); }
     p.append(colorSection(e));
   }
-  if(e.type<2) p.append(el('div',{class:'dlgbar'},el('button',{class:'btn sm',onclick:dupSel},'Duplicate'),el('button',{class:'btn sm',onclick:askDelete},'Delete')));
   if(keep){ const f=document.getElementById(keep); if(f) f.focus(); }
 }
 const dc_ = e => e;
