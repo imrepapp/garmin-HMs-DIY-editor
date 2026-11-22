@@ -146,6 +146,7 @@ h2 .sp{flex:1}
 .dc td .swatch{width:30px;height:24px}
 .hexlab{font:11px var(--f-mono);color:var(--mute)}
 .valrow{display:flex;gap:6px;align-items:stretch}
+.srcfix{display:flex;align-items:center;gap:6px;padding:4px 6px;border:1px dashed var(--line);border-radius:4px;cursor:help}
 .valrow .valbtn{flex:1}
 .icobtn{padding:4px 7px;display:flex;align-items:center;flex:none}
 .icobtn.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
@@ -407,7 +408,8 @@ function usedColors(){ const u=new Set(); for(const e of S.els){ if(e.a.color) u
 function uniqueKey(base){ const u=usedColors(); let n=parseInt(base,16)||0; for(let i=1;i<4096;i++){ const c=((n^i)&0xFFFFFF).toString(16).toUpperCase().padStart(6,'0'); if(!u.has(c)) return c; } return 'FEFEFA'; }
 const dcFor = color => color ? S.els.find(e=>e.type===2 && (e.a.replDC||'').toUpperCase()===color.toUpperCase()) : null;
 const dcUsers = dc => S.els.filter(e=>e.type<2 && (e.a.color||'').toUpperCase()===(dc.a.replDC||'').toUpperCase());
-function valCode(e){ return e.type===0 ? (e.a.fixedtext==='true'?'FX':e.a.eletype) : e.a.valuetype; }
+/* The value an element follows: a value text shows it, a label or graphic only uses it as the source of its colour. */
+function valCode(e){ return (e.type===0 ? e.a.eletype : e.a.valuetype) || 'FX'; }
 function sampleOf(e){
   const c = valCode(e), g=S.samples[c];
   if(typeof g==='number') return g;
@@ -793,7 +795,7 @@ function selStatus(){ const s=selEls(); $('#st-sel').textContent = tool ? (tool.
 
 /* ---------- Property panel ---------- */
 function live(){ draw(); selStatus(); commitSoon(); }
-const TIPS={Format:'$V is replaced by the number, so text and units can be added around it. Time values use $H $M $S. $T shows the text form where one exists (compass direction, sensor status)',Drivetrain:'circumference;chainring;sprockets, small to big',Averaging:'Seconds the value is averaged over',Sample:'Preview only. One sample per value type: every element showing this value uses it (time values in seconds)',Decimals:'Number of decimal places',Target:'What the marker points to; none lets the data field setting decide',Value:'The live value this element shows or follows','Bar width':'Pixels per second','Min/max':'Lower or upper limit of the graph',Stroke:'Line thickness in pixels'};
+const TIPS={Source:'The live value that drives the colour',Format:'$V is replaced by the number, so text and units can be added around it. Time values use $H $M $S. $T shows the text form where one exists (compass direction, sensor status)',Drivetrain:'circumference;chainring;sprockets, small to big',Averaging:'Seconds the value is averaged over',Sample:'Preview only. One sample per value type: every element showing this value uses it (time values in seconds)',Decimals:'Number of decimal places',Target:'What the marker points to; none lets the data field setting decide',Value:'The live value this element shows or follows','Bar width':'Pixels per second','Min/max':'Lower or upper limit of the graph',Stroke:'Line thickness in pixels'};
 function fld(label, input){ const t=TIPS[label]; return el('label',{class:'f',title:t},el('span',{},label),input); }
 function fNum(e,key,label,o){ o=o||{}; const i=el('input',{type:'number',id:'p-'+key,step:o.step||1,min:o.min,value:e.a[key]??'0',oninput:()=>{ if(i.value==='') return; e.a[key]=String(o.float?N(i.value):Math.round(N(i.value))); live(); if(o.after) o.after(); }}); return fld(label,i); }
 function fTxt(e,key,label,o){ o=o||{}; const i=el('input',{type:'text',id:'p-'+key,value:e.a[key]??'',placeholder:o.ph,oninput:()=>{ e.a[key]=i.value; live(); renderLayersSoon(); }}); return fld(label,i); }
@@ -842,14 +844,21 @@ function nightBtn(e,col){ const on=e.a.daynight==='true', cb=el('input',{type:'c
   return el('label',{class:'nightbtn',title:(on?'In night mode the data field inverts this colour.':'The colour stays the same in night mode.')+' The night colour is computed, not stored.'},cb,'Invert at night',col?el('span',{class:'swatch sm',style:'background:#'+(on?invert(col):col)}):null);
 }
 function colorSection(e){
-  const box=el('div',{}), dc=dcFor(e.a.color), fill=FILL.includes(e.a.eletype);
-  const toFixed=()=>{ const rows=[...dc.dc].sort((a,b)=>b.val-a.val); e.a.color=rows.length?rows[rows.length-1].col:'000000'; if(!dcUsers(dc).length) S.els=S.els.filter(x=>x!==dc); commit(); refresh(); };
-  const mode=seg([['f','Fixed'],['v','By value']],dc?'v':'f',m=>{ if(m==='v'&&!dc){ attachDyn(e); commit(); refresh(); } else if(m==='f'&&dc) toFixed(); });
+  const box=el('div',{}), dc=dcFor(e.a.color), fill=FILL.includes(e.a.eletype), label=e.type===0&&e.a.fixedtext==='true', vt=VT[e.a.eletype];
+  const setSrc=c=>{ if(label) e.a.eletype=c; else e.a.valuetype=c; commit(); refresh(); }, noSrc=valCode(e)==='FX';
+  const toFixed=()=>{ const rows=[...dc.dc].sort((a,b)=>b.val-a.val); e.a.color=rows.length?rows[rows.length-1].col:'000000'; if(!dcUsers(dc).length) S.els=S.els.filter(x=>x!==dc); if(label) e.a.eletype='FX'; commit(); refresh(); };
+  const mode=seg([['f','Fixed'],['v','By value']],dc?'v':'f',m=>{ if(m==='v'&&!dc){ attachDyn(e); commit(); refresh(); if(noSrc) pickValue('FX',setSrc,true); } else if(m==='f'&&dc) toFixed(); });
   mode.className='seg mini'; mode.id='p-colmode'; mode.title='Fixed: one colour. By value: the colour'+(fill?' and fill level follow':' follows')+' a live value.';
-  const vt=VT[e.a.eletype], canDyn=!!dc||e.type===1||(e.type===0&&e.a.fixedtext!=='true'&&!!vt&&vt.k!=='s');
+  const canDyn=!!dc||e.type===1||label||(!!vt&&vt.k!=='s');
   box.append(el('h2',{},'Colour',el('span',{class:'sp'}),canDyn?mode:null));
-  if(dc) box.append(el('div',{class:'colrow',style:'margin-bottom:8px'},el('span',{class:'hexlab'},'Colour follows a value'),nightBtn(e,null)),dcEditor(dc,e));
-  else {
+  if(dc){
+    const own=e.type===0&&!label, src=own
+      ? el('div',{class:'srcfix',title:'A value element can only follow the value it shows: the data field stores a single value per text element. To follow another value, use a Label or a graphic.'},el('span',{class:'vn'},vt?vt.n:e.a.eletype),el('span',{class:'vc'},'same as shown'))
+      : valueSelect(valCode(e),setSrc,'p-source',true);
+    box.append(el('div',{class:'row one'},fld('Source',src)));
+    if(!own&&!noSrc&&e.type===0) box.append(el('div',{class:'row one'},sampleField(e)));
+    box.append(el('div',{class:'colrow',style:'margin-bottom:8px'},el('span',{class:'hexlab'},noSrc?'Choose a source value':'Colour follows the source'),nightBtn(e,null)),dcEditor(dc,e));
+  } else {
     box.append(el('div',{class:'colrow'},colorBtn(e.a.color,c=>{ e.a.color=c; commit(); refresh(); },'p-color'),el('span',{class:'hexlab'},'#'+e.a.color),nightBtn(e,e.a.color)));
     if(fill) box.append(el('div',{class:'hint'},'The bar only moves on the device when its colour is set to “By value”: empty at the lowest threshold, full at the highest.'));
   }
@@ -858,7 +867,8 @@ function colorSection(e){
 function dcEditor(dc, user){
   const fill = user && FILL.includes(user.a.eletype), box=el('div',{class:'dc'});
   const src = user ? valCode(user) : null, v = VT[src];
-  box.append(el('div',{class:'hint',style:'margin-top:0'}, user ? (src&&src!=='FX' ? el('span',{},'Source value: ',el('b',{},v?v.n:src), v&&v.k==='t'?' (in seconds)':'') : el('span',{},el('b',{},'No source value. '),'Pick a linked value above.')) : 'This colour rule applies to elements whose key colour is #'+dc.a.replDC+'.'));
+  if(!user) box.append(el('div',{class:'hint',style:'margin-top:0'},'This colour rule applies to elements whose key colour is #'+dc.a.replDC+'.'));
+  else if(v&&v.k==='t') box.append(el('div',{class:'hint',style:'margin-top:0'},'Thresholds for time and pace are in seconds.'));
   const tb=el('tbody',{}); const rows=dcRows(dc), inv=dc.a.invertcolor==='true';
   rows.forEach((r,i)=>{
     const vi=el('input',{type:'number',step:'0.1',value:r.val/10,'aria-label':'Threshold',oninput:()=>{ if(vi.value!==''){ r.val=Math.round(N(vi.value)*10); dc.dirty=true; live(); } },onchange:()=>renderPanel()});
