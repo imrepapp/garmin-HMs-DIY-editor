@@ -67,6 +67,8 @@ h2 .sp{flex:1}
 .palette button:hover{border-color:var(--accent)}
 .palette svg{flex:none}
 .palette .wide{grid-column:1/-1}
+.psec{font:600 11px var(--f-ui);color:var(--mute);margin:12px 0 5px;padding-bottom:3px;border-bottom:1px solid var(--line)}
+.psec:first-child{margin-top:0}
 .t0{color:var(--c-val)}.t1{color:var(--c-gfx)}.t2{color:var(--c-dyn)}.t3{color:var(--c-sep)}
 #layers{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:1px}
 #layers li{display:flex;align-items:center;gap:6px;padding:3px 4px 3px 6px;border-radius:4px;cursor:pointer;border:1px solid transparent;border-left:3px solid currentColor}
@@ -168,8 +170,8 @@ dialog li{margin:5px 0}
 </header>
 <main>
   <aside id="left">
-    <h2>Add</h2>
-    <div class="palette" id="palette"></div>
+    <h2>Tools</h2>
+    <div id="palette"></div>
   </aside>
   <div id="stagewrap">
     <div id="stage"><canvas id="cv"></canvas></div>
@@ -441,7 +443,7 @@ function draw(){
   c.save(); shape(); c.clip();
   for(const e of S.els) if(!e.hide) drawEl(c,e);
   c.restore();
-  if(!S.els.length){ c.fillStyle='#888'; c.font=`${12/zoom*1.2}px sans-serif`; c.textAlign='center'; c.fillText('Add an element from the list on the left', S.w/2, S.h/2); }
+  if(!S.els.length){ c.fillStyle='#888'; c.font=`${12/zoom*1.2}px sans-serif`; c.textAlign='center'; c.fillText('Add an element from the Tools on the left', S.w/2, S.h/2); }
   const acc=css('--accent')||'#0a66c2', px=1/zoom;
   c.lineWidth=px; c.strokeStyle='#d0289a';
   for(const g of guides){ c.beginPath(); if(g.x!=null){ c.moveTo(g.x,-PAD/zoom); c.lineTo(g.x,S.h+PAD/zoom); } else { c.moveTo(-PAD/zoom,g.y); c.lineTo(S.w+PAD/zoom,g.y); } c.stroke(); }
@@ -526,23 +528,32 @@ const ico = k => `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" st
 function buildPalette(){
   const cx=()=>Math.round(S.w/2), cy=()=>Math.round(S.h/2), u=()=>Math.round(Math.min(S.w,S.h)/4);
   const P=[
+   'Data|Elements that show a live value',
    ['val','t0','Value',()=>addEls([mkVal('CS',{x:String(cx()),y:String(cy()-20)})])],
+   ['gauge','t1','Gauge arc',()=>{ const g=mkG('AF',{color:'FF5500',valuetype:'HR',x:String(cx()),y:String(cy()),radius:String(u()*1.5|0),x2:'200',y2:'340',stroke:'10'}); addEls([g]); const d=attachDyn(g); d.auto=true; d.dc[0].val=2000; d.dc[1].val=600; commit(); refresh(); }],
+   ['bar','t1','Progress bar',()=>{ const g=mkG('RH',{color:'00AA00',valuetype:'BV',x:String(cx()-u()),y:String(cy()-5),x2:String(cx()+u()),y2:String(cy()+5)}); addEls([g]); const d=attachDyn(g); d.auto=true; d.dc[0].val=1000; d.dc[1].val=0; commit(); refresh(); }],
+   ['graph','t1','Graph',()=>addEls([mkG('GB',{color:'AA0000',valuetype:'HR',x:String(cx()-u()),y:String(cy()-u()/2|0),x2:String(cx()+u()),y2:String(cy()+u()/2|0),radius:'0',stroke:'2',maxonly:'false'})])],
+   ['dir','t1','Direction',()=>addEls([mkG('DT',{x:String(cx()),y:String(cy()),radius:'12',stroke:'2'})])],
+   'Static|Elements that always look the same',
    ['text','t0','Label',()=>addEls([mkText({x:String(cx()),y:String(cy()-8)})])],
-   ['field','t0 wide','Field: label + value',()=>addEls([mkText({text:'SPEED',x:String(cx()),y:String(cy()-34)}),mkVal('CS',{x:String(cx()),y:String(cy()-18)})])],
    ['line','t1','Line',()=>addEls([mkG('LN',{x:'8',y:String(cy()),x2:String(S.w-8),y2:String(cy())})])],
-   ['bg','t1','Background',()=>{ const g=mkG('RF',{color:'FFFFFF',x2:String(S.w),y2:String(S.h)},{lock:true}); S.els.unshift(g); sel=[g.id]; commit(); refresh(); }],
    ['rect','t1','Frame',()=>addEls([mkG('RC',{x:String(cx()-u()),y:String(cy()-u()/2),x2:String(cx()+u()),y2:String(cy()+u()/2),stroke:'2'})])],
    ['rectf','t1','Rectangle',()=>addEls([mkG('RF',{color:'AAAAAA',x:String(cx()-u()),y:String(cy()-u()/2),x2:String(cx()+u()),y2:String(cy()+u()/2)})])],
    ['circ','t1','Circle',()=>addEls([mkG('CR',{x:String(cx()),y:String(cy()),radius:String(u()),stroke:'2'})])],
    ['circf','t1','Disc',()=>addEls([mkG('CF',{color:'AAAAAA',x:String(cx()),y:String(cy()),radius:String(Math.round(u()/2))})])],
    ['arc','t1','Arc',()=>addEls([mkG('AC',{color:'AAAAAA',x:String(cx()),y:String(cy()),radius:String(u()*1.5|0),x2:'200',y2:'340',stroke:'10'})])],
-   ['gauge','t1','Gauge arc',()=>{ const g=mkG('AF',{color:'FF5500',valuetype:'HR',x:String(cx()),y:String(cy()),radius:String(u()*1.5|0),x2:'200',y2:'340',stroke:'10'}); addEls([g]); const d=attachDyn(g); d.auto=true; d.dc[0].val=2000; d.dc[1].val=600; commit(); refresh(); }],
-   ['bar','t1','Progress bar',()=>{ const g=mkG('RH',{color:'00AA00',valuetype:'BV',x:String(cx()-u()),y:String(cy()-5),x2:String(cx()+u()),y2:String(cy()+5)}); addEls([g]); const d=attachDyn(g); d.auto=true; d.dc[0].val=1000; d.dc[1].val=0; commit(); refresh(); }],
-   ['graph','t1','Graph',()=>addEls([mkG('GB',{color:'AA0000',valuetype:'HR',x:String(cx()-u()),y:String(cy()-u()/2|0),x2:String(cx()+u()),y2:String(cy()+u()/2|0),radius:'0',stroke:'2',maxonly:'false'})])],
-   ['dir','t1','Direction',()=>addEls([mkG('DT',{x:String(cx()),y:String(cy()),radius:'12',stroke:'2'})])],
+   ['bg','t1','Background',()=>{ const g=mkG('RF',{color:'FFFFFF',x2:String(S.w),y2:String(S.h)},{lock:true}); S.els.unshift(g); sel=[g.id]; commit(); refresh(); }],
+   'Composite|Ready-made combinations of several elements',
+   ['field','t0','Label + value',()=>addEls([mkText({text:'SPEED',x:String(cx()),y:String(cy()-34)}),mkVal('CS',{x:String(cx()),y:String(cy()-18)})])],
+   ['gauge','t1','Gauge + value',()=>{ const r=u()*1.5|0, o={x:String(cx()),y:String(cy()),radius:String(r),x2:'200',y2:'340',stroke:'10'};
+      const g=mkG('AF',Object.assign({color:'FF5500',valuetype:'CS'},o)); addEls([mkG('AC',Object.assign({color:'AAAAAA'},o)),g,mkVal('CS',{x:String(cx()),y:String(cy()-(r*.6|0))})]); const d=attachDyn(g); d.auto=true; d.dc[0].val=600; d.dc[1].val=0; commit(); refresh(); }],
+   ['bar','t1','Bar + label',()=>{ const g=mkG('RH',{color:'00AA00',valuetype:'BV',x:String(cx()-u()),y:String(cy()+4),x2:String(cx()+u()),y2:String(cy()+12)}); addEls([mkText({text:'BATTERY',x:String(cx()),y:String(cy()-14)}),g]); const d=attachDyn(g); d.auto=true; d.dc[0].val=1000; d.dc[1].val=0; commit(); refresh(); }],
   ];
-  const box=$('#palette');
-  for(const [i,cls,label,fn] of P){ const b=el('button',{class:cls,type:'button',onclick:fn}); b.innerHTML=ico(i)+'<span style="color:var(--ink)">'+label+'</span>'; box.append(b); }
+  const box=$('#palette'); let grid=null;
+  for(const it of P){
+    if(typeof it==='string'){ const [name,tip]=it.split('|'); box.append(el('div',{class:'psec',title:tip},name)); grid=el('div',{class:'palette'}); box.append(grid); continue; }
+    const [i,cls,label,fn]=it, b=el('button',{class:cls,type:'button',onclick:fn}); b.innerHTML=ico(i)+'<span style="color:var(--ink)">'+label+'</span>'; grid.append(b);
+  }
 }
 
 /* ---------- Layers ---------- */
@@ -651,7 +662,7 @@ function renderPanelBody(){
   const s=selEls();
   if(!s.length){
     p.append(el('h2',{},'Getting started'),
-      el('div',{class:'hint'},'Click an element on the screen or in the layer list to edit it here. Add new elements from the list on the left.'),
+      el('div',{class:'hint'},'Click an element on the screen or in the layer list to edit it here. Add new elements from the Tools on the left.'),
       el('h2',{},'Keyboard'),
       el('div',{class:'hint',style:'line-height:2'},el('kbd',{},'arrows'),' move 1 px (',el('kbd',{},'Shift'),' 10 px)',el('br'),el('kbd',{},'Alt'),'+',el('kbd',{},'arrows'),' resize',el('br'),el('kbd',{},'Del'),' delete · ',el('kbd',{},'Ctrl'),'+',el('kbd',{},'D'),' duplicate',el('br'),el('kbd',{},'Ctrl'),'+',el('kbd',{},'G'),' group · ',el('kbd',{},'Ctrl'),'+',el('kbd',{},'Shift'),'+',el('kbd',{},'G'),' ungroup',el('br'),el('kbd',{},'Ctrl'),'+',el('kbd',{},'C'),' / ',el('kbd',{},'V'),' copy / paste',el('br'),el('kbd',{},'Ctrl'),'+',el('kbd',{},'Z'),' / ',el('kbd',{},'Y'),' undo / redo',el('br'),el('kbd',{},'Shift'),'+drag: constrain · ',el('kbd',{},'Alt'),'+drag: no snapping'),
       el('h2',{},'Device'),
