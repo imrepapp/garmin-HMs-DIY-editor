@@ -1253,9 +1253,10 @@ function encodeLayout(){
         out+=w85(col(r.col)|((a.invertcolor==='true'&&i===0)?1:0)<<25|(r.hide?1:0)<<26|(r.blink?1:0)<<27)+w85(r.val<0?((-r.val)&0xfffff)|0x100000:r.val&0xfffff); });
     }
   }
-  // A backslash made a string impossible to save in the Garmin settings (seen with a calibration layout), so name where it comes from.
-  if(out.includes('\\')){ const who=marks.filter((m,k)=>out.slice(m[1],k+1<marks.length?marks[k+1][1]:out.length).includes('\\')).map(m=>m[0].type===2?'colour rule '+ruleName(m[0]):plain(m[0]));
-    w('The string contains a backslash (\\), which the Garmin settings may refuse to save. It comes from: '+who.join(', ')+'. Move or resize that element by one pixel, or change its colour slightly.'); }
+  /* One calibration string could not be saved in the Garmin settings until a "\\d" in it was gone, while strings with a backslash
+     before other characters save fine. So only a backslash followed by a letter is reported, as a hint for when saving fails. */
+  if(/\\[A-Za-z]/.test(out)){ const who=marks.filter((m,k)=>/\\[A-Za-z]/.test(out.slice(m[1],k+1<marks.length?marks[k+1][1]:out.length))).map(m=>m[0].type===2?'colour rule '+ruleName(m[0]):plain(m[0]));
+    w('If the Garmin settings refuse to save this string: it contains a backslash followed by a letter'+(who.length?' (from '+who.join(', ')+')':'')+'. Moving that element by one pixel or changing its colour slightly removes it.'); }
   return {str:out,warn,n,mem};
 }
 function decodeLayout(str){
