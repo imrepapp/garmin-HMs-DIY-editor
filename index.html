@@ -846,7 +846,8 @@ function colorSection(e){
   const toFixed=()=>{ const rows=[...dc.dc].sort((a,b)=>b.val-a.val); e.a.color=rows.length?rows[rows.length-1].col:'000000'; if(!dcUsers(dc).length) S.els=S.els.filter(x=>x!==dc); commit(); refresh(); };
   const mode=seg([['f','Fixed'],['v','By value']],dc?'v':'f',m=>{ if(m==='v'&&!dc){ attachDyn(e); commit(); refresh(); } else if(m==='f'&&dc) toFixed(); });
   mode.className='seg mini'; mode.id='p-colmode'; mode.title='Fixed: one colour. By value: the colour'+(fill?' and fill level follow':' follows')+' a live value.';
-  box.append(el('h2',{},'Colour',el('span',{class:'sp'}),mode));
+  const vt=VT[e.a.eletype], canDyn=!!dc||e.type===1||(e.type===0&&e.a.fixedtext!=='true'&&!!vt&&vt.k!=='s');
+  box.append(el('h2',{},'Colour',el('span',{class:'sp'}),canDyn?mode:null));
   if(dc) box.append(el('div',{class:'colrow',style:'margin-bottom:8px'},el('span',{class:'hexlab'},'Colour follows a value'),nightBtn(e,null)),dcEditor(dc,e));
   else {
     box.append(el('div',{class:'colrow'},colorBtn(e.a.color,c=>{ e.a.color=c; commit(); refresh(); },'p-color'),el('span',{class:'hexlab'},'#'+e.a.color),nightBtn(e,e.a.color)));
