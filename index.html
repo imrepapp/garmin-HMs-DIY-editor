@@ -440,7 +440,7 @@ function fmtTime(mask, sec){
 function textOf(e){
   const a = e.a; if(a.fixedtext==='true') return a.text||'';
   const v = VT[a.eletype], mask = a.eletype==='BG' ? '$V' : (a.text||'$V');
-  if(v && v.k==='s') return S.samples[a.eletype] || a.sampletext || v.s;
+  if(v && v.k==='s') return S.samples[a.eletype] || a.sampletext || v.n;
   const s = sampleOf(e);
   let out = /\$[HhMmSCNDYa]/.test(mask) ? fmtTime(mask, s) : mask;
   const dirs = ['N','NE','E','SE','S','SW','W','NW'];
@@ -829,8 +829,8 @@ function pickValue(cur, fn, allowNone, only){
 function useValue(c){ $('#dlg-value').close(); const cb=valueCb; valueCb=null; if(cb) cb(c); }
 function sampleField(e){
   const code=valCode(e); if(code==='FX') return null; const v=VT[code], str=v&&v.k==='s';
-  const cur = S.samples[code] ?? (e.type===0&&e.a.sampletext ? e.a.sampletext : (v?v.s:0));
-  const i=el('input',{type:'text',id:'p-sample',value:cur,oninput:()=>{ const t=i.value.trim(); if(t==='') delete S.samples[code]; else if(str) S.samples[code]=t; else { const n=parseFloat(t.replace(',','.')); if(isFinite(n)) S.samples[code]=n; } live(); }});
+  const cur = S.samples[code] ?? (e.type===0&&e.a.sampletext ? e.a.sampletext : (str?'':(v?v.s:0)));
+  const i=el('input',{type:'text',id:'p-sample',value:cur,placeholder:str?v.n:null,oninput:()=>{ const t=i.value.trim(); if(t==='') delete S.samples[code]; else if(str) S.samples[code]=t; else { const n=parseFloat(t.replace(',','.')); if(isFinite(n)) S.samples[code]=n; } live(); }});
   return fld('Sample', i);
 }
 /* A colour is always shown as one swatch; clicking it opens the palette dialog. */
