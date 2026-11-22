@@ -665,13 +665,14 @@ function fitEls(els,box){ if(!els.length) return; const bs=els.map(bbox), x0=Mat
     else { a.x=R(X(N(a.x))); a.y=R(Y(N(a.y))); a.radius=R(Math.max(2,N(a.radius)*k)); if(N(a.stroke)>1) a.stroke=R(Math.max(1,N(a.stroke)*k)); } });
 }
 function placeTool(t,q,box){   // the tool stays armed for the next element
-  placeAt={x:clamp(Math.round(q.x),0,S.w),y:clamp(Math.round(q.y),0,S.h)}; const at=placeAt; try{ t.fn(); } finally { placeAt=null; }
+  placeAt={x:clamp(Math.round(q.x),0,S.w),y:clamp(Math.round(q.y),0,S.h)}; const at=placeAt, u0=undoSt.length, done=()=>{ if(t.b.dataset.comp) groupSel(t.label); undoSt.splice(u0+1); }; try{ t.fn(); } finally { placeAt=null; }
     if(box){ const w=box.x2-box.x, h=box.y2-box.y, n=undoSt.length;
       if(t.box==='c') fitEls(selEls().filter(e=>e.type<2),box); else for(const e of selEls().filter(e=>e.type===1)){ if(hasBox(e)){ e.a.x=String(box.x); e.a.y=String(box.y); e.a.x2=String(box.x2); e.a.y2=String(box.y2); } else { e.a.x=String(Math.round(box.x+w/2)); e.a.y=String(Math.round(box.y+h/2)); e.a.radius=String(Math.max(2,Math.round(Math.min(w,h)/2))); } }
-      commit(); if(undoSt.length>n) undoSt.pop(); refresh(); return; }
+      commit(); if(undoSt.length>n) undoSt.pop(); refresh(); done(); return; }
     // the clicked point becomes the top-left corner of what was just placed
     const put=selEls().filter(e=>e.type<2); if(put.length){ const bs=put.map(bbox), dx=Math.round(at.x-Math.min(...bs.map(b=>b.x))), dy=Math.round(at.y-Math.min(...bs.map(b=>b.y)));
       if(dx||dy){ for(const e of put){ e.a.x=String(N(e.a.x)+dx); e.a.y=String(N(e.a.y)+dy); if(hasBox(e)){ e.a.x2=String(N(e.a.x2)+dx); e.a.y2=String(N(e.a.y2)+dy); } } const n=undoSt.length; commit(); if(undoSt.length>n) undoSt.pop(); refresh(); } }
+  done();
 }
 /* ---------- Grid lines: straight dividers that touch each other or span the screen ----------
    Such a line only moves parallel to itself; the ends of the lines that stop at it follow along. */
@@ -755,13 +756,13 @@ function askDelete(){ const rl=selEls().filter(e=>e.type===2); if(rl.length&&rl.
   const x=selX().filter(e=>e.type!==2); if(!x.length) return; const g=x.filter(e=>e.type===3), n=x.filter(e=>e.type<2).length;
   $('#cf-text').textContent = g.length ? 'Delete '+(g.length===1?'the group “'+(g[0].a.text||'unnamed')+'”':g.length+' groups')+' and the '+n+' layer'+(n===1?'':'s')+' inside?' : n===1 ? 'Delete “'+nameOf(x[0]).replace(/^“|”$/g,'')+'”?' : 'Delete '+n+' layers?';
   $('#dlg-confirm').showModal(); }
-function groupSel(){
+function groupSel(name){ if(typeof name!=='string') name='';   // also used directly as a click handler
   const m=selX().filter(e=>e.type<2||(e.type===2&&false)); if(!m.length){ toast('Select the layers to group first.'); return; }
   let at=S.els.indexOf(m[m.length-1])+1; while(at<S.els.length&&S.els[at].type!==3) at++;
-  const anchor=S.els[at]||null, sep=mk(3,{text:'Group '+(S.els.filter(e=>e.type===3).length+1)});
+  const anchor=S.els[at]||null, sep=mk(3,{text:name||'Group '+(S.els.filter(e=>e.type===3).length+1)});
   S.els=S.els.filter(e=>!m.includes(e)); S.els.splice(anchor?S.els.indexOf(anchor):S.els.length,0,sep,...m);
   S.els=S.els.filter((e,i)=>e.type!==3||e===sep||(S.els[i+1]&&S.els[i+1].type!==3));
-  sel=[sep.id]; commit(); refresh(); const f=document.getElementById('p-text'); if(f){ f.focus(); f.select(); }
+  sel=[sep.id]; commit(); refresh(); if(name) return; const f=document.getElementById('p-text'); if(f){ f.focus(); f.select(); }
 }
 function ungroupSel(){ const hs=new Set(); for(const e of selEls()){ const h=e.type===3?e:headerOf(e); if(h) hs.add(h); }
   if(!hs.size){ toast('Nothing to ungroup.'); return; } const mem=[...hs].flatMap(h=>groupOf(h)); S.els=S.els.filter(e=>!hs.has(e)); sel=mem.filter(e=>e.type<2).map(e=>e.id); commit(); refresh(); }
