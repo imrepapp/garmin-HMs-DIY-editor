@@ -8,10 +8,11 @@ SDK_DIR holds Devices/<id>/simulator.json and Fonts/*.cft, as in a Connect IQ SD
 each character. No glyph images are read or stored.
 
 .cft layout (big-endian), as far as this tool needs it:
-  0x04 u32 file size, 0x08 u32 offset of the character map, 0x0c u32 offset of the glyph table,
+  0x04 u32 size (the file size in newer files), 0x08 u32 offset of the character map, 0x0c u32 offset of the glyph table,
   0x10 u32 offset of the glyph data, 0x16 u16 line height, 0x18 u16 ascent.
   Character map: 12 bytes, then u32 range count, then [first code, last code, first glyph index].
-  Glyph table: one u32 per glyph = data offset << 16 | flag << 15 | advance width.
+  Glyph table: one u32 per glyph; the low byte is the advance width, the high bits locate the
+  glyph data (their split differs between file versions, so only the low byte is used).
 
 Output: {"fonts": [[height, ascent, hex], ...], "dev": {device: [font index or -1] * 9}}
 with the nine fonts in the order XTINY TINY SMALL MEDIUM LARGE NR_MILD NR_MEDIUM NR_HOT NR_THAI_HOT;
@@ -27,7 +28,6 @@ CHARS = list(range(32, 127)) + [176]          # ASCII and the degree sign
 def read_cft(path):
     b = path.read_bytes()
     size, o_map, o_gl, o_data = struct.unpack('>IIII', b[4:20])
-    if size != len(b): raise ValueError('unexpected size field')
     height, ascent = struct.unpack('>HH', b[0x16:0x1a])
     n, = struct.unpack('>I', b[o_map + 12:o_map + 16])
     if o_map + 16 + n * 12 != o_gl: raise ValueError('unexpected character map')
@@ -37,7 +37,10 @@ def read_cft(path):
     for i in range(n):
         first, last, g = struct.unpack('>III', b[o_map + 16 + i * 12:o_map + 28 + i * 12])
         for c in range(first, last + 1):
-            if g + c - first < count: width[c] = glyph[g + c - first] & 0x7fff
+            if g + c - first < count: width[c] = glyph[g + c - first] & 0xff
+    digits = [width[c] for c in range(48, 58) if c in width]
+    if not width or max(width.values()) > 2.2 * height or (digits and max(digits) - min(digits) > max(2, 0.35 * max(digits))):
+        raise ValueError('implausible widths')
     return height, ascent, width
 
 def main():
@@ -67,6 +70,8 @@ def main():
             row.append(index.get(fn, -1))
         if any(i >= 0 for i in row): table[name] = row
     data = json.dumps({'fonts': fonts, 'dev': table}, separators=(',', ':'), ensure_ascii=False)
+    if missing: print('font files not found:', ', '.join(sorted(missing)))
+    print('devices without metrics:', ', '.join(n for n in ours if n not in table))
     print(f'{len(table)} of {len(ours)} devices, {len(fonts)} fonts, {len(data)} bytes; {len(missing)} font files not found, {len(bad)} unreadable')
     if write:
         new, k = re.subn(r'/\*METRICS\*/.*?/\*ENDMETRICS\*/', lambda m: '/*METRICS*/' + data + '/*ENDMETRICS*/', html, flags=re.S)
