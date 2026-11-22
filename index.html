@@ -135,7 +135,7 @@ h2 .sp{flex:1}
 .swatch.sm{width:20px;height:20px;cursor:default;border-radius:4px}
 .dc td .swatch{width:30px;height:24px}
 .hexlab{font:11px var(--f-mono);color:var(--mute)}
-.nightbtn{display:inline-flex;align-items:center;gap:5px;margin-left:auto}
+.nightbtn{display:inline-flex;align-items:center;gap:5px;margin-left:auto;cursor:pointer;white-space:nowrap}
 .nightbtn .swatch.sm{width:16px;height:16px;cursor:pointer}
 #cl-grid{display:grid;grid-template-columns:repeat(16,1fr);gap:2px;margin:6px 0 10px}
 #cl-grid button{aspect-ratio:1;border:1px solid var(--line);border-radius:2px;padding:0;cursor:pointer;min-width:0}
@@ -739,9 +739,8 @@ function pickColor(cur,cb){
 }
 function useColor(c){ if(!/^[0-9a-f]{6}$/i.test(c)){ toast('Enter a colour as six hex digits, for example FF5500.'); return; } $('#dlg-color').close(); const cb=colorCb; colorCb=null; if(cb) cb(c.toUpperCase()); }
 /* Night mode sits next to the colour: the data field inverts the colour itself, so only this switch is stored. */
-function nightBtn(e,col){ const on=e.a.daynight==='true';
-  return el('button',{type:'button',class:'btn sm nightbtn'+(on?' on':''),id:'p-daynight','aria-pressed':String(on),title:(on?'In night mode the data field inverts this colour.':'The colour stays the same in night mode.')+' The night colour is computed, not stored. Click to switch.',
-    onclick:()=>{ e.a.daynight=String(!on); commit(); refresh(); }},'Night:',col?el('span',{class:'swatch sm',style:'background:#'+(on?invert(col):col)}):null,on?'inverted':'same');
+function nightBtn(e,col){ const on=e.a.daynight==='true', cb=el('input',{type:'checkbox',id:'p-daynight',onchange:()=>{ e.a.daynight=String(cb.checked); commit(); refresh(); }}); cb.checked=on;
+  return el('label',{class:'nightbtn',title:(on?'In night mode the data field inverts this colour.':'The colour stays the same in night mode.')+' The night colour is computed, not stored.'},cb,'Invert at night',col?el('span',{class:'swatch sm',style:'background:#'+(on?invert(col):col)}):null);
 }
 function colorSection(e){
   const box=el('div',{}), dc=dcFor(e.a.color), fill=FILL.includes(e.a.eletype);
