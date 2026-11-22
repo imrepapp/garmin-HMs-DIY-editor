@@ -612,7 +612,7 @@ function renderChips(){
   const box=$('#chips'); if(!box) return; const s=selEls(), e=(s.length===1&&s[0].type<2&&!s[0].hide&&!tool)?s[0]:null;
   const have=new Map([...box.children].map(c=>[c.dataset.k,c]));
   for(const sp of e?chipSpec(e):[]){ const key=e.id+':'+sp.k; let c=have.get(key);
-    if(!c){ c=el('span',{class:'chip','data-k':key});
+    if(!c){ c=el('span',{class:'chip','data-k':key,title:sp.k==='s'||sp.k==='e'?'Angle in degrees: 0° points to 3 o\'clock and grows clockwise (270° = top). A filling arc runs from “from” towards “to”.':null});
       sp.f.forEach((f,i)=>{ const inp=el('input',{type:'number',step:'1','aria-label':f.l});
         inp.addEventListener('input',()=>{ if(inp.value===''||!isFinite(+inp.value)) return; c._f[i].set(Math.round(+inp.value)); live(); });
         inp.addEventListener('keydown',ev=>{ ev.stopPropagation(); if(ev.key==='Enter'||ev.key==='Escape') inp.blur(); });
@@ -1004,8 +1004,7 @@ function renderPanelBody(){
       if(a.eletype==='LN'||a.eletype==='RC') p.append(el('div',{class:'row'},fNum(e,'stroke','Stroke',{min:1})));
       if(k==='graph') p.append(el('div',{class:'row'},fNum(e,'stroke','Bar width',{min:1}),fNum(e,'radius','Min/max')),fChk(e,'minval','Limit is the minimum value'),fChk(e,'maxonly','Mark min/max values'));
     } else if(k==='circle'){ if(a.eletype==='CR') p.append(el('div',{class:'row'},fNum(e,'stroke','Stroke',{min:1}))); }
-    else if(k==='arc'){ p.append(el('div',{class:'row'},fNum(e,'stroke','Stroke',{min:1})),
-        el('div',{class:'hint'},'0° points to 3 o\'clock and angles grow clockwise (270° = top). A filling arc runs from the start angle towards the end angle.')); }
+    else if(k==='arc'){ p.append(el('div',{class:'row'},fNum(e,'stroke','Stroke',{min:1}))); }
     else if(k==='dir'){ p.append(el('div',{class:'row'},fNum(e,'stroke','Stroke',{min:1})),
         el('div',{class:'hint'},'With a non-zero offset the marker moves on a circle around the centre, like a compass.')); }
     p.append(el('div',{class:'row one'},fld(k==='dir'?'Target':'Value',valueSelect(a.valuetype||'FX',c=>{ a.valuetype=c; if(c==='FX'&&k!=='dir'&&detachDyn(e)) toast('Colour set back to fixed: there is no value to follow.'); commit(); refresh(); },'p-valuetype',true,k==='dir'?TARGETS:NUMERIC))));
