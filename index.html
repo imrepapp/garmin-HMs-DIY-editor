@@ -497,8 +497,10 @@ const MCHARS = Array.from({length:95},(_,i)=>i+32).concat([176]), MNAMES = ['XTI
 /* Where a device screenshot showed that the firmware font differs from the SDK font: character width on the device / in the SDK.
    Edge 830 (tools/calibration): the two largest number fonts are narrower (24 and 32 px per digit, punctuation shrinks half as much),
    four of the text fonts are a little wider. */
-const FONTFIX = {'Edge 830':{XTINY:1.09,TINY:1.02,SMALL:1.11,MEDIUM:1.055,NR_HOT:24/28,NR_THAI_HOT:32/35}};
-function advOf(font){ const row=METRICS.dev[S.device], i=row?row[MNAMES.indexOf(font)]:-1; if(i==null||i<0) return null;
+const FONTFIX = {'Edge 830':{XTINY:1.09,TINY:1.02,SMALL:1.11,MEDIUM:1.055,LARGE:1.045,NR_HOT:24/28,NR_THAI_HOT:32/35}};
+/* S_ fonts: where the device table lists no separate size for them they are the standard fonts (confirmed on an Edge 830 screenshot). */
+function baseFont(name){ const map=(DEV[S.device]||[])[3]||{}; return /^S_/.test(name)&&!map[name]?name.slice(2):name; }
+function advOf(font){ font=baseFont(font); const row=METRICS.dev[S.device], i=row?row[MNAMES.indexOf(font)]:-1; if(i==null||i<0) return null;
   const fix=(FONTFIX[S.device]||{})[font]||1, key=i+'|'+fix;
   let m=mCache.get(key); if(!m){ m={}; const hex=METRICS.fonts[i][2]; MCHARS.forEach((c,k)=>{ const w=parseInt(hex.substr(k*2,2),16); if(w) m[c]=w*(/^NR_/.test(font)&&(c===44||c===46||c===58)?(1+fix)/2:fix); }); mCache.set(key,m); } return m; }
 /* Width of a text on the device: real advances where known, the browser's measure for the rest. mctx.font must be set. */
@@ -515,8 +517,8 @@ function fontOf(e){
      y is the top of the line, the baseline sits `ascent` below it, x is the exact anchor. Measured on all nine fonts:
      digits of a number font are 0.94 x ascent tall, capitals of a text font 0.65 x line height (both within a pixel).
      The browser font is sized to that height. */
-  const row = METRICS.dev[S.device], mi = row ? row[MNAMES.indexOf(name)] : -1;
-  if(mi!=null && mi>=0){ const m=METRICS.fonts[mi], num=/^NR_/.test(name), fam=FAM[f[0]], cap=Math.max(4, num?m[1]*.94:m[0]*.65), px=Math.round(cap/capRatio(fam)*10)/10;
+  const bn = baseFont(name), row = METRICS.dev[S.device], mi = row ? row[MNAMES.indexOf(bn)] : -1;
+  if(mi!=null && mi>=0){ const m=METRICS.fonts[mi], num=/^NR_/.test(bn), fam=FAM[f[0]], cap=Math.max(4, num?m[1]*.94:m[0]*.65), px=Math.round(cap/capRatio(fam)*10)/10;
     return {css:`${fam[0]} ${px}px ${fam[1]}`, size:num?m[1]:m[0], off:[0,0,0], oy:0, asc:m[1]}; }
   const fam = FAM[f[0]]; return {css:`${fam[0]} ${f[1]}px ${fam[1]}`, size:f[1], off:[f[2],f[3],f[4]], oy:f[5]};
 }
