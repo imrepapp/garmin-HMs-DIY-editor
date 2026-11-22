@@ -919,7 +919,7 @@ function colorSection(e){
       rs.value=dc.a.replDC; box.append(el('div',{class:'row one'},rs));
     }
     if(others.length){   // a shared rule is edited in its own editor, not inside one of its elements
-      const rows=dcRows(dc), ed=el('div',{class:'dc'},el('div',{class:'colrow'},el('span',{class:'rsw big'},rows.map(r=>el('i',{style:'background:#'+r.col,title:'#'+r.col}))),el('span',{class:'sp'}),
+      const rows=dcRows(dc), ed=el('div',{class:'dc'},el('div',{class:'colrow'},el('span',{class:'rsw big'},rows.map(r=>{ const nc=night?invert(r.col).toUpperCase():null; return el('i',{style:'background:'+(nc?'linear-gradient(135deg,#'+r.col+' 50%,#'+nc+' 50%)':'#'+r.col),title:'#'+r.col+(nc?' by day, #'+nc+' at night (computed)':'')}); })),el('span',{class:'sp'}),
         el('button',{type:'button',class:'btn sm',id:'p-editrule',title:'Open the editor of this shared colour rule',onclick:()=>{ sel=[dc.id]; refresh(); }},'Edit rule…')),nightBtn(e));
       box.append(ed);
     } else { const ed=dcEditor(dc,e); ed.append(nightBtn(e)); box.append(ed); }
