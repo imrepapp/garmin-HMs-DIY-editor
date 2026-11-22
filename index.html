@@ -917,7 +917,6 @@ function colorSection(e){
         rules.map(r=>{ const us=dcUsers(r).filter(u=>u!==e); return el('option',{value:r.a.replDC},r===dc&&!us.length?'Own rule':ruleName(r)+' · '+r.dc.length+' range'+(r.dc.length===1?'':'s')+(us.length+(r===dc?1:0)>1?' · shared':'')); }),
         others.length?el('option',{value:'__new'},'Separate copy for this element'):null);
       rs.value=dc.a.replDC; box.append(el('div',{class:'row one'},rs));
-      if(others.length) box.append(el('div',{class:'hexlab',style:'margin:-2px 0 8px;white-space:normal'},'Also used by '+others.slice(0,3).map(nm).join(', ')+(others.length>3?' and '+(others.length-3)+' more':'')+'. Each element follows its own value.'));
     }
     if(others.length){   // a shared rule is edited in its own editor, not inside one of its elements
       const rows=dcRows(dc), ed=el('div',{class:'dc'},el('div',{class:'colrow'},el('span',{class:'rsw big'},rows.map(r=>el('i',{style:'background:#'+r.col,title:'#'+r.col}))),el('span',{class:'sp'}),
