@@ -60,13 +60,6 @@ aside{background:var(--bg);overflow:auto;padding:12px 16px;min-width:0}
 #layerbox{flex:1 1 0;min-height:140px;display:flex;flex-direction:column}
 #layers{flex:1;overflow:auto;min-height:0}
 .empty{font-weight:600;margin:2px 0 6px}
-#infobox{flex:none;max-height:45%;overflow:auto}
-#infobox summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:6px}
-#infobox summary::-webkit-details-marker{display:none}
-#infobox summary::before{content:'▾';color:var(--mute);font-size:11px}
-#infobox:not([open]) summary::before{content:'▸'}
-#infobox summary h2{margin:0;flex:1}
-#infobox[open] summary{margin-bottom:8px}
 #info h2:first-child{margin-top:0}
 #propkind{font-weight:700;letter-spacing:.06em}
 h2{font:700 12px/1 var(--f-head);letter-spacing:.09em;text-transform:uppercase;color:var(--mute);margin:14px 0 7px;display:flex;align-items:center;gap:6px}
@@ -177,6 +170,7 @@ dialog li{margin:5px 0}
     <button class="btn" id="bopen">Open</button>
     <button class="btn" id="bsave">Save</button>
     <button class="btn pri" id="bdev">Layout string for device</button>
+    <button class="btn" id="bhelp" title="Help: keyboard shortcuts and device info" aria-label="Help" style="border-radius:50%;width:30px;padding:5px 0;font-weight:700">?</button>
   </div>
 </header>
 <main>
@@ -207,10 +201,6 @@ dialog li{margin:5px 0}
       <div class="hint">Top of the list is in front. Drag to reorder. Select layers and press Ctrl/Cmd+G to group them.</div>
       <ul id="layers"></ul>
     </div>
-    <details id="infobox" class="widget" open>
-      <summary><h2>Info</h2></summary>
-      <div id="info"></div>
-    </details>
   </aside>
 </main>
 
@@ -247,6 +237,11 @@ dialog li{margin:5px 0}
   </ol>
   <p class="hint">The encoding is the generation "C" format of HMs DIY Designer 3.4.2. If the device shows "Incompatible string!", the data field expects another generation. An existing string can be loaded back by pasting it into the Open dialog.</p>
   <div class="dlgbar"><button class="btn pri" id="strcp">Copy string</button><span class="sp"></span><button class="btn" data-close>Close</button></div>
+</dialog>
+<dialog id="dlg-help" style="width:min(460px,calc(100vw - 32px))">
+  <h3>Help</h3>
+  <div id="info"></div>
+  <div class="dlgbar"><span class="sp"></span><button class="btn" data-close>Close</button></div>
 </dialog>
 <dialog id="dlg-new">
   <h3>New layout</h3>
@@ -911,8 +906,7 @@ function init(){
   ds.onchange=()=>{ if(ds.value==='__custom'){ S.custom=true; commit(); syncDevice(); refresh(); $('#devw').focus(); } else setDevice(ds.value); };
   const dim=()=>{ if(!S.custom) return; S.w=clamp(Math.round(N($('#devw').value))||S.w,50,1000); S.h=clamp(Math.round(N($('#devh').value))||S.h,50,1000); S.round=$('#devround').checked; commit(); fitZoom(); refresh(); };
   $('#devw').onchange=dim; $('#devh').onchange=dim; $('#devround').onchange=dim; $('#rescale').onclick=rescale;
-  const ib=$('#infobox'); try{ if(localStorage.getItem(KEY+'.info')==='0') ib.open=false; }catch(e){}
-  ib.addEventListener('toggle',()=>{ try{ localStorage.setItem(KEY+'.info',ib.open?'1':'0'); }catch(e){} });
+  $('#bhelp').onclick=()=>{ renderInfo(); $('#dlg-help').showModal(); };
   $('#undo').onclick=undo; $('#redo').onclick=redo; $('#zin').onclick=()=>setZoom(zoom+.5); $('#zout').onclick=()=>setZoom(zoom-.5); $('#zfit').onclick=fitZoom;
   $('#night').onclick=()=>{ night=!night; $('#night').classList.toggle('on',night); draw(); };
   $('#snap').onclick=()=>{ snapOn=!snapOn; $('#snap').classList.toggle('on',snapOn); };
