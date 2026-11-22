@@ -913,13 +913,14 @@ function renderPanelBody(){
       const mx=a.maxonly==='true', maxBtn=el('button',{type:'button',class:'btn icobtn'+(mx?' on':''),id:'p-maxonly','aria-pressed':String(mx),'aria-label':'Show only the maximum reached',title:(mx?'On: ':'Off: ')+'show the highest value reached during the activity instead of the current one',onclick:()=>{ a.maxonly=String(!mx); commit(); refresh(); }});
       maxBtn.innerHTML='<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M3 2.5h10M8 13.5V5.5M4.5 9L8 5.5 11.5 9"/></svg>';
       p.append(el('div',{class:'row one'},fld('Value',el('div',{class:'valrow'},valueSelect(a.eletype,c=>{ a.eletype=c; const nv=VT[c]; if(nv) a.text=nv.mask; delete a.sampletext; if(nv&&nv.k==='s'&&detachDyn(e)) toast('Colour set back to fixed: “'+nv.n+'” is not a number, so it cannot drive a colour.'); commit(); refresh(); },'p-eletype'),maxBtn))));
-      if(v&&v.id>0&&v.id<10) p.append(el('div',{class:'hint'},'The data field ignores the format for this type; no text is stored in the string.'));
-      p.append(el('div',{class:'row one'},fTxt(e,'text',a.eletype==='BG'?'Drivetrain':'Format')));
-      if(a.eletype!=='BG'){ const txt=v&&(v.mask==='$T'||a.eletype==='WB'), masks = v&&v.k==='t' ? ['$H:$M:$S','$H:$M:$C','$h:$M:$S','$H:$M','$m:$S','$M:$S'] : txt ? ['$T','$V'] : ['$V','$V%','$V km','$V W'];
+      const isStr=!!v&&v.k==='s'; if(isStr) maxBtn.hidden=true;
+      if(!isStr) p.append(el('div',{class:'row one'},fTxt(e,'text',a.eletype==='BG'?'Drivetrain':'Format')));
+      if(!isStr&&a.eletype!=='BG'){ const txt=v&&(v.mask==='$T'||a.eletype==='WB'), masks = v&&v.k==='t' ? ['$H:$M:$S','$H:$M:$C','$h:$M:$S','$H:$M','$m:$S','$M:$S'] : txt ? ['$T','$V'] : ['$V','$V%','$V km','$V W'];
         p.append(el('div',{class:'chips'},masks.map(m=>el('button',{type:'button',onclick:()=>{ a.text=m; commit(); refresh(); }},m)))); }
       const numeric=!v||(v.k==='n'&&v.mask!=='$T'&&a.eletype!=='BG'), opts=[['0','0'],['1','0.0'],['2','0.00']]; if(N(a.precision)>2) opts.push([a.precision,'0.000']);
       const dec=numeric?fld('Decimals',seg(opts,String(N(a.precision)),d=>{ a.precision=d; commit(); refresh(); })):null; if(dec) dec.id='p-precision';
-      p.append(el('div',{class:'row'},dec,fNum(e,'nr_values','Averaging',{min:1})), el('div',{class:'row one'},sampleField(e)));
+      if(!isStr) p.append(el('div',{class:'row'},dec,fNum(e,'nr_values','Averaging',{min:1})));
+      p.append(el('div',{class:'row one'},sampleField(e)));
     } else p.append(el('div',{class:'row one'},fTxt(e,'text','Text')));
     const map=(DEV[S.device]||[])[3]||{}, names=Object.keys(map).length?Object.keys(map):Object.keys(FONT_FALLBACK); if(!names.includes(a.font)) names.push(a.font);
     const fs=el('select',{id:'p-font',onchange:()=>{ a.font=fs.value; commit(); refresh(); }},names.map(n=>el('option',{value:n,title:n},(n.startsWith('S_')?'Sys ':'')+(FONT_NAMES[n.replace(/^S_/,'')]||n)+(map[n]?' · '+map[n][1]:''))));
