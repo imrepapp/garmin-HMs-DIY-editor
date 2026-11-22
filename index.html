@@ -855,7 +855,8 @@ function colorSection(e){
   if(dc){
     const own=e.type===0&&!label;
     if(own) box.append(el('div',{class:'hexlab',style:'margin:0 0 8px'},'Same source as shown'));
-    else { box.append(el('div',{class:'row one'},fld('Source',valueSelect(valCode(e),setSrc,'p-source',true)))); if(!noSrc&&e.type===0) box.append(el('div',{class:'row one'},sampleField(e))); }
+    else if(label){ box.append(el('div',{class:'row one'},fld('Source',valueSelect(valCode(e),setSrc,'p-source',true)))); if(!noSrc) box.append(el('div',{class:'row one'},sampleField(e))); }
+    else if(noSrc) box.append(el('div',{class:'hexlab',style:'margin:0 0 8px'},'Choose a value above'));
     const ed=dcEditor(dc,e); ed.append(nightBtn(e)); box.append(ed);
   } else {
     box.append(el('div',{class:'colrow'},colorBtn(e.a.color,c=>{ e.a.color=c; commit(); refresh(); },'p-color',night),el('span',{class:'hexlab'},'#'+e.a.color+(night?'  ·  night #'+invert(e.a.color).toUpperCase():''))),nightBtn(e));
