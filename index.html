@@ -772,6 +772,8 @@ function disarm(){ if(tool){ tool.b.classList.remove('on'); tool.b.setAttribute(
 function armTool(fn,b,label){ const same=tool&&tool.b===b; disarm(); if(same) return; tool={fn,b,label,draw:label==='Line',box:BOXTOOL[label]}; ptrBtn(false); b.classList.add('on'); b.setAttribute('aria-pressed','true'); $('#cv').style.cursor='crosshair'; selStatus(); renderChips(); }
 function buildPalette(){
   const cx=()=>placeAt?placeAt.x:Math.round(S.w/2), cy=()=>placeAt?placeAt.y:Math.round(S.h/2), u=()=>Math.round(Math.min(S.w,S.h)/4);
+  // helpers for the composites: put() moves a text so that its drawn top edge sits at `top` and returns its bottom edge
+  const T=(text,x,o)=>mkText(Object.assign({text,x:String(x)},o)), V=(code,x,o)=>mkVal(code,Object.assign({x:String(x)},o)), put=(e,top)=>{ e.a.y=String(Math.round(N(e.a.y)+top-bbox(e).y)); const b=bbox(e); return Math.round(b.y+b.h); };
   const P=[
    'Data|Elements that show a live value',
    ['val','t0','Value',()=>addEls([mkVal('CS',{x:String(cx()),y:String(cy()-20)})])],
@@ -792,6 +794,16 @@ function buildPalette(){
    ['gauge','t1','Gauge + value',()=>{ const r=u()*1.5|0, o={x:String(cx()),y:String(cy()),radius:String(r),x2:'200',y2:'340',stroke:'1'};
       const g=mkG('AF',Object.assign({color:'FF5500',valuetype:'CS'},o)); addEls([mkG('AC',Object.assign({color:'AAAAAA'},o)),g,mkVal('CS',{x:String(cx()),y:String(cy()-(r*.6|0))})]); const d=attachDyn(g); d.auto=true; d.dc[0].val=600; d.dc[1].val=0; commit(); refresh(); }],
    ['bar','t1','Bar + label',()=>{ const g=mkG('RH',{color:'00AA00',valuetype:'BV',x:String(cx()-u()),y:String(cy()+4),x2:String(cx()+u()),y2:String(cy()+12)}); addEls([mkText({text:'BATTERY',x:String(cx()),y:String(cy()-14)}),g]); const d=attachDyn(g); d.auto=true; d.dc[0].val=1000; d.dc[1].val=0; commit(); refresh(); }],
+   ['field','t0','Now / avg / max',()=>{ const x=cx(), y=cy(), d=Math.round(u()*.6), a=T('SPEED',x), b=V('CS',x), y2=put(b,put(a,y)+1)+5, l1=T('AVG',x-d), l2=T('MAX',x+d), v1=V('AS',x-d,{font:'SMALL'}), v2=V('MS',x+d,{font:'SMALL'}), y3=put(l1,y2)+1;
+      put(l2,y2); put(v1,y3); put(v2,y3); addEls([a,b,l1,v1,l2,v2]); }],
+   ['val','t0','Value + unit',()=>{ const x=cx(), v=V('CS',x,{halignment:'0'}), t=T('km/h',x+3,{halignment:'2'}), bot=put(v,cy()); put(t,bot-bbox(t).h); addEls([v,t]); }],
+   ['rect','t1','Framed field',()=>{ const x=cx(), y=cy(), w=u(), a=T('SPEED',x), b=V('CS',x), bot=put(b,put(a,y+4)+1)+4; addEls([mkG('RC',{x:String(x-w),y:String(y),x2:String(x+w),y2:String(bot)}),a,b]); }],
+   ['gauge','t1','Dial + value',()=>{ const x=cx(), y=cy(), r=u()*1.5|0, o={x:String(x),y:String(y),radius:String(r),x2:'135',y2:'45',stroke:'6'}, v=V('CS',x), t=T('km/h',x);
+      put(t,put(v,y-(bbox(v).h>>1))+2); const g=mkG('AF',Object.assign({color:'FF5500',valuetype:'CS'},o)); addEls([mkG('AC',Object.assign({color:'AAAAAA'},o)),g,v,t]); const d=attachDyn(g); d.auto=true; d.dc[0].val=600; d.dc[1].val=0; commit(); refresh(); }],
+   ['graph','t1','Graph + value',()=>{ const x=cx(), y=cy(), w=u(), v=V('HR',x+w,{font:'SMALL',halignment:'0',precision:'0'}), t=T('HEART RATE',x-w,{halignment:'2'}), bot=put(v,y); put(t,bot-bbox(t).h);
+      addEls([t,v,mkG('GB',{color:'AA0000',valuetype:'HR',x:String(x-w),y:String(bot+3),x2:String(x+w),y2:String(bot+3+u()),radius:'0',maxonly:'false'})]); }],
+   ['bar','t1','Bar + value',()=>{ const x=cx(), y=cy(), w=u(), v=V('BV',x+w+4,{font:'SMALL',halignment:'2',text:'$V%',precision:'0'}), m=(y+put(v,y))>>1; const g=mkG('RH',{color:'00AA00',valuetype:'BV',x:String(x-w),y:String(m-4),x2:String(x+w),y2:String(m+4)});
+      addEls([g,v]); const d=attachDyn(g); d.auto=true; d.dc[0].val=1000; d.dc[1].val=0; commit(); refresh(); }],
   ];
   const box=$('#palette'); let grid=el('div',{class:'palette'}); box.append(grid);
   { const b=el('button',{class:'t1 on',id:'tool-ptr',type:'button',title:'Select, move and resize elements (Space)','aria-pressed':'true',onclick:()=>disarm()}); b.innerHTML=ico('ptr')+'<span style="color:var(--ink)">Select</span>'; grid.append(b); }
