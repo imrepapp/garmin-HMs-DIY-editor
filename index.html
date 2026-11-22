@@ -507,8 +507,11 @@ function advOf(font){ font=baseFont(font); const row=METRICS.dev[S.device], i=ro
 function realWidth(t,adv){ let w=0; for(const ch of t){ const a=adv[ch.codePointAt(0)]; w+=a!=null?a:mctx.measureText(ch).width; } return w; }
 const capCache=new Map();
 /* height of the digit 0 as a fraction of the font size, for a CSS font */
-function capRatio(fam){ const k=fam[0]+' '+fam[1]; let r=capCache.get(k); if(!r){ mctx.font=`${fam[0]} 100px ${fam[1]}`; r=(mctx.measureText('0').actualBoundingBoxAscent||70)/100; capCache.set(k,r); } return r; }
-if(document.fonts&&document.fonts.ready) document.fonts.ready.then(()=>{ capCache.clear(); try{ draw(); }catch(_){} });
+function capRatio(fam){ const k=fam[0]+' '+fam[1]; let r=capCache.get(k); if(!r){ const css=`${fam[0]} 100px ${fam[1]}`; mctx.font=css; r=(mctx.measureText('0').actualBoundingBoxAscent||70)/100;
+    let ready=true; try{ ready=!document.fonts||document.fonts.check(css); }catch(_){} if(ready) capCache.set(k,r); }   // a web font still loading is measured again later
+  return r; }
+/* Web fonts arrive after the first drawing: measure and draw again whenever one has loaded. */
+if(document.fonts){ const again=()=>{ capCache.clear(); try{ draw(); }catch(_){} }; if(document.fonts.ready) document.fonts.ready.then(again); if(document.fonts.addEventListener) document.fonts.addEventListener('loadingdone',again); }
 function fontOf(e){
   const name = e.a.font||'SMALL', map = (DEV[S.device]||[])[3]||{};
   let f = map[name] || map[name.replace(/^S_/,'')];
