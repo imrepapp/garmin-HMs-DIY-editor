@@ -896,7 +896,9 @@ function renderPanelBody(){
       p.append(el('div',{class:'row one'},fTxt(e,'text',a.eletype==='BG'?'Drivetrain':'Format')));
       if(a.eletype!=='BG'){ const txt=v&&(v.mask==='$T'||a.eletype==='WB'), masks = v&&v.k==='t' ? ['$H:$M:$S','$H:$M:$C','$h:$M:$S','$H:$M','$m:$S','$M:$S'] : txt ? ['$T','$V'] : ['$V','$V%','$V km','$V W'];
         p.append(el('div',{class:'chips'},masks.map(m=>el('button',{type:'button',onclick:()=>{ a.text=m; commit(); refresh(); }},m)))); }
-      p.append(el('div',{class:'row'},fNum(e,'precision','Decimals',{min:0}),fNum(e,'nr_values','Averaging',{min:1})), el('div',{class:'row one'},sampleField(e)), fChk(e,'maxonly','Show only the maximum reached'));
+      const numeric=!v||(v.k==='n'&&v.mask!=='$T'&&a.eletype!=='BG'), opts=[['0','0'],['1','0.0'],['2','0.00']]; if(N(a.precision)>2) opts.push([a.precision,'0.000']);
+      const dec=numeric?fld('Decimals',seg(opts,String(N(a.precision)),d=>{ a.precision=d; commit(); refresh(); })):null; if(dec) dec.id='p-precision';
+      p.append(el('div',{class:'row'},dec,fNum(e,'nr_values','Averaging',{min:1})), el('div',{class:'row one'},sampleField(e)), fChk(e,'maxonly','Show only the maximum reached'));
     } else p.append(el('div',{class:'row one'},fTxt(e,'text','Text')));
     const map=(DEV[S.device]||[])[3]||{}, names=Object.keys(map).length?Object.keys(map):Object.keys(FONT_FALLBACK); if(!names.includes(a.font)) names.push(a.font);
     const fs=el('select',{id:'p-font',onchange:()=>{ a.font=fs.value; commit(); refresh(); }},names.map(n=>el('option',{value:n,title:n},(n.startsWith('S_')?'Sys ':'')+(FONT_NAMES[n.replace(/^S_/,'')]||n)+(map[n]?' · '+map[n][1]:''))));
