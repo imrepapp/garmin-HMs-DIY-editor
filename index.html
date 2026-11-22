@@ -66,6 +66,14 @@ aside{background:var(--bg);overflow:auto;padding:12px 16px;min-width:0}
 #layerbox{flex:1 1 0;min-height:140px;display:flex;flex-direction:column}
 #layers{flex:1;overflow:auto;min-height:0}
 .empty{font-weight:600;margin:2px 0 6px}
+#newgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:8px;margin:10px 0}
+.thumb{border:1px solid var(--line);background:var(--raise);border-radius:6px;padding:9px 6px 7px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;color:var(--mute)}
+.thumb b{color:var(--ink);font-weight:600;margin-top:4px;text-align:center}
+.thumb:hover{border-color:var(--accent)}
+.thumb.on{border-color:var(--accent);background:var(--accent-soft)}
+.scr{height:60px;display:grid;border:1.5px solid var(--mute);background:var(--panel);overflow:hidden}
+.scr i{border:.5px solid var(--mute)}
+.scr i.pick{background:var(--accent)}
 #info h2:first-child{margin-top:0}
 #propkind{font-weight:700;letter-spacing:.06em}
 h2{font:700 12px/1 var(--f-head);letter-spacing:.09em;text-transform:uppercase;color:var(--mute);margin:14px 0 7px;display:flex;align-items:center;gap:6px}
@@ -259,8 +267,11 @@ dialog li{margin:5px 0}
 </dialog>
 <dialog id="dlg-new">
   <h3>New layout</h3>
-  <p>What should it start from? Undo brings the current layout back.</p>
-  <div class="dlgbar"><button class="btn pri" id="new-sample">Sample layout</button><button class="btn" id="new-empty">Blank</button><span class="sp"></span><button class="btn" data-close>Cancel</button></div>
+  <div class="row one"><label class="f"><span>Device</span><select id="newdev"></select></label></div>
+  <p class="hint" style="margin-bottom:0">Which field of the data screen will the data field sit in? Pick the full screen or one field of a split screen.</p>
+  <div id="newgrid"></div>
+  <p class="hint" id="newnote"></p>
+  <div class="dlgbar"><button class="btn pri" id="new-sample">Create with sample content</button><button class="btn" id="new-empty">Create blank</button><span class="sp"></span><button class="btn" data-close>Cancel</button></div>
 </dialog>
 <div id="toast" hidden></div>
 
@@ -871,6 +882,31 @@ function rescale(){ if(!prevDim) return; const fx=S.w/prevDim.w, fy=S.h/prevDim.
 function setZoom(z){ zoom=clamp(Math.round(z*4)/4,.5,6); $('#zfit').textContent=Math.round(zoom*100)+'%'; draw(); }
 function fitZoom(){ const st=$('#stage'); const z=Math.min((st.clientWidth-PAD*2-8)/S.w,(st.clientHeight-PAD*2-8)/S.h); setZoom(clamp(Math.floor(z*4)/4,.5,4)); }
 
+/* ---------- New layout: full screen or one field of an evenly split data screen ---------- */
+let newPick=[1,1];
+function newDims(){ const name=$('#newdev').value||S.device, d=DEV[name]||[S.w,S.h,S.round?1:0], [r,c]=newPick, full=r===1&&c===1;
+  return {name,full,w:Math.round(d[0]/c),h:Math.round(d[1]/r),round:full&&!!d[2],dw:d[0],dh:d[1],dround:!!d[2]}; }
+function renderNew(){
+  const box=$('#newgrid'), d=newDims(); box.textContent='';
+  const opts=d.dround?[[1,1],[2,1],[3,1],[4,1]]:[[1,1],[2,1],[3,1],[4,1],[5,1],[2,2],[3,2],[4,2],[5,2]];
+  if(!opts.some(o=>o[0]===newPick[0]&&o[1]===newPick[1])) newPick=[1,1];
+  for(const [r,c] of opts){ const on=r===newPick[0]&&c===newPick[1], w=Math.round(d.dw/c), h=Math.round(d.dh/r);
+    const scr=el('span',{class:'scr',style:`width:${Math.round(60*d.dw/d.dh)}px;grid-template-columns:repeat(${c},1fr);grid-template-rows:repeat(${r},1fr);${d.dround?'border-radius:50%;':''}`});
+    for(let i=0;i<r*c;i++) scr.append(el('i',{class:i===0?'pick':''}));
+    box.append(el('button',{type:'button',class:'thumb'+(on?' on':''),'aria-pressed':String(on),onclick:()=>{ newPick=[r,c]; renderNew(); }},scr,
+      el('b',{},r===1?'Full screen':c===1?'1 of '+r+' rows':'Half of 1 of '+r+' rows'),el('span',{},w+' × '+h+' px')));
+  }
+  const n=newDims(); $('#newnote').textContent = n.full ? 'The data field fills the whole '+n.dw+' × '+n.dh+' px screen.' :
+    'Field sizes are computed by dividing the screen evenly; Garmin\'s real field can differ by a few pixels'+(n.dround?', and on a round screen its corners are cut by the bezel':'')+'. Fine-tune it later under “Custom size…” in the device list.';
+}
+function createNew(sample){
+  const n=newDims(); clearTimeout(cTimer); commit();
+  S.device=n.name; S.w=n.w; S.h=n.h; S.round=n.round; S.custom=!n.full; S.designer=null; S.els=[]; sel=[];
+  if(sample){ if(n.full) sampleLayout(); else { const cx=String(Math.round(S.w/2));
+    S.els=[mkG('RF',{color:'FFFFFF',x2:String(S.w),y2:String(S.h)},{lock:true}),mkText({text:'SPEED',color:'555555',x:cx,y:'2'}),mkVal('CS',{x:cx,y:String(Math.max(12,Math.round(S.h/2)-18)),font:S.h<80?'NR_MILD':'NR_MEDIUM',precision:'1'})]; } }
+  $('#rescale').hidden=true; commit(); syncDevice(); fitZoom(); refresh(); if($('#dlg-new').open) $('#dlg-new').close();
+}
+
 /* ---------- Sample layout ---------- */
 function sampleLayout(){
   S.els=[]; S.nid=1; const w=S.w, h=S.h, sx=v=>String(Math.round(v*w/246)), sy=v=>String(Math.round(v*h/322)), add=e=>(S.els.push(e),e);
@@ -946,9 +982,11 @@ function init(){
   $('#loadtxt').onclick=()=>{ if(loadText($('#xmlin').value)) $('#dlg-open').close(); };
   $('#bdev').onclick=showString;
   $('#strcp').onclick=()=>{ const t=$('#strout'); const fb=()=>{ t.focus(); t.select(); toast('Selected – press Ctrl+C to copy.'); }; if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(t.value).then(()=>toast('Layout string copied.'),fb); else fb(); };
-  $('#bnew').onclick=()=>$('#dlg-new').showModal();
-  $('#new-sample').onclick=()=>{ commit(); sampleLayout(); commit(); refresh(); $('#dlg-new').close(); };
-  $('#new-empty').onclick=()=>{ commit(); S.els=[]; S.designer=null; sel=[]; commit(); refresh(); $('#dlg-new').close(); };
+  const nd=$('#newdev'); for(const o of ds.options) if(o.value!=='__custom') nd.append(el('option',{value:o.value},o.textContent));
+  nd.onchange=()=>{ newPick=[1,1]; renderNew(); };
+  $('#bnew').onclick=()=>{ nd.value=DEV[S.device]?S.device:nd.options[0].value; newPick=[1,1]; renderNew(); $('#dlg-new').showModal(); };
+  $('#new-sample').onclick=()=>createNew(true);
+  $('#new-empty').onclick=()=>createNew(false);
   window.addEventListener('dragover',ev=>ev.preventDefault());
   window.addEventListener('drop',ev=>{ if(ev.dataTransfer&&ev.dataTransfer.files&&ev.dataTransfer.files[0]){ ev.preventDefault(); readFile(ev.dataTransfer.files[0]); } });
   window.addEventListener('resize',draw);
