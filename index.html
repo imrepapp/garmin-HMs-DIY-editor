@@ -473,7 +473,7 @@ function hit(e, px, py){
 const rad = d => d*Math.PI/180;
 function handles(e){
   const a=e.a, k=kind(e), x=N(a.x), y=N(a.y), x2=N(a.x2), y2=N(a.y2), r=N(a.radius);
-  if(k==='line') return [{k:'p1',x,y},{k:'p2',x:x2,y:y2}];
+  if(k==='line') return gridInfo(e)?[]:[{k:'p1',x,y},{k:'p2',x:x2,y:y2}];
   if(k==='rect'||k==='graph'||k==='box') return [{k:'p1',x,y},{k:'p2',x:x2,y:y2},{k:'ne',x:x2,y},{k:'sw',x,y:y2}];
   if(k==='circle') return [{k:'r',x:x+r,y}];
   if(k==='arc'){ const m=rad((x2+y2)/2); return [{k:'s',x:x+r*Math.cos(rad(x2)),y:y+r*Math.sin(rad(x2))},{k:'e',x:x+r*Math.cos(rad(y2)),y:y+r*Math.sin(rad(y2))},{k:'r',x:x+r*Math.cos(m),y:y+r*Math.sin(m)}]; }
@@ -601,14 +601,38 @@ function onDown(ev){
     if(ev.shiftKey){ sel = sel.includes(e.id) ? sel.filter(i=>i!==e.id) : [...sel,e.id]; }
     else if(!sel.includes(e.id)) sel=[e.id];
     const items=sel.map(byId).filter(Boolean);
-    drag={mode:'m',p,items,orig:items.map(i=>({x:N(i.a.x),y:N(i.a.y),x2:N(i.a.x2),y2:N(i.a.y2)})),box:items.length?bbox(byId(e.id)||items[0]):null,moved:false};
+    drag={mode:'m',p,items,orig:items.map(i=>({x:N(i.a.x),y:N(i.a.y),x2:N(i.a.x2),y2:N(i.a.y2)})),box:items.length?bbox(byId(e.id)||items[0]):null,moved:false,grid:items.length===1?gridInfo(items[0]):null};
     refresh();
   } else { if(!ev.shiftKey) sel=[]; drag={mode:'q',p,base:[...sel]}; refresh(); }
 }
+/* ---------- Grid lines: straight dividers that touch each other or span the screen ----------
+   Such a line only moves parallel to itself; the ends of the lines that stop at it follow along. */
+function axisOf(e){ if(!e||e.type!==1||e.a.eletype!=='LN') return null; const a=e.a; if(N(a.y)===N(a.y2)&&N(a.x)!==N(a.x2)) return 'h'; if(N(a.x)===N(a.x2)&&N(a.y)!==N(a.y2)) return 'v'; return null; }
+function gridInfo(e){
+  const ax=axisOf(e); if(!ax) return null; const a=e.a, T=1.5, H=ax==='h';
+  const pos=H?N(a.y):N(a.x), s0=H?Math.min(N(a.x),N(a.x2)):Math.min(N(a.y),N(a.y2)), s1=H?Math.max(N(a.x),N(a.x2)):Math.max(N(a.y),N(a.y2));
+  const len=H?S.w:S.h; let lo=0, hi=H?S.h:S.w, touches=0; const anch=[s0<=T,s1>=len-T], att=[], k1=H?'y':'x', k2=k1+'2';
+  for(const o of S.els){ if(o===e||o.hide) continue; const oa=axisOf(o); if(!oa||oa===ax) continue; const b=o.a;
+    const opos=H?N(b.x):N(b.y), v1=N(b[k1]), v2=N(b[k2]), omin=Math.min(v1,v2), omax=Math.max(v1,v2);
+    if(opos<s0-T||opos>s1+T) continue;
+    const e1=Math.abs(v1-pos)<=T, e2=Math.abs(v2-pos)<=T;
+    if(e1||e2){ touches++; const other=e1?v2:v1; att.push({o,key:e1?k1:k2}); if(other>pos) hi=Math.min(hi,other-4); else lo=Math.max(lo,other+4); }
+    else if(pos>=omin-T&&pos<=omax+T){ const at0=Math.abs(opos-s0)<=T, at1=Math.abs(opos-s1)<=T; if(at0||at1){ touches++; if(at0) anch[0]=true; if(at1) anch[1]=true; lo=Math.max(lo,omin); hi=Math.min(hi,omax); } }
+  }
+  if(!touches&&!(anch[0]&&anch[1])) return null;
+  return {ax,pos,lo,hi,att,keys:[k1,k2]};
+}
+function setGridLine(e,g,v){ v=g.lo<=g.hi?clamp(Math.round(v),g.lo,g.hi):g.pos; e.a[g.keys[0]]=e.a[g.keys[1]]=String(v); for(const t of g.att) t.o.a[t.key]=String(v); return v; }
 function snapAxis(vals, targets){ let best=null; for(const v of vals) for(const t of targets){ const d=t-v; if(Math.abs(d)<=5/zoom && (!best||Math.abs(d)<Math.abs(best.d))) best={d,t}; } return best; }
 function onMove(ev){
   const p=devPt(ev); $('#st-pos').textContent=`x ${Math.round(p.x)}  y ${Math.round(p.y)}`;
-  if(!drag) return;
+  if(!drag){ if(!tool){ const h=pick(p), g=h?gridInfo(h):null; $('#cv').style.cursor=g?(g.ax==='h'?'ns-resize':'ew-resize'):''; } return; }
+  if(drag.mode==='m'&&drag.grid){ const g=drag.grid, H=g.ax==='h', d=Math.round(H?p.y-drag.p.y:p.x-drag.p.x); if(!drag.moved&&Math.abs(d)<1) return;
+    drag.moved=true; guides=[]; let v=g.pos+d;
+    if(snapOn&&!ev.altKey){ const skip=new Set([drag.items[0],...g.att.map(t=>t.o)]), tg=H?[S.h/2,S.h/3,S.h*2/3,S.h/4,S.h*3/4]:[S.w/2,S.w/3,S.w*2/3,S.w/4,S.w*3/4];
+      for(const o of S.els){ if(o.type>1||o.hide||skip.has(o)) continue; const ob=bbox(o); if(H) tg.push(ob.y,ob.y+ob.h); else tg.push(ob.x,ob.x+ob.w); }
+      const sn=snapAxis([v],tg); if(sn&&sn.t>=g.lo&&sn.t<=g.hi){ v=sn.t; guides.push(H?{y:v}:{x:v}); } }
+    setGridLine(drag.items[0],g,v); draw(); selStatus(); return; }
   if(drag.mode==='h'){ dragHandle(drag.e,drag.hk,p.x,p.y,ev.shiftKey); drag.moved=true; draw(); selStatus(); return; }
   if(drag.mode==='q'){ const x=Math.min(p.x,drag.p.x), y=Math.min(p.y,drag.p.y), w=Math.abs(p.x-drag.p.x), h=Math.abs(p.y-drag.p.y); marquee={x,y,w,h};
     if(w+h>3){ const inside=S.els.filter(e=>{ if(e.type>1||e.hide||e.lock) return false; const b=bbox(e); return b.x<x+w&&b.x+b.w>x&&b.y<y+h&&b.y+b.h>y; }).map(e=>e.id); sel=[...new Set([...drag.base,...inside])]; }
@@ -652,7 +676,9 @@ function ungroupSel(){ const hs=new Set(); for(const e of selEls()){ const h=e.t
   if(!hs.size){ toast('Nothing to ungroup.'); return; } const mem=[...hs].flatMap(h=>groupOf(h)); S.els=S.els.filter(e=>!hs.has(e)); sel=mem.filter(e=>e.type<2).map(e=>e.id); commit(); refresh(); }
 function cloneEls(src, d){ return src.map(e=>{ const c=JSON.parse(JSON.stringify(e)); c.id=S.nid++; if(c.type<2){ c.a.x=String(N(c.a.x)+d); c.a.y=String(N(c.a.y)+d); if(hasBox(c)){ c.a.x2=String(N(c.a.x2)+d); c.a.y2=String(N(c.a.y2)+d); } } if(c.type===2){ c.a.replDC=uniqueKey(c.a.replDC); } return c; }); }
 function dupSel(){ const s=selX(); if(!s.length) return; const c=cloneEls(s,8); if(c[0].type===3){ S.els.push(...c); sel=[c[0].id]; commit(); refresh(); } else addEls(c); }
-function nudge(dx,dy,resize){ const s=selX().filter(e=>e.type<2); if(!s.length) return; for(const e of s){ if(resize&&hasBox(e)){ e.a.x2=String(N(e.a.x2)+dx); e.a.y2=String(N(e.a.y2)+dy); } else { e.a.x=String(N(e.a.x)+dx); e.a.y=String(N(e.a.y)+dy); if(hasBox(e)){ e.a.x2=String(N(e.a.x2)+dx); e.a.y2=String(N(e.a.y2)+dy); } } } draw(); renderPanel(); commitSoon(); }
+function nudge(dx,dy,resize){ const s=selX().filter(e=>e.type<2); if(!s.length) return;
+  if(s.length===1){ const g=gridInfo(s[0]); if(g){ const d=g.ax==='h'?dy:dx; if(d) setGridLine(s[0],g,g.pos+d); draw(); renderPanel(); commitSoon(); return; } }
+  for(const e of s){ if(resize&&hasBox(e)){ e.a.x2=String(N(e.a.x2)+dx); e.a.y2=String(N(e.a.y2)+dy); } else { e.a.x=String(N(e.a.x)+dx); e.a.y=String(N(e.a.y)+dy); if(hasBox(e)){ e.a.x2=String(N(e.a.x2)+dx); e.a.y2=String(N(e.a.y2)+dy); } } } draw(); renderPanel(); commitSoon(); }
 function moveLayer(dir){ const s=selEls(); if(!s.length) return; const order=dir>0?[...s].sort((a,b)=>S.els.indexOf(b)-S.els.indexOf(a)):[...s].sort((a,b)=>S.els.indexOf(a)-S.els.indexOf(b));
   for(const e of order){ const i=S.els.indexOf(e), j=i+dir; if(j<0||j>=S.els.length||sel.includes(S.els[j].id)) continue; S.els.splice(i,1); S.els.splice(j,0,e); } commit(); refresh(); }
 
@@ -1022,7 +1048,7 @@ function renderNew(){
     const scr=el('span',{class:'scr',style:`width:${Math.round(60*n.w/n.h)}px;${n.round?'border-radius:50%;':''}`}, rows.map(c=>el('span',{class:'r'},Array.from({length:c},()=>el('i',{})))));
     box.append(el('button',{type:'button',class:'thumb'+(on?' on':''),'aria-pressed':String(on),onclick:()=>{ newPick=idx; renderNew(); }},scr,el('b',{},cnt===1?'1 field':cnt+' fields'),el('span',{},rows.join(' + '))));
   });
-  $('#newnote').textContent='The layout always covers the whole '+n.w+' × '+n.h+' px screen; the dividing lines are drawn for you. Rows are split evenly, so compare with your device and nudge the lines if Garmin\'s own split differs. For a single field beside native Garmin fields, choose “Custom size…” in the device list instead.';
+  $('#newnote').textContent='The layout always covers the whole '+n.w+' × '+n.h+' px screen; the dividing lines are drawn for you. Rows are split evenly, so compare with your device and drag the lines if Garmin\'s own split differs. For a single field beside native Garmin fields, choose “Custom size…” in the device list instead.';
 }
 function fitFont(dev,w,h){ const m=(DEV[dev]||[])[3]||{}; for(const f of ['NR_THAI_HOT','NR_HOT','NR_MEDIUM','NR_MILD','LARGE','MEDIUM','SMALL']){ const e=m[f]; if(e&&e[1]<=h&&e[1]*2.7<=w) return [f,e[1],e[5]]; } const e=m.SMALL||[0,18,0,0,0,0]; return ['SMALL',e[1],e[5]]; }
 function createNew(sample){
@@ -1031,7 +1057,7 @@ function createNew(sample){
   if(rows.length===1&&rows[0]===1){ if(sample) sampleLayout(); }
   else { const W=S.w, H=S.h, R=v=>String(Math.round(v)), rh=H/rows.length, m=(DEV[n.name]||[])[3]||{}, lab=m.XTINY||m.TINY||[0,13,0,0,0,0], labFont=m.XTINY?'XTINY':'TINY';
     S.els.push(mkG('RF',{color:'FFFFFF',x2:R(W),y2:R(H)},{lock:true}), mk(3,{text:'Grid'}));
-    rows.forEach((c,r)=>{ if(r>0) S.els.push(mkG('LN',{x:'0',y:R(r*rh),x2:R(W),y2:R(r*rh)},{lock:true})); if(c===2) S.els.push(mkG('LN',{x:R(W/2),y:R(r*rh),x2:R(W/2),y2:R((r+1)*rh)},{lock:true})); });
+    rows.forEach((c,r)=>{ if(r>0) S.els.push(mkG('LN',{x:'0',y:R(r*rh),x2:R(W),y2:R(r*rh)})); if(c===2) S.els.push(mkG('LN',{x:R(W/2),y:R(r*rh),x2:R(W/2),y2:R((r+1)*rh)})); });
     if(sample){ let k=0; rows.forEach((c,r)=>{ for(let i=0;i<c;i++,k++){ const st=STARTERS[k%STARTERS.length], cw=W/c, cx=R(cw*i+cw/2), top=r*rh, lh=lab[1]+3, f=fitFont(n.name,cw-10,rh-lh-6);
       S.els.push(mk(3,{text:st[1].charAt(0)+st[1].slice(1).toLowerCase()}), mkText({text:st[1],color:'555555',font:labFont,x:cx,y:R(top+3-lab[5])}), mkVal(st[0],{text:st[2],precision:st[3],font:f[0],x:cx,y:R(top+lh+(rh-lh-f[1])/2-f[2])})); } }); }
   }
