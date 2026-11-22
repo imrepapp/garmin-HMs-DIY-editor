@@ -890,6 +890,16 @@ function colorSection(e){
     if(own) box.append(el('div',{class:'hexlab',style:'margin:0 0 8px'},'Same source as shown'));
     else if(label){ const sb=valueSelect(valCode(e),setSrc,'p-source',true,NUMERIC); sb.setAttribute('aria-label','Source value'); sb.title='The live value that drives the colour – click to choose'; box.append(el('div',{class:'row one'},sb)); if(!noSrc) box.append(V_AVG.has(valCode(e))?el('div',{class:'row'},sampleField(e),fNum(e,'nr_values','Averaging',{min:1})):el('div',{class:'row one'},sampleField(e))); }
     else if(noSrc) box.append(el('div',{class:'hexlab',style:'margin:0 0 8px'},'Choose a value above'));
+    const rules=S.els.filter(x=>x.type===2), others=dcUsers(dc).filter(u=>u!==e), nm=u=>nameOf(u).replace(/^“|”$/g,'');
+    if(rules.length>1||others.length){   // one colour rule can serve several elements
+      const rs=el('select',{id:'p-rule','aria-label':'Colour rule',title:'Which colour rule this element uses. One rule can be shared by several elements; each follows its own value.',onchange:()=>{ const v=rs.value, old=dc;
+          if(v==='__new'){ const key=uniqueKey(dc.a.replDC), cp=mkDyn(key,JSON.parse(JSON.stringify(dc.dc))); cp.a.invertcolor=dc.a.invertcolor; S.els.splice(S.els.indexOf(e),0,cp); e.a.color=key; } else e.a.color=v;
+          if(!dcUsers(old).length) S.els=S.els.filter(x=>x!==old); commit(); refresh(); }},
+        rules.map(r=>{ const us=dcUsers(r).filter(u=>u!==e); return el('option',{value:r.a.replDC},r===dc?(us.length?'Shared rule · '+(us.length+1)+' elements':'Own rule'):'Rule of '+(us.length?nm(us[0])+(us.length>1?' +'+(us.length-1):''):'no element')+' · '+r.dc.length+' range'+(r.dc.length===1?'':'s')); }),
+        others.length?el('option',{value:'__new'},'Separate copy for this element'):null);
+      rs.value=dc.a.replDC; box.append(el('div',{class:'row one'},rs));
+      if(others.length) box.append(el('div',{class:'hexlab',style:'margin:-2px 0 8px;white-space:normal'},'Also used by '+others.slice(0,3).map(nm).join(', ')+(others.length>3?' and '+(others.length-3)+' more':'')+'. Changes apply to all.'));
+    }
     const ed=dcEditor(dc,e); ed.append(nightBtn(e)); box.append(ed);
   } else {
     box.append(el('div',{class:'colrow'},colorBtn(e.a.color,c=>{ e.a.color=c; commit(); refresh(); },'p-color',night),el('span',{class:'hexlab'},'#'+e.a.color+(night?'  ·  night #'+invert(e.a.color).toUpperCase():''))),nightBtn(e));
