@@ -716,6 +716,7 @@ function fNum(e,key,label,o){ o=o||{}; const i=el('input',{type:'number',id:'p-'
 function fTxt(e,key,label,o){ o=o||{}; const i=el('input',{type:'text',id:'p-'+key,value:e.a[key]??'',placeholder:o.ph,oninput:()=>{ e.a[key]=i.value; live(); renderLayersSoon(); }}); return fld(label,i); }
 function fChk(e,key,label){ const i=el('input',{type:'checkbox',id:'p-'+key,onchange:()=>{ e.a[key]=String(i.checked); live(); }}); i.checked=e.a[key]==='true'; return el('label',{class:'chk'},i,label); }
 let rlT; function renderLayersSoon(){ clearTimeout(rlT); rlT=setTimeout(renderLayers,200); }
+function alignIco(d,name){ const t=document.createElement('span'); t.title=name; t.setAttribute('role','img'); t.setAttribute('aria-label',name); t.style.display='flex'; t.style.justifyContent='center'; t.innerHTML='<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="'+d+'"/></svg>'; return t; }
 function seg(opts, cur, fn){ return el('div',{class:'seg'},opts.map(([v,l])=>el('button',{type:'button',class:v===cur?'on':'',onclick:()=>fn(v)},l))); }
 function valueSelect(cur, fn, id){
   const s=el('select',{id,onchange:()=>fn(s.value)}); s.append(el('option',{value:'FX'},'– none –'));
@@ -806,7 +807,7 @@ function renderPanelBody(){
     const fs=el('select',{id:'p-font',onchange:()=>{ a.font=fs.value; commit(); refresh(); }},names.map(n=>el('option',{value:n},(FONT_NAMES[n.replace(/^S_/,'')]||n)+(n.startsWith('S_')?' (system)':'')+' – '+n+(map[n]?' · '+map[n][1]+' px':''))));
     fs.value=a.font;
     p.append(el('h2',{},'Font'),el('div',{class:'row one'},fld('Font',fs)),
-      el('div',{class:'row one'},fld('Alignment at the X position',seg([['2','Left'],['1','Centre'],['0','Right']],a.halignment,v=>{ a.halignment=v; commit(); refresh(); }))),
+      el('div',{class:'row one'},fld('Alignment',seg([['2',alignIco('M2 3.5h12M2 6.5h7M2 9.5h12M2 12.5h7','Left')],['1',alignIco('M2 3.5h12M4.5 6.5h7M2 9.5h12M4.5 12.5h7','Centre')],['0',alignIco('M2 3.5h12M7 6.5h7M2 9.5h12M7 12.5h7','Right')]],a.halignment,v=>{ a.halignment=v; commit(); refresh(); }))),
       colorSection(e));
   } else {
     const t=a.eletype, setT=c=>{ a.eletype=c; commit(); refresh(); };
