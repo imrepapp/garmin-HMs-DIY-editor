@@ -438,7 +438,8 @@ const hasBox = e => ['line','rect','graph','box'].includes(kind(e));
 function mk(type, a, extra){ return Object.assign({id:S.nid++, type, a}, extra||{}); }
 function mkText(o){ return mk(0, Object.assign({color:'000000',x:'0',y:'0',fixedtext:'true',daynight:'true',eletype:'FX',text:'LABEL',font:'XTINY',halignment:'1',precision:'0',nr_values:'1',maxonly:'false'}, o)); }
 function mkVal(code, o){ const v=VT[code]||VT.FX; return mkText(Object.assign({fixedtext:'false',eletype:code,text:v.mask||'$V',font:'NR_MEDIUM',precision:String(v.k==='n'&&v.s%1?1:0)}, o)); }
-function mkG(t, o, extra){ return mk(1, Object.assign({color:'000000',x:'0',y:'0',x2:'0',y2:'0',eletype:t,valuetype:'FX',minval:'false',maxonly:'false',daynight:'true',radius:'0',stroke:'1',nr_values:'1'}, o), extra); }
+/* New lines look like the device's own field separators: green (00AA00, seen on an Edge 830), the same by day and by night. */
+function mkG(t, o, extra){ const ln=t==='LN'; return mk(1, Object.assign({color:ln?'00AA00':'000000',x:'0',y:'0',x2:'0',y2:'0',eletype:t,valuetype:'FX',minval:'false',maxonly:'false',daynight:ln?'false':'true',radius:'0',stroke:'1',nr_values:'1'}, o), extra); }
 function mkDyn(key, rows){ return mk(2, {replDC:key, invertcolor:'false'}, {dc:rows, dirty:true}); }
 function usedColors(){ const u=new Set(); for(const e of S.els){ if(e.a.color) u.add(e.a.color.toUpperCase()); if(e.type===2){ u.add((e.a.replDC||'').toUpperCase()); e.dc.forEach(r=>u.add(r.col.toUpperCase())); } } return u; }
 function uniqueKey(base){ const u=usedColors(); let n=parseInt(base,16)||0; for(let i=1;i<4096;i++){ const c=((n^i)&0xFFFFFF).toString(16).toUpperCase().padStart(6,'0'); if(!u.has(c)) return c; } return 'FEFEFA'; }
@@ -1372,8 +1373,29 @@ function fieldsOf(n){ const uniq=[], near=(a,b)=>Math.abs(a[2]-b[2])<=1&&Math.ab
   uniq.sort((a,b)=>b.c[2]*b.c[3]-a.c[2]*a.c[3]); uniq.forEach(u=>u.full=u.c[2]>=n.w-3&&u.c[3]>=n.h-3); return uniq; }
 /* Grid suggestions inside a field: for the whole screen the device's own data screen layouts, for a smaller field even grids whose cells can still hold a value. */
 function gridsOf(n,f){ if(f.full) return n.list.map(l=>({name:l.cells.length===1?'No grid':l.name.replace(/Fields?/,m=>m==='Field'?'cell':'cells'),sub:l.cells.length===1?'':'like '+l.name,cells:l.cells}));
-  const W=f.c[2], H=f.c[3], out=[];
-  for(let r=1;r<=4;r++) for(let c=1;c<=4;c++){ if(r*c>1&&(W/c<40||H/r<28)) continue; const cells=[]; for(let y=0;y<r;y++) for(let x=0;x<c;x++) cells.push([Math.round(W/c*x),Math.round(H/r*y),Math.round(W/c),Math.round(H/r),0]); out.push({name:r*c===1?'No grid':r*c+' cells',sub:r*c===1?'':c+' × '+r,cells,n:r*c}); }
+  /* For a smaller field: a set of grid ideas, even and uneven. A cell is never taller than wide, and big enough to hold a value. */
+  const W=f.c[2], H=f.c[3], out=[], seen=new Set();
+  const cols=(x,y,w,h,parts)=>{ const t=parts.reduce((a,b)=>a+b,0); let o=0; return parts.map(q=>{ const r=[x+w*o/t,y,w*q/t,h]; o+=q; return r; }); };
+  const rows=(x,y,w,h,parts)=>{ const t=parts.reduce((a,b)=>a+b,0); let o=0; return parts.map(q=>{ const r=[x,y+h*o/t,w,h*q/t]; o+=q; return r; }); };
+  const T=[   // [note, cells in fractions of the field]
+    ['', [[0,0,1,1]]],
+    ['2 columns', cols(0,0,1,1,[1,1])], ['wide + narrow', cols(0,0,1,1,[5,3])], ['narrow + wide', cols(0,0,1,1,[3,5])],
+    ['3 columns', cols(0,0,1,1,[1,1,1])], ['wide + 2 narrow', cols(0,0,1,1,[2,1,1])], ['wide in the middle', cols(0,0,1,1,[1,2,1])], ['2 narrow + wide', cols(0,0,1,1,[1,1,2])],
+    ['4 columns', cols(0,0,1,1,[1,1,1,1])], ['wide + 3 narrow', cols(0,0,1,1,[2,1,1,1])],
+    ['2 rows', rows(0,0,1,1,[1,1])], ['tall + low row', rows(0,0,1,1,[5,3])], ['low + tall row', rows(0,0,1,1,[3,5])], ['3 rows', rows(0,0,1,1,[1,1,1])],
+    ['big left, 2 stacked', [[0,0,.6,1],...rows(.6,0,.4,1,[1,1])]], ['2 stacked, big right', [...rows(0,0,.4,1,[1,1]),[.4,0,.6,1]]],
+    ['big left, 3 stacked', [[0,0,.6,1],...rows(.6,0,.4,1,[1,1,1])]],
+    ['big middle, stacks beside', [...rows(0,0,.25,1,[1,1]),[.25,0,.5,1],...rows(.75,0,.25,1,[1,1])]],
+    ['big left, 2 × 2', [[0,0,.5,1],...cols(.5,0,.5,.5,[1,1]),...cols(.5,.5,.5,.5,[1,1])]], ['2 × 2, big right', [...cols(0,0,.5,.5,[1,1]),...cols(0,.5,.5,.5,[1,1]),[.5,0,.5,1]]],
+    ['wide top, 2 below', [[0,0,1,.55],...cols(0,.55,1,.45,[1,1])]], ['wide top, 3 below', [[0,0,1,.55],...cols(0,.55,1,.45,[1,1,1])]],
+    ['2 above, wide bottom', [...cols(0,0,1,.45,[1,1]),[0,.45,1,.55]]], ['3 above, wide bottom', [...cols(0,0,1,.45,[1,1,1]),[0,.45,1,.55]]],
+    ['2 × 2', [...cols(0,0,1,.5,[1,1]),...cols(0,.5,1,.5,[1,1])]], ['2 above, 3 below', [...cols(0,0,1,.5,[1,1]),...cols(0,.5,1,.5,[1,1,1])]], ['3 above, 2 below', [...cols(0,0,1,.5,[1,1,1]),...cols(0,.5,1,.5,[1,1])]],
+    ['3 × 2', [...cols(0,0,1,.5,[1,1,1]),...cols(0,.5,1,.5,[1,1,1])]], ['4 × 2', [...cols(0,0,1,.5,[1,1,1,1]),...cols(0,.5,1,.5,[1,1,1,1])]],
+    ['wide top, 2 × 2 below', [[0,0,1,.4],...cols(0,.4,1,.3,[1,1]),...cols(0,.7,1,.3,[1,1])]], ['2 × 3', [...cols(0,0,1,1/3,[1,1]),...cols(0,1/3,1,1/3,[1,1]),...cols(0,2/3,1,1/3,[1,1])]] ];
+  for(const [note,fr] of T){ const cells=fr.map(([x,y,w,h])=>{ const x0=Math.round(x*W), y0=Math.round(y*H); return [x0,y0,Math.round((x+w)*W)-x0,Math.round((y+h)*H)-y0,0]; });
+    if(cells.length>1&&cells.some(c=>c[2]<c[3]||c[2]<40||c[3]<28)) continue;   // never portrait, never too small
+    const key=JSON.stringify(cells); if(seen.has(key)) continue; seen.add(key);
+    out.push({name:cells.length===1?'No grid':cells.length+' cells',sub:note,cells,n:cells.length}); }
   return out.sort((a,b)=>a.n-b.n); }
 function renderNew(){
   const box=$('#newgrid'), n=newInfo(), fields=fieldsOf(n); box.textContent='';
