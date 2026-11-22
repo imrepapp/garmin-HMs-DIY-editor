@@ -736,7 +736,7 @@ function onMove(ev){
   draw(); selStatus();
 }
 function onUp(){ if(!drag) return; const d=drag; drag=null; guides=[]; marquee=null;
-  if(d.mode==='b'){ const b=dragBox(d), t=tool; if(!t){ refresh(); return; } placeTool(t,d.p,b.x2-b.x>=4&&b.y2-b.y>=4?b:null); return; }
+  if(d.mode==='b'){ const b=dragBox(d), t=tool; if(!t){ refresh(); return; } if(b.x2-b.x>=4&&b.y2-b.y>=4) placeTool(t,d.p,b); else { draw(); selStatus(); } return; }   // a plain click places nothing
   if(d.mode==='d'){ const l=d.line; if(l.x!==l.x2||l.y!==l.y2){ addEls([mkG('LN',{x:String(l.x),y:String(l.y),x2:String(l.x2),y2:String(l.y2)})]); } else { draw(); selStatus(); } return; }   // a plain click keeps the tool armed, so a double-click can follow
   if(!d.moved&&d.drill) sel=[d.drill];
   if(d.moved) commit(); refresh(); }
@@ -783,7 +783,7 @@ const BOXTOOL={'Frame':'b','Rectangle':'b','Progress bar':'b','Graph':'b','Circl
 function dragBox(d){ const cl=(v,m)=>clamp(Math.round(v),0,m), x=cl(d.p.x,S.w), y=cl(d.p.y,S.h), x2=cl(d.q.x,S.w), y2=cl(d.q.y,S.h); return {x:Math.min(x,x2),y:Math.min(y,y2),x2:Math.max(x,x2),y2:Math.max(y,y2)}; }
 function ptrBtn(on){ const b=$('#tool-ptr'); if(b){ b.classList.toggle('on',on); b.setAttribute('aria-pressed',String(on)); } }
 function disarm(){ if(tool){ tool.b.classList.remove('on'); tool.b.setAttribute('aria-pressed','false'); } tool=null; ptrBtn(true); $('#cv').style.cursor=''; selStatus(); }
-function armTool(fn,b,label){ const same=tool&&tool.b===b; disarm(); if(same) return; tool={fn,b,label,draw:label==='Line',box:BOXTOOL[label]||(b.dataset.comp?'c':undefined)}; ptrBtn(false); b.classList.add('on'); b.setAttribute('aria-pressed','true'); $('#cv').style.cursor='crosshair'; selStatus(); renderChips(); }
+function armTool(fn,b,label){ const same=tool&&tool.b===b; disarm(); if(same) return; tool={fn,b,label,draw:label==='Line',box:label==='Line'?undefined:BOXTOOL[label]||'c'}; ptrBtn(false); b.classList.add('on'); b.setAttribute('aria-pressed','true'); $('#cv').style.cursor='crosshair'; selStatus(); renderChips(); }
 function buildPalette(){
   const cx=()=>placeAt?placeAt.x:Math.round(S.w/2), cy=()=>placeAt?placeAt.y:Math.round(S.h/2), u=()=>Math.round(Math.min(S.w,S.h)/4);
   // helpers for the composites: put() moves a text so that its drawn top edge sits at `top` and returns its bottom edge
@@ -823,7 +823,7 @@ function buildPalette(){
   { const b=el('button',{class:'t1 on',id:'tool-ptr',type:'button',title:'Select, move and resize elements (Space)','aria-pressed':'true',onclick:()=>disarm()}); b.innerHTML=ico('ptr')+'<span style="color:var(--ink)">Select</span>'; grid.append(b); }
   for(const it of P){
     if(typeof it==='string'){ const [name,tip]=it.split('|'); sec=name; box.append(el('div',{class:'psec',title:tip},name)); grid=el('div',{class:'palette'}); box.append(grid); continue; }
-    const [i,cls,label,fn]=it, b=el('button',{class:cls,type:'button',title:label==='Line'?'Pick, then drag on the screen':BOXTOOL[label]==='c'?'Pick, then drag on the screen to set its size (or click for the default size)':BOXTOOL[label]?'Pick, then drag on the screen to set its size':'Pick, then click on the screen to place it','aria-pressed':'false',onclick:()=>armTool(fn,b,label)}); if(sec==='Composite'){ b.dataset.comp='1'; b.title='Pick, then drag on the screen to set its size (or click for the default size)'; } b.innerHTML=ico(i)+'<span style="color:var(--ink)">'+label+'</span>'; grid.append(b);
+    const [i,cls,label,fn]=it, b=el('button',{class:cls,type:'button',title:label==='Line'?'Pick, then drag on the screen':BOXTOOL[label]==='c'?'Pick, then drag on the screen to set its size':BOXTOOL[label]?'Pick, then drag on the screen to set its size':'Pick, then click on the screen to place it','aria-pressed':'false',onclick:()=>armTool(fn,b,label)}); if(sec==='Composite'){ b.dataset.comp='1'; b.title='Pick, then drag on the screen to set its size'; } b.innerHTML=ico(i)+'<span style="color:var(--ink)">'+label+'</span>'; grid.append(b);
   }
 }
 
