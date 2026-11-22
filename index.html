@@ -782,7 +782,7 @@ let valueCb=null;
 function valueSelect(cur, fn, id, allowNone){
   const v=VT[cur], none=!cur||cur==='FX';
   return el('button',{type:'button',class:'valbtn',id,title:'Click to choose a value',onclick:()=>pickValue(cur,fn,allowNone)},
-    el('span',{class:'vn'},none?'– none –':v?v.n:'Unknown code'),none?null:el('span',{class:'vc'},cur),el('span',{class:'va','aria-hidden':'true'},'▾'));
+    el('span',{class:'vn'},none?'– none –':v?v.n:'Unknown code'),(!none&&v&&v.mem>30)?el('span',{class:'vm',role:'img','aria-label':v.mem>=500?'High-memory devices only':'Medium- and high-memory devices',title:v.mem>=500?'H: only available on high-memory devices':'M: available on medium- and high-memory devices'},v.mem>=500?'H':'M'):null,none?null:el('span',{class:'vc'},cur),el('span',{class:'va','aria-hidden':'true'},'▾'));
 }
 function pickValue(cur, fn, allowNone){
   valueCb=fn; const q=$('#vl-q'), list=$('#vl-list'); q.value='';
@@ -872,7 +872,6 @@ function renderPanelBody(){
     p.append(el('h2',{class:'t0'},isVal?'Value':'Label'));
     if(isVal){
       p.append(el('div',{class:'row one'},fld('Value',valueSelect(a.eletype,c=>{ a.eletype=c; const nv=VT[c]; if(nv) a.text=nv.mask; delete a.sampletext; commit(); refresh(); },'p-eletype'))));
-      if(v&&v.mem>30) p.append(el('div',{class:'hint'},v.mem>=500?'(H): only available on high-memory devices.':'(M): available on medium- and high-memory devices.'));
       if(v&&v.id>0&&v.id<10) p.append(el('div',{class:'hint'},'The data field ignores the format for this type; no text is stored in the string.'));
       p.append(el('div',{class:'row one'},fTxt(e,'text',a.eletype==='BG'?'Drivetrain':'Format')));
       if(a.eletype!=='BG'){ const masks = v&&v.k==='t' ? ['$H:$M:$S','$H:$M:$C','$h:$M:$S','$H:$M','$m:$S','$M:$S'] : ['$V','$V%','$V km','$V W','$T'];
