@@ -633,7 +633,7 @@ function devPt(ev){ const r=$('#cv').getBoundingClientRect(); return {x:(ev.clie
 function pick(p){ for(let i=S.els.length-1;i>=0;i--){ const e=S.els[i]; if(e.type<2 && !e.hide && !e.lock && hit(e,p.x,p.y)) return e; } return null; }
 function onDown(ev){
   if(ev.button) return;
-  if(tool&&tool.draw){ const q=devPt(ev); $('#cv').setPointerCapture(ev.pointerId); clearTimeout(cTimer); commit(); drag={mode:'d',p:q,line:drawnLine(q,q)}; draw(); return; }
+  if(tool&&tool.draw){ const q=devPt(ev); $('#cv').setPointerCapture(ev.pointerId); clearTimeout(cTimer); commit(); const mod={shift:ev.shiftKey,snap:ev.ctrlKey||ev.metaKey}; drag={mode:'d',p:q,snap0:mod.snap,line:drawnLine(q,q,mod)}; draw(); return; }
   if(tool){ const q=devPt(ev), t=tool; placeAt={x:clamp(Math.round(q.x),0,S.w),y:clamp(Math.round(q.y),0,S.h)}; disarm(); const at=placeAt; try{ t.fn(); } finally { placeAt=null; }
     // the clicked point becomes the top-left corner of what was just placed
     const put=selEls().filter(e=>e.type<2); if(put.length){ const bs=put.map(bbox), dx=Math.round(at.x-Math.min(...bs.map(b=>b.x))), dy=Math.round(at.y-Math.min(...bs.map(b=>b.y)));
@@ -673,19 +673,23 @@ function gridInfo(e){
 function setGridLine(e,g,v){ v=g.lo<=g.hi?clamp(Math.round(v),g.lo,g.hi):g.pos; e.a[g.keys[0]]=e.a[g.keys[1]]=String(v); for(const t of g.att) t.o.a[t.key]=String(v); return v; }
 /* ---------- Drawing a new line: drag from start to end; the ends snap onto nearby perpendicular lines and the screen edge ---------- */
 function lineTargets(H,pos){ const t=[0,H?S.w:S.h]; for(const o of S.els){ if(o.hide) continue; const oa=axisOf(o); if(!oa||(oa==='h')===H) continue; const b=o.a, v1=H?N(b.y):N(b.x), v2=H?N(b.y2):N(b.x2); if(pos>=Math.min(v1,v2)-1.5&&pos<=Math.max(v1,v2)+1.5) t.push(H?N(b.x):N(b.y)); } return t; }
-function drawnLine(p0,p1){
-  const len=Math.hypot(p1.x-p0.x,p1.y-p0.y), H=len<3||Math.abs(p1.x-p0.x)>=Math.abs(p1.y-p0.y), pos=clamp(Math.round(H?p0.y:p0.x),0,H?S.h:S.w), tg=lineTargets(H,pos), tol=14/zoom;
-  let a=H?p0.x:p0.y, c=H?p1.x:p1.y, sa=null, sc=null;
-  if(len<3){ sa=Math.max(...tg.filter(t=>t<=a+.5)); sc=Math.min(...tg.filter(t=>t>=a-.5)); if(!isFinite(sa)) sa=0; if(!isFinite(sc)) sc=H?S.w:S.h; }
-  else { const sn=v=>{ let b=null; for(const t of tg) if(Math.abs(t-v)<=tol&&(b==null||Math.abs(t-v)<Math.abs(b-v))) b=t; return b; }; sa=sn(a); sc=sn(c); }
-  a=Math.round(sa??a); c=Math.round(sc??c);
-  return H?{x:a,y:pos,x2:c,y2:pos,snap:[sa!=null,sc!=null]}:{x:pos,y:a,x2:pos,y2:c,snap:[sa!=null,sc!=null]};
+/* mod.snap (Ctrl/Cmd): straight line from the nearest line or screen edge to the next one in the drag direction.
+   mod.shift: straight horizontal or vertical line. Otherwise a free line from the start point to the cursor. */
+function drawnLine(p0,p1,mod){
+  const cl=(v,m)=>clamp(Math.round(v),0,m), dx=p1.x-p0.x, dy=p1.y-p0.y;
+  if(mod&&mod.snap){ const H=Math.abs(dx)>=Math.abs(dy), pos=cl(H?p0.y:p0.x,H?S.h:S.w), tg=[...new Set(lineTargets(H,pos))].sort((a,b)=>a-b), a0=H?p0.x:p0.y, c0=H?p1.x:p1.y, fwd=(H?dx:dy)>=0;
+    const start=tg.reduce((b,t)=>Math.abs(t-a0)<Math.abs(b-a0)?t:b,tg[0]); let end=start;
+    if(Math.hypot(dx,dy)>=3){ end=fwd?tg.find(t=>t>start&&t>=c0-.5):[...tg].reverse().find(t=>t<start&&t<=c0+.5); if(end==null) end=fwd?tg[tg.length-1]:tg[0]; }
+    return H?{x:start,y:pos,x2:end,y2:pos,snap:[true,end!==start]}:{x:pos,y:start,x2:pos,y2:end,snap:[true,end!==start]}; }
+  let x2=p1.x, y2=p1.y; if(mod&&mod.shift){ if(Math.abs(dx)>=Math.abs(dy)) y2=p0.y; else x2=p0.x; }
+  return {x:cl(p0.x,S.w),y:cl(p0.y,S.h),x2:cl(x2,S.w),y2:cl(y2,S.h),snap:[false,false]};
 }
 function snapAxis(vals, targets){ let best=null; for(const v of vals) for(const t of targets){ const d=t-v; if(Math.abs(d)<=5/zoom && (!best||Math.abs(d)<Math.abs(best.d))) best={d,t}; } return best; }
 function onMove(ev){
   const p=devPt(ev); $('#st-pos').textContent=`x ${Math.round(p.x)}  y ${Math.round(p.y)}`;
   if(!drag){ if(!tool){ const h=pick(p), g=h?gridInfo(h):null; $('#cv').style.cursor=g?(g.ax==='h'?'ns-resize':'ew-resize'):''; } return; }
-  if(drag.mode==='d'){ drag.line=drawnLine(drag.p,p); const n=drag.line.snap.filter(Boolean).length; $('#st-sel').textContent=n===2?'Grid line: both ends attached':n===1?'Grid line: one end attached':'Free line: no end touches another line'; draw(); return; }
+  if(drag.mode==='d'){ const mod={shift:ev.shiftKey,snap:drag.snap0||ev.ctrlKey||ev.metaKey}; drag.line=drawnLine(drag.p,p,mod); const l=drag.line;
+    $('#st-sel').textContent=(mod.snap?'Grid line between the nearest lines':mod.shift?'Straight line':'Free line (Shift: straight, Ctrl: snap to the grid)')+'  '+l.x+','+l.y+' → '+l.x2+','+l.y2; draw(); return; }
   if(drag.mode==='m'&&drag.grid){ const g=drag.grid, H=g.ax==='h', d=Math.round(H?p.y-drag.p.y:p.x-drag.p.x); if(!drag.moved&&Math.abs(d)<1) return;
     drag.moved=true; guides=[]; let v=g.pos+d;
     if(snapOn&&!ev.altKey){ const skip=new Set([drag.items[0],...g.att.map(t=>t.o)]), tg=H?[S.h/2,S.h/3,S.h*2/3,S.h/4,S.h*3/4]:[S.w/2,S.w/3,S.w*2/3,S.w/4,S.w*3/4];
@@ -709,7 +713,7 @@ function onMove(ev){
   draw(); selStatus();
 }
 function onUp(){ if(!drag) return; const d=drag; drag=null; guides=[]; marquee=null;
-  if(d.mode==='d'){ const l=d.line; disarm(); if(l.x!==l.x2||l.y!==l.y2) addEls([mkG('LN',{x:String(l.x),y:String(l.y),x2:String(l.x2),y2:String(l.y2)})]); else refresh(); return; }
+  if(d.mode==='d'){ const l=d.line; if(l.x!==l.x2||l.y!==l.y2){ disarm(); addEls([mkG('LN',{x:String(l.x),y:String(l.y),x2:String(l.x2),y2:String(l.y2)})]); } else { draw(); selStatus(); } return; }   // a plain click keeps the tool armed, so a double-click can follow
   if(d.moved) commit(); refresh(); }
 
 /* ---------- Selection actions ---------- */
@@ -838,7 +842,7 @@ function renderLayers(){
   const n=S.els.filter(e=>e.type!==3).length;
   $('#st-count').textContent=n+' elements'; $('#st-count').title='The element limit depends on device memory: low 30, medium 35, high 500 elements.';
 }
-function selStatus(){ const s=selEls(); $('#st-sel').textContent = tool ? (tool.draw?'Drag on the screen to draw the line, or click to split a cell  (Esc cancels)':'Click on the screen to place: '+tool.label+'  (Esc cancels)') : s.length===1&&s[0].type<2 ? `${nameOf(s[0])}: ${s[0].a.x}, ${s[0].a.y}` : s.length>1 ? s.length+' elements selected' : ''; }
+function selStatus(){ const s=selEls(); $('#st-sel').textContent = tool ? (tool.draw?'Line: drag = free · Shift+drag = straight · Ctrl+drag = between grid lines · double-click = full width  (Esc cancels)':'Click on the screen to place: '+tool.label+'  (Esc cancels)') : s.length===1&&s[0].type<2 ? `${nameOf(s[0])}: ${s[0].a.x}, ${s[0].a.y}` : s.length>1 ? s.length+' elements selected' : ''; }
 
 /* ---------- Property panel ---------- */
 function live(){ draw(); selStatus(); commitSoon(); }
@@ -1227,7 +1231,9 @@ function init(){
   if(document.fonts){ ['700 20px "Roboto Condensed"','400 20px "Roboto Condensed"','400 20px "Bebas Neue"'].forEach(f=>document.fonts.load(f).catch(()=>{})); document.fonts.ready.then(draw); document.fonts.addEventListener&&document.fonts.addEventListener('loadingdone',draw); }
 
   const cv=$('#cv'); cv.addEventListener('pointerdown',onDown); cv.addEventListener('pointermove',onMove); cv.addEventListener('pointerup',onUp); cv.addEventListener('pointercancel',onUp);
-  cv.addEventListener('dblclick',()=>{ const f=document.getElementById('p-text'); if(f){ f.focus(); f.select(); } });
+  cv.addEventListener('dblclick',ev=>{ if(tool&&tool.draw){ const y=String(clamp(Math.round(devPt(ev).y),0,S.h)); disarm(); addEls([mkG('LN',{x:'0',y,x2:String(S.w),y2:y})]); return; }
+    const f=document.getElementById('p-text'); if(f){ f.focus(); f.select(); } });
+  cv.addEventListener('contextmenu',ev=>{ if(tool) ev.preventDefault(); });
   let pendDev=null;
   ds.onchange=()=>{ if(ds.value==='__custom'){ S.custom=true; commit(); syncDevice(); refresh(); $('#devw').focus(); return; }
     const name=ds.value, d=DEV[name];
