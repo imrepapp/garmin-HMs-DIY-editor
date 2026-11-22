@@ -505,6 +505,8 @@ function advOf(font){ font=baseFont(font); const row=METRICS.dev[S.device], i=ro
   let m=mCache.get(key); if(!m){ m={}; const hex=METRICS.fonts[i][2]; MCHARS.forEach((c,k)=>{ const w=parseInt(hex.substr(k*2,2),16); if(w) m[c]=w*(/^NR_/.test(font)&&(c===44||c===46||c===58)?(1+fix)/2:fix); }); mCache.set(key,m); } return m; }
 /* Width of a text on the device: real advances where known, the browser's measure for the rest. mctx.font must be set. */
 function realWidth(t,adv){ let w=0; for(const ch of t){ const a=adv[ch.codePointAt(0)]; w+=a!=null?a:mctx.measureText(ch).width; } return w; }
+/* Height in pixels of the digits (number fonts) or capitals (text fonts) on the current device, where the real font is known. */
+function glyphPx(name){ const bn=baseFont(name), row=METRICS.dev[S.device], mi=row?row[MNAMES.indexOf(bn)]:-1; if(mi==null||mi<0) return 0; const m=METRICS.fonts[mi]; return Math.round(/^NR_/.test(bn)?m[1]*.94:m[0]*.65); }
 const capCache=new Map();
 /* height of the digit 0 as a fraction of the font size, for a CSS font */
 function capRatio(fam){ const k=fam[0]+' '+fam[1]; let r=capCache.get(k); if(!r){ const css=`${fam[0]} 100px ${fam[1]}`; mctx.font=css; r=(mctx.measureText('0').actualBoundingBoxAscent||70)/100;
@@ -1085,7 +1087,8 @@ function renderPanelBody(){
       p.append(el('div',{class:'row one'},sampleField(e)));
     } else p.append(el('div',{class:'row one'},fTxt(e,'text','Text',{after:()=>updWarn()})));
     const map=(DEV[S.device]||[])[3]||{}, names=Object.keys(map).length?Object.keys(map):Object.keys(FONT_FALLBACK); if(!names.includes(a.font)) names.push(a.font);
-    const fs=el('select',{id:'p-font',onchange:()=>{ a.font=fs.value; commit(); refresh(); }},names.map(n=>el('option',{value:n,title:n},(n.startsWith('S_')?'Sys ':'')+(FONT_NAMES[n.replace(/^S_/,'')]||n)+(map[n]?' · '+map[n][1]:''))));
+    const fs=el('select',{id:'p-font',onchange:()=>{ a.font=fs.value; commit(); refresh(); }},names.map(n=>{ const gp=glyphPx(n); return el('option',{value:n,title:n+(gp?': '+(/NR_/.test(n)?'digits':'capitals and digits')+' are '+gp+' px tall on '+S.device:'')},(n.startsWith('S_')?'Sys ':'')+(FONT_NAMES[n.replace(/^S_/,'')]||n)+(gp?' · '+gp+' px':map[n]?' · '+map[n][1]:'')); }));
+    fs.title='A device has only these font sizes; text cannot be scaled freely. Number fonts hold digits and a few signs, text fonts hold everything.';
     fs.value=a.font;
     const al=seg([['2',alignIco('M2 3.5h12M2 6.5h7M2 9.5h12M2 12.5h7','Left')],['1',alignIco('M2 3.5h12M4.5 6.5h7M2 9.5h12M4.5 12.5h7','Centre')],['0',alignIco('M2 3.5h12M7 6.5h7M2 9.5h12M7 12.5h7','Right')]],a.halignment,v=>{ a.halignment=v; commit(); refresh(); }); al.setAttribute('role','group'); al.setAttribute('aria-label','Alignment'); fs.setAttribute('aria-label','Font');
     const warn=el('div',{class:'warnline',id:'p-warn',role:'status'}); updWarn=()=>{ const m=textWarn(e); warn.textContent=m; warn.hidden=!m; }; updWarn();
