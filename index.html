@@ -902,7 +902,7 @@ function colorSection(e){
   const mode=seg([['f','Fixed'],['v','By value']],dc?'v':'f',m=>{ if(m==='v'&&!dc){ attachDyn(e); commit(); refresh(); if(noSrc) pickValue('FX',setSrc,true,kind(e)==='dir'?TARGETS:NUMERIC); } else if(m==='f'&&dc) toFixed(); });
   mode.className='seg mini'; mode.id='p-colmode'; mode.title='Fixed: one colour. By value: the colour'+(fill?' and fill level follow':' follows')+' a live value.';
   const canDyn=!!dc||e.type===1||label||(!!vt&&vt.k!=='s');
-  box.append(el('h2',{},'Colour',el('span',{class:'sp'}),canDyn?mode:null));
+  box.append(el('h2',{},'Colour',el('span',{class:'sp'}),canDyn&&!fill?mode:null));   // a filling bar or arc always needs a range, so it has no Fixed mode
   const night=e.a.daynight==='true';
   if(dc){
     const own=e.type===0&&!label;
@@ -925,7 +925,7 @@ function colorSection(e){
     } else { const ed=dcEditor(dc,e); ed.append(nightBtn(e)); box.append(ed); }
   } else {
     box.append(el('div',{class:'colrow'},colorBtn(e.a.color,c=>{ e.a.color=c; commit(); refresh(); },'p-color',night),el('span',{class:'hexlab'},'#'+e.a.color+(night?'  ·  night #'+invert(e.a.color).toUpperCase():''))),nightBtn(e));
-    if(fill) box.append(el('div',{class:'hint',style:'margin-top:8px'},'The bar only moves on the device when its colour is set to “By value”: empty at the lowest threshold, full at the highest.'));
+    if(fill) box.append(el('div',{class:'colrow',style:'margin-top:8px'},el('button',{type:'button',class:'btn sm',id:'p-addrange',title:'A filling bar or arc needs a range: empty at the lowest threshold, full at the highest.',onclick:()=>{ attachDyn(e); commit(); refresh(); if(noSrc) pickValue('FX',setSrc,true,NUMERIC); }},'Set the fill range…')),el('div',{class:'hint',style:'margin-top:6px'},'Without a range this element does not move on the device.'));
   }
   return box;
 }
