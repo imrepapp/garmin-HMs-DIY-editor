@@ -1417,10 +1417,10 @@ function meshAll(f){ const W=f.c[2], H=f.c[3], cols=Math.max(1,Math.floor(W/MESH
   const go=regs=>{ if(res.length>9) return; let r0=-1,c0=-1; for(let r=0;r<rows&&r0<0;r++) for(let c=0;c<cols;c++) if(!used[r][c]){ r0=r; c0=c; break; }
     if(r0<0){ res.push(regs.slice()); return; }
     for(let c1=c0;c1<cols&&!used[r0][c1];c1++) for(let r1=r0;r1<rows;r1++){ let free=true; for(let c=c0;c<=c1;c++) if(used[r1][c]) free=false; if(!free) break;
-      if(X(c1+1)-X(c0)>=Y(r1+1)-Y(r0)){ for(let r=r0;r<=r1;r++) for(let c=c0;c<=c1;c++) used[r][c]=true; regs.push([c0,r0,c1,r1]); go(regs); regs.pop(); for(let r=r0;r<=r1;r++) for(let c=c0;c<=c1;c++) used[r][c]=false; } } };
+      if(X(c1+1)-X(c0)+2>=Y(r1+1)-Y(r0)){ /* not taller than wide; 61 × 62 still counts as a square */ for(let r=r0;r<=r1;r++) for(let c=c0;c<=c1;c++) used[r][c]=true; regs.push([c0,r0,c1,r1]); go(regs); regs.pop(); for(let r=r0;r<=r1;r++) for(let c=c0;c<=c1;c++) used[r][c]=false; } } };
   go([]); if(res.length>9) return null;
-  return res.map(regs=>{ const cells=regs.map(g=>[X(g[0]),Y(g[1]),X(g[2]+1)-X(g[0]),Y(g[3]+1)-Y(g[1]),0]), perRow=regs.every(g=>g[1]===g[3])?Array.from({length:rows},(_,r)=>regs.filter(g=>g[1]===r).length):null;
-    return {name:cells.length===1?'No grid':cells.length+' cells',sub:cells.length===1?'':perRow?(rows===1?perRow[0]+' columns':perRow.join(' + ')):'',cells,n:cells.length}; }).sort((a,b)=>a.n-b.n); }
+  return res.map(regs=>{ const cells=regs.map(g=>[X(g[0]),Y(g[1]),X(g[2]+1)-X(g[0]),Y(g[3]+1)-Y(g[1]),0]), perRow=regs.every(g=>g[1]===g[3])?Array.from({length:rows},(_,r)=>regs.filter(g=>g[1]===r).length):null, perCol=!perRow&&regs.every(g=>g[0]===g[2])?Array.from({length:cols},(_,c)=>regs.filter(g=>g[0]===c).length):null;
+    return {name:cells.length===1?'No grid':cells.length+' cells',sub:cells.length===1?'':perRow?(rows===1?perRow[0]+' columns':perRow.join(' + ')):perCol?(perCol.every(v=>v===1)?cols+' columns':perCol.join(' | ')):'',cells,n:cells.length}; }).sort((a,b)=>a.n-b.n); }
 function meshCells(f){ const m=meshFor(f), W=f.c[2], H=f.c[3], X=c=>Math.round(c*W/m.cols), Y=r=>Math.round(r*H/m.rows); return m.regs.map(g=>[X(g[0]),Y(g[1]),X(g[2]+1)-X(g[0]),Y(g[3]+1)-Y(g[1]),0]); }
 function renderMesh(f){ const m=meshFor(f), W=f.c[2], H=f.c[3], box=$('#newmesh'), k=Math.min(4,Math.min(560/W,260/H)), cells=meshCells(f); box.textContent=''; box.style.width=(W*k)+'px'; box.style.height=(H*k)+'px';
   cells.forEach((c,i)=>{ const g=m.regs[i]; box.append(el('div',{class:'mc'+(g[0]!==g[2]||g[1]!==g[3]?' big':''),style:`left:${c[0]*k}px;top:${c[1]*k}px;width:${c[2]*k}px;height:${c[3]*k}px`})); });
