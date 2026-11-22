@@ -89,8 +89,9 @@ How it was checked:
   expects a different generation than "C".
 - The Garmin settings refused to save strings containing a backslash, which is one of the format's
   85 symbols. The string dialog therefore changes offending elements minimally, in the string only:
-  a colour one step off, a position one pixel off, or the averaging count one higher, and lists what
-  it changed. In rare cases a backslash cannot be avoided; the dialog then names the element.
+  a colour one step off, a position or size one pixel off, the averaging count one higher, or the
+  other variant of the same font, and lists what it changed. The exported string never contains a
+  backslash (checked on the 61 example layouts and 400 random ones).
 
 ## Known limits
 

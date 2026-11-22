@@ -1265,23 +1265,34 @@ function encodeClean(){
   try{
     S=JSON.parse(JSON.stringify(orig));
     const bs=t=>(t.match(/\\/g)||[]).length, own=e=>{ const g=encodeLayout().segs.find(g=>g.e===e); return g?bs(g.s):0; };
-    const step=(hex,sh)=>{ const n=parseInt(hex,16)||0, ch=(n>>sh)&255; return ((n&~(255<<sh))|((ch<255?ch+1:ch-1)<<sh)).toString(16).toUpperCase().padStart(6,'0'); };
-    for(let pass=0;pass<6;pass++){
+    const step=(hex,sh,k)=>{ const n=parseInt(hex,16)||0, ch=(n>>sh)&255, v=ch+k<=255?ch+k:ch-k; return ((n&~(255<<sh))|(clamp(v,0,255)<<sh)).toString(16).toUpperCase().padStart(6,'0'); };
+    const free=k=>!S.els.some(x=>(x.type===2&&x.a.replDC===k)||(x.type<2&&x.a.color===k));
+    const setKey=(rule,k)=>{ if(!free(k)) return; dcUsers(rule).forEach(u=>u.a.color=k); rule.a.replDC=k; };
+    const num=(o,key,d)=>()=>{ o[key]=String(N(o[key])+d); };
+    for(const e of S.els) if(e.type===0&&(e.a.text||'').includes('\\')){ e.a.text=e.a.text.replace(/\\/g,'/'); moved.add(plain(e)+' (backslash in the text replaced by /)'); }
+    for(let pass=0;pass<8;pass++){
       const bad=encodeLayout().segs.filter(g=>bs(g.s)); if(!bad.length) break;
-      for(const {e} of bad){ let n=own(e); if(!n) continue; const muts=[];   // each mutation: [apply, what the user would notice]
-        // a colour that is the key of a rule changes together with the rule and everything else that uses it
-        const flip=(rule,b)=>()=>{ const k=(((parseInt(rule.a.replDC,16)||0)^(1<<b))>>>0).toString(16).toUpperCase().padStart(6,'0'); if(S.els.some(x=>(x.type===2&&x.a.replDC===k)||(x.type<2&&x.a.color===k))) return; dcUsers(rule).forEach(u=>u.a.color=k); rule.a.replDC=k; };
-        const rekey=(rule,sh)=>()=>{ const k=step(rule.a.replDC,sh); if(S.els.some(x=>(x.type===2&&x.a.replDC===k)||(x.type<2&&x.a.color===k))) return; dcUsers(rule).forEach(u=>u.a.color=k); rule.a.replDC=k; };
-        if(e.type===2){ for(const sh of [0,8,16]) muts.push([rekey(e,sh),'']); for(let b=1;b<24;b++) muts.push([flip(e,b),'']);   // the key colour is never shown, any free one will do
-          (e.dc||[]).forEach((_,k)=>{ for(const sh of [0,8,16]) muts.push([()=>{ e.dc[k].col=step(e.dc[k].col,sh); },'']); muts.push([()=>{ e.dc[k].val+=1; },''],[()=>{ e.dc[k].val-=1; },'']); });
-        } else { const box=hasBox(e), mv=(dx,dy)=>()=>{ e.a.x=String(N(e.a.x)+dx); e.a.y=String(N(e.a.y)+dy); if(box){ e.a.x2=String(N(e.a.x2)+dx); e.a.y2=String(N(e.a.y2)+dy); } };
-          for(const sh of [0,8,16]) muts.push([()=>{ const rule=dcFor(e.a.color); if(rule) rekey(rule,sh)(); else e.a.color=step(e.a.color,sh); },'']);
-          if(e.type===0&&e.a.fixedtext==='true') for(const pr of ['1','2','3']) muts.push([()=>{ e.a.precision=pr; },'']);   // decimals mean nothing for a fixed text
-          { const rule=dcFor(e.a.color); if(rule) for(let b=1;b<24;b++) muts.push([flip(rule,b),'']); }
-          for(const d of [[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1]]) muts.push([mv(d[0],d[1]),'one pixel off']);
-          if(e.type===1){ if(box) muts.push([()=>{ e.a.x2=String(N(e.a.x2)+1); },'one pixel off'],[()=>{ e.a.y2=String(N(e.a.y2)+1); },'one pixel off']); else muts.push([()=>{ e.a.radius=String(N(e.a.radius)+1); },'one pixel off']); }
-          muts.push([()=>{ e.a.nr_values=String(N(e.a.nr_values)+1); },'averaging one higher']);
-          for(const d of [[0,2],[0,-2],[2,0],[-2,0],[0,3],[0,-3]]) muts.push([mv(d[0],d[1]),Math.max(Math.abs(d[0]),Math.abs(d[1]))+' pixels off']); }   // last resort: the value's code itself makes the backslash
+      for(const {e} of bad){ let n=own(e); if(!n) continue; const muts=[], add=(fn,note)=>muts.push([fn,note||'']);   // in order of how little the user would notice
+        const keyMuts=rule=>{ for(const sh of [0,8,16]) add(()=>setKey(rule,step(rule.a.replDC,sh,1))); for(let b=1;b<24;b++) add(()=>setKey(rule,(((parseInt(rule.a.replDC,16)||0)^(1<<b))>>>0).toString(16).toUpperCase().padStart(6,'0'))); };   // the key colour is never shown
+        if(e.type===2){ keyMuts(e);
+          for(const k of [1,2,3,4,6,8,12]) (e.dc||[]).forEach((_,q)=>{ for(const sh of [0,8,16]) add(()=>{ e.dc[q].col=step(e.dc[q].col,sh,k); },k>2?'a colour slightly changed':''); });
+          for(let d=1;d<=45;d++) (e.dc||[]).forEach((_,q)=>{ add(()=>{ e.dc[q].val+=d; },d>1?'a threshold '+(d/10)+' higher':''); add(()=>{ e.dc[q].val-=d; },d>1?'a threshold '+(d/10)+' lower':''); });
+        } else { const box=hasBox(e), a=()=>e.a, mv=(dx,dy)=>()=>{ const A=e.a; A.x=String(N(A.x)+dx); A.y=String(N(A.y)+dy); if(box){ A.x2=String(N(A.x2)+dx); A.y2=String(N(A.y2)+dy); } };
+          const rule=dcFor(e.a.color); if(rule) keyMuts(rule); else for(const k of [1,2]) for(const sh of [0,8,16]) add(()=>{ e.a.color=step(e.a.color,sh,k); });
+          if(e.type===0&&e.a.fixedtext==='true') for(const pr of ['1','2','3']) add(()=>{ e.a.precision=pr; });   // decimals mean nothing for a fixed text
+          for(const d of [[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1]]) add(mv(d[0],d[1]),'one pixel off');
+          const sizes=d=>{ if(e.type!==1) return; const note=d+' pixel'+(d>1?'s':'')+' larger or smaller'; for(const sg of [d,-d]){ if(box){ add(()=>num(e.a,'x2',sg)(),note); add(()=>num(e.a,'y2',sg)(),note); } else { add(()=>{ if(N(e.a.radius)+sg>0) num(e.a,'radius',sg)(); },note); if(kind(e)==='arc'){ add(()=>num(e.a,'x2',sg)(),'an angle '+d+'° off'); add(()=>num(e.a,'y2',sg)(),'an angle '+d+'° off'); } else add(()=>num(e.a,'y2',sg)(),note); } } };
+          sizes(1);
+          add(()=>num(e.a,'nr_values',1)(),'averaging one higher');   // when the value's own code makes the backslash
+          if(e.type===0) add(()=>{ const f=e.a.font||'SMALL'; e.a.font=/^S_/.test(f)?f.slice(2):'S_'+f; },'the other variant of the same font');
+          if(!rule) for(const k of [3,4,6,8]) for(const sh of [0,8,16]) add(()=>{ e.a.color=step(e.a.color,sh,k); },'colour slightly changed');
+          for(const d of [[0,2],[0,-2],[2,0],[-2,0],[0,3],[0,-3],[3,0],[-3,0]]) add(mv(d[0],d[1]),Math.max(Math.abs(d[0]),Math.abs(d[1]))+' pixels off');
+          sizes(2); sizes(3); add(()=>num(e.a,'nr_values',2)(),'averaging two higher');
+          if(e.type===1&&N(e.a.stroke)>0) add(()=>num(e.a,'stroke',1)(),'stroke one thicker');
+          if(e.type===0){   // the last resorts: same place on the screen for the sample value, another anchor; then decimals, then the font size
+            for(const al of ['0','1','2']) add(()=>{ if(e.a.halignment===al) return; const g=textGeom(e); e.a.halignment=al; const g2=textGeom(e); e.a.x=String(Math.round(N(e.a.x)+g.x-g2.x)); },'alignment changed, same place');
+            if(e.a.fixedtext!=='true') for(const d of [1,-1]) add(()=>{ const v=N(e.a.precision)+d; if(v>=0&&v<=3) e.a.precision=String(v); },'one decimal more or less');
+            for(const d of [1,-1]) add(()=>{ const k=FONTS.indexOf(e.a.font)+d; if(FONTS[k]&&/^S_/.test(FONTS[k])===/^S_/.test(e.a.font)&&/NR_/.test(FONTS[k])===/NR_/.test(e.a.font)) e.a.font=FONTS[k]; },'font one size up or down'); } }
         const save=()=>JSON.stringify(S.els.map(x=>[x.a,x.dc||null])), load=t=>JSON.parse(t).forEach((v,k)=>{ S.els[k].a=v[0]; if(v[1]) S.els[k].dc=v[1]; });
         for(let round=0;round<3&&n;round++) for(let k=0;k<muts.length&&n;k++){ const snap=save(), all=bs(encodeLayout().str); muts[k][0](); const m=own(e);
           if(m<n&&bs(encodeLayout().str)<all){ n=m; if(muts[k][1]) moved.add(plain(e)+' ('+muts[k][1]+')'); } else load(snap); }
