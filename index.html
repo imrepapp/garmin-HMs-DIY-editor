@@ -108,7 +108,14 @@ h2 .sp{flex:1}
 #layers li:hover .ic{opacity:.8}
 #stagewrap{display:flex;flex-direction:column;min-width:0;min-height:0;background:var(--stage)}
 #stage{flex:1;overflow:auto;display:flex;min-height:0}
-#cv{margin:auto;touch-action:none;display:block;flex:none}
+#cvwrap{position:relative;margin:auto;flex:none}
+#cv{touch-action:none;display:block}
+#chips{position:absolute;inset:0;pointer-events:none}
+.chip{position:absolute;display:flex;align-items:center;gap:3px;background:var(--raise);border:1px solid var(--accent);border-radius:5px;padding:1px 5px;font:11px var(--f-mono);box-shadow:0 1px 4px rgba(10,20,30,.25);pointer-events:auto;white-space:nowrap}
+.chip b{font-weight:600;color:var(--mute)}
+.chip input[type=number]{width:38px;border:0;background:none;padding:2px 0;font:inherit;text-align:right;border-radius:0;-moz-appearance:textfield;appearance:textfield}
+.chip input::-webkit-outer-spin-button,.chip input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.chip:focus-within{box-shadow:0 0 0 2px var(--accent)}
 #status{display:flex;gap:14px;flex-wrap:wrap;padding:4px 16px;font:11px var(--f-mono);color:var(--mute);background:var(--panel);border-top:1px solid var(--line)}
 .row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 8px;margin-bottom:6px}
 .row.one{grid-template-columns:minmax(0,1fr)}
@@ -206,7 +213,7 @@ dialog li{margin:5px 0}
     </div>
   </aside>
   <div id="stagewrap">
-    <div id="stage"><canvas id="cv"></canvas></div>
+    <div id="stage"><div id="cvwrap"><canvas id="cv"></canvas><div id="chips"></div></div></div>
     <div id="status"><span id="st-pos">x – y –</span><span id="st-sel"></span><span class="sp"></span><span id="st-count"></span></div>
   </div>
   <aside id="right">
@@ -491,6 +498,42 @@ function draw(){
   for(const e of selX()){ if(e.type>1||e.hide) continue; const b=bbox(e); c.setLineDash([4*px,3*px]); c.strokeRect(b.x-2*px,b.y-2*px,b.w+4*px,b.h+4*px); c.setLineDash([]); }
   if(sel.length===1){ const e=byId(sel[0]); if(e&&e.type===1&&!e.hide) for(const h of handles(e)){ c.fillStyle='#fff'; c.beginPath(); if(h.k==='s'||h.k==='e'||h.k==='r') c.arc(h.x,h.y,4.5*px,0,7); else c.rect(h.x-4*px,h.y-4*px,8*px,8*px); c.fill(); c.lineWidth=1.5*px; c.stroke(); } }
   if(marquee){ c.lineWidth=px; c.fillStyle='rgba(10,102,194,.12)'; c.fillRect(marquee.x,marquee.y,marquee.w,marquee.h); c.strokeRect(marquee.x,marquee.y,marquee.w,marquee.h); }
+  renderChips();
+}
+
+/* ---------- Editable dimension badges drawn next to the selected element ---------- */
+function chipSpec(e){
+  const a=e.a, k=kind(e), b=bbox(e), x=N(a.x), y=N(a.y), x2=N(a.x2), y2=N(a.y2), r=N(a.radius);
+  const F=(l,key)=>({l,get:()=>N(a[key]),set:v=>{ a[key]=String(v); }});
+  const mv=(l,key,key2)=>({l,get:()=>N(a[key]),set:v=>{ const d=v-N(a[key]); a[key]=String(v); a[key2]=String(N(a[key2])+d); }});
+  const sz=(l,key,key2)=>({l,get:()=>N(a[key2])-N(a[key]),set:v=>{ a[key2]=String(N(a[key])+v); }});
+  const at=(deg,rr)=>({ax:x+rr*Math.cos(rad(deg)),ay:y+rr*Math.sin(rad(deg)),dx:Math.cos(rad(deg))*54,dy:Math.sin(rad(deg))*26});
+  if(k==='text') return [{k:'pos',ax:b.x,ay:b.y,pos:'above',f:[F('X','x'),F('Y','y')]}];
+  if(k==='line') return [{k:'p1',ax:x,ay:y,pos:y<=y2?'above':'below',f:[F('X','x'),F('Y','y')]},{k:'p2',ax:x2,ay:y2,pos:y<=y2?'below':'above',f:[F('X','x2'),F('Y','y2')]}];
+  if(k==='rect'||k==='graph'||k==='box') return [{k:'pos',ax:b.x,ay:b.y,pos:'above',f:[mv('X','x','x2'),mv('Y','y','y2')]},{k:'size',ax:b.x+b.w,ay:b.y+b.h,pos:'below-left',f:[sz('W','x','x2'),sz('H','y','y2')]}];
+  if(k==='circle') return [{k:'pos',ax:x,ay:y,pos:'center',f:[F('X','x'),F('Y','y')]},{k:'r',ax:x+r,ay:y,pos:'right',f:[F('R','radius')]}];
+  if(k==='arc') return [{k:'pos',ax:x,ay:y,pos:'center',f:[F('X','x'),F('Y','y')]},Object.assign({k:'r',pos:'radial',f:[F('R','radius')]},at((x2+y2)/2,r)),
+    Object.assign({k:'s',pos:'radial',f:[F('from °','x2')]},at(x2,r)),Object.assign({k:'e',pos:'radial',f:[F('to °','y2')]},at(y2,r))];
+  if(k==='dir') return [{k:'pos',ax:x,ay:y-y2+r,pos:'below',f:[F('X','x'),F('Y','y')]},{k:'r',ax:x+r,ay:y-y2,pos:'right',f:[F('size','radius')]},{k:'off',ax:x,ay:y-y2-r,pos:'above',f:[F('offset','y2')]}];
+  return [];
+}
+function renderChips(){
+  const box=$('#chips'); if(!box) return; const s=selEls(), e=(s.length===1&&s[0].type<2&&!s[0].hide&&!tool)?s[0]:null;
+  const have=new Map([...box.children].map(c=>[c.dataset.k,c]));
+  for(const sp of e?chipSpec(e):[]){ const key=e.id+':'+sp.k; let c=have.get(key);
+    if(!c){ c=el('span',{class:'chip','data-k':key});
+      sp.f.forEach((f,i)=>{ const inp=el('input',{type:'number',step:'1','aria-label':f.l});
+        inp.addEventListener('input',()=>{ if(inp.value===''||!isFinite(+inp.value)) return; c._f[i].set(Math.round(+inp.value)); live(); });
+        inp.addEventListener('keydown',ev=>{ ev.stopPropagation(); if(ev.key==='Enter'||ev.key==='Escape') inp.blur(); });
+        inp.addEventListener('blur',()=>{ clearTimeout(cTimer); commit(); renderChips(); });
+        c.append(el('b',{},f.l),inp); });
+      box.append(c); }
+    have.delete(key); c._f=sp.f;
+    const X=PAD+sp.ax*zoom, Y=PAD+sp.ay*zoom, P={above:[X,Y-7,'0,-100%'],below:[X,Y+7,'0,0'],'below-left':[X,Y+7,'-100%,0'],right:[X+11,Y,'0,-50%'],center:[X,Y,'-50%,-50%'],radial:[X+(sp.dx||0),Y+(sp.dy||0),'-50%,-50%']}[sp.pos];
+    c.style.left=P[0]+'px'; c.style.top=P[1]+'px'; c.style.transform='translate('+P[2]+')';
+    c.querySelectorAll('input').forEach((inp,i)=>{ if(document.activeElement!==inp) inp.value=sp.f[i].get(); });
+  }
+  for(const c of have.values()) c.remove();
 }
 
 /* ---------- Pointer handling on the canvas ---------- */
@@ -570,7 +613,7 @@ const ico = k => `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" st
 /* A tool is armed by its button and placed by the next click on the screen. */
 let tool=null, placeAt=null;
 function disarm(){ if(tool){ tool.b.classList.remove('on'); tool.b.setAttribute('aria-pressed','false'); } tool=null; $('#cv').style.cursor=''; selStatus(); }
-function armTool(fn,b,label){ const same=tool&&tool.b===b; disarm(); if(same) return; tool={fn,b,label}; b.classList.add('on'); b.setAttribute('aria-pressed','true'); $('#cv').style.cursor='crosshair'; selStatus(); }
+function armTool(fn,b,label){ const same=tool&&tool.b===b; disarm(); if(same) return; tool={fn,b,label}; b.classList.add('on'); b.setAttribute('aria-pressed','true'); $('#cv').style.cursor='crosshair'; selStatus(); renderChips(); }
 function buildPalette(){
   const cx=()=>placeAt?placeAt.x:Math.round(S.w/2), cy=()=>placeAt?placeAt.y:Math.round(S.h/2), u=()=>Math.round(Math.min(S.w,S.h)/4);
   const P=[
@@ -735,9 +778,9 @@ function renderPanelBody(){
     const map=(DEV[S.device]||[])[3]||{}, names=Object.keys(map).length?Object.keys(map):Object.keys(FONT_FALLBACK); if(!names.includes(a.font)) names.push(a.font);
     const fs=el('select',{id:'p-font',onchange:()=>{ a.font=fs.value; commit(); refresh(); }},names.map(n=>el('option',{value:n},(FONT_NAMES[n.replace(/^S_/,'')]||n)+(n.startsWith('S_')?' (system)':'')+' – '+n+(map[n]?' · '+map[n][1]+' px':''))));
     fs.value=a.font;
-    p.append(el('h2',{},'Font and position'),el('div',{class:'row one'},fld('Font',fs)),
-      el('div',{class:'row one'},fld('Alignment at X',seg([['2','Left'],['1','Centre'],['0','Right']],a.halignment,v=>{ a.halignment=v; commit(); refresh(); }))),
-      el('div',{class:'row'},fNum(e,'x','X'),fNum(e,'y','Y (top edge)')), colorSection(e));
+    p.append(el('h2',{},'Font'),el('div',{class:'row one'},fld('Font',fs)),
+      el('div',{class:'row one'},fld('Alignment at the X position',seg([['2','Left'],['1','Centre'],['0','Right']],a.halignment,v=>{ a.halignment=v; commit(); refresh(); }))),
+      colorSection(e));
   } else {
     const t=a.eletype, setT=c=>{ a.eletype=c; commit(); refresh(); };
     p.append(el('h2',{class:'t1'},GT[t]?GT[t].replace(/\s*[–(,].*$/,'').replace(/^Direction.*/,'Direction'):'Unknown type ['+t+']'));
@@ -746,14 +789,13 @@ function renderPanelBody(){
     if(k==='graph'&&GT[t]){ const right=t==='GR'||t==='GT', top=t==='GL'||t==='GR', code=(r,tp)=>tp?(r?'GR':'GL'):(r?'GT':'GB');
       p.append(el('div',{class:'row'},fld('Starts at',seg([['l','Left'],['r','Right']],right?'r':'l',v=>setT(code(v==='r',top)))),fld('Baseline',seg([['b','Bottom'],['t','Top']],top?'t':'b',v=>setT(code(right,v==='t')))))); }
     if(k==='line'||k==='rect'||k==='graph'||k==='box'){
-      p.append(el('div',{class:'row four'},fNum(e,'x',k==='line'?'X1':'Left'),fNum(e,'y',k==='line'?'Y1':'Top'),fNum(e,'x2',k==='line'?'X2':'Right'),fNum(e,'y2',k==='line'?'Y2':'Bottom')));
       if(a.eletype==='LN'||a.eletype==='RC') p.append(el('div',{class:'row'},fNum(e,'stroke','Stroke width',{min:1})));
       if(k==='graph') p.append(el('div',{class:'row'},fNum(e,'stroke','Bar width (px per second)',{min:1}),fNum(e,'radius','Min./max. value')),fChk(e,'minval','Limit is the minimum value'),fChk(e,'maxonly','Mark min/max values'));
-    } else if(k==='circle'){ p.append(el('div',{class:'row'},fNum(e,'x','Centre X'),fNum(e,'y','Centre Y'),fNum(e,'radius','Radius',{min:1}),a.eletype==='CR'?fNum(e,'stroke','Stroke width',{min:1}):null)); }
-    else if(k==='arc'){ p.append(el('div',{class:'row'},fNum(e,'x','Centre X'),fNum(e,'y','Centre Y'),fNum(e,'radius','Radius',{min:1}),fNum(e,'stroke','Stroke',{min:1}),fNum(e,'x2','Start angle °'),fNum(e,'y2','End angle °')),
-        el('div',{class:'hint'},'0° points to 3 o\'clock and angles grow clockwise (270° = top). A filling arc runs from the start angle towards the end angle. The round handles adjust them too.')); }
-    else if(k==='dir'){ p.append(el('div',{class:'row'},fNum(e,'x','Centre X'),fNum(e,'y','Centre Y'),fNum(e,'radius','Size (radius)',{min:1}),fNum(e,'stroke','Stroke width',{min:1}),fNum(e,'y2','Distance from centre')),
-        el('div',{class:'hint'},'With a non-zero distance the marker moves on a circle around the centre, like a compass.')); }
+    } else if(k==='circle'){ if(a.eletype==='CR') p.append(el('div',{class:'row'},fNum(e,'stroke','Stroke width',{min:1}))); }
+    else if(k==='arc'){ p.append(el('div',{class:'row'},fNum(e,'stroke','Stroke',{min:1})),
+        el('div',{class:'hint'},'0° points to 3 o\'clock and angles grow clockwise (270° = top). A filling arc runs from the start angle towards the end angle.')); }
+    else if(k==='dir'){ p.append(el('div',{class:'row'},fNum(e,'stroke','Stroke width',{min:1})),
+        el('div',{class:'hint'},'With a non-zero offset the marker moves on a circle around the centre, like a compass.')); }
     p.append(el('h2',{},k==='dir'?'Points to':'Linked value'),
       el('div',{class:'row one'},fld(k==='dir'?'Target (none: the data field setting decides)':FILL.includes(a.eletype)||k==='graph'?'Which value does it show?':'Which value drives the colour?',valueSelect(a.valuetype||'FX',c=>{ a.valuetype=c; commit(); refresh(); },'p-valuetype'))));
     if(a.valuetype&&a.valuetype!=='FX'&&k!=='dir'){ p.append(el('div',{class:'row'},sampleField(e),fNum(e,'nr_values','Averaging (s)',{min:1}))); }
