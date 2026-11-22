@@ -1219,15 +1219,22 @@ function newInfo(){ const name=$('#newdev').value||S.device, d=DEV[name]||[S.w,S
   const lay=L.list[newPick]; if(newCell>=lay.cells.length) newCell=0;
   return {name,w:d[0],h:d[1],round:!!d[2],real:L.real,list:L.list,lay,cell:lay.cells[newCell],field:newMode==='field'}; }
 function renderNew(){
-  const box=$('#newgrid'), n=newInfo(), k=60/Math.max(n.w,n.h), pc=v=>(Math.round(v*k*10)/10)+'px'; box.textContent='';
-  n.list.forEach((lay,idx)=>{ const on=idx===newPick;
+  const box=$('#newgrid'); let n=newInfo(); const k=60/Math.max(n.w,n.h), pc=v=>(Math.round(v*k*10)/10)+'px'; box.textContent='';
+  if(n.field){   // every field size once, shown in the first layout that has it, largest first
+    const uniq=[]; n.list.forEach((lay,idx)=>lay.cells.forEach((c,me)=>{ const u=uniq.find(u=>u.c[2]===c[2]&&u.c[3]===c[3]); if(u){ if(!u.in.includes(lay.name)) u.in.push(lay.name); } else uniq.push({c,idx,me,in:[lay.name]}); }));
+    uniq.sort((a,b)=>b.c[2]*b.c[3]-a.c[2]*a.c[3]); const cur=uniq.find(u=>u.c[2]===n.cell[2]&&u.c[3]===n.cell[3]); if(cur){ newPick=cur.idx; newCell=cur.me; }
+    for(const u of uniq){ const on=u===cur, lay=n.list[u.idx];
+      const scr=el('span',{class:'scr',style:`width:${pc(n.w)};height:${pc(n.h)};${n.round?'border-radius:50%;':''}`}, lay.cells.map((c,me)=>el('i',{class:me===u.me?'cur':'',style:`left:${pc(c[0])};top:${pc(c[1])};width:${pc(c[2])};height:${pc(c[3])}`})));
+      box.append(el('button',{type:'button',class:'thumb'+(on?' on':''),'aria-pressed':String(on),title:'Found in: '+u.in.join(', '),onclick:()=>{ newPick=u.idx; newCell=u.me; renderNew(); }},scr,el('b',{},u.c[2]+' × '+u.c[3]),el('span',{},u.in.length===1?u.in[0]:u.in[0]+' +'+(u.in.length-1))));
+    } }
+  else n.list.forEach((lay,idx)=>{ const on=idx===newPick;
     const scr=el('span',{class:'scr',style:`width:${pc(n.w)};height:${pc(n.h)};${n.round?'border-radius:50%;':''}`}, lay.cells.map((c,me)=>el('i',Object.assign({style:`left:${pc(c[0])};top:${pc(c[1])};width:${pc(c[2])};height:${pc(c[3])}`},
       n.field?{class:'pick'+(on&&me===newCell?' cur':''),title:c[2]+' × '+c[3]+' px',onclick:ev=>{ ev.stopPropagation(); newPick=idx; newCell=me; renderNew(); }}:{}))));
     box.append(el('button',{type:'button',class:'thumb'+(on?' on':''),'aria-pressed':String(on),onclick:()=>{ newPick=idx; newCell=0; renderNew(); }},scr,el('b',{},lay.name),lay.sub?el('span',{},lay.sub):null));
   });
-  $('#newq').textContent=n.field?'Which field of which data screen is it? Click the field.':'How should the screen be divided into fields?';
+  $('#newq').textContent=n.field?'Which field size do you need? Each size is listed once.':'How should the screen be divided into fields?';
   $('#new-sample').textContent=n.field?'Create with a sample value':'Create with sample values'; $('#new-empty').textContent=n.field?'Create empty':'Create lines only';
-  const src=n.real?'Layouts and field sizes are Garmin\'s own for this device, taken from the Connect IQ device files.':'No Garmin field data for this device: the screen is split evenly, so the real fields can differ by a few pixels.', ob=n.cell[4], edges=['left','top','right','bottom'].filter((_,i)=>ob&(1<<i));
+  n=newInfo(); const src=n.real?'Layouts and field sizes are Garmin\'s own for this device, taken from the Connect IQ device files.':'No Garmin field data for this device: the screen is split evenly, so the real fields can differ by a few pixels.', ob=n.cell[4], edges=['left','top','right','bottom'].filter((_,i)=>ob&(1<<i));
   $('#newnote').textContent=n.field?'The layout is one field of '+n.cell[2]+' × '+n.cell[3]+' px on the '+n.w+' × '+n.h+' px screen of '+n.name+'. '+src+(edges.length?' The round bezel cuts into this field on the '+edges.join(', ')+' side.':'')
     :'The layout covers the whole '+n.w+' × '+n.h+' px screen; the dividing lines are drawn for you. '+src;
 }
