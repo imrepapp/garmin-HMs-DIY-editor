@@ -7,21 +7,68 @@ this editor runs anywhere, reads and writes the same XML layouts, and produces t
 
 ## Use
 
-Open `index.html` in a browser. It is a single file with no build step.
+Open `index.html` in a browser. It is a single file with no build step. Work is kept in the
+browser between visits.
 
-- **Add** values, labels, lines, frames, circles, arcs, filling gauge arcs, progress bars, graphs and direction markers.
-- **Edit on the screen**: drag, resize with handles, snap to other elements and the centre lines,
-  select several elements (Shift+click or drag a box).
-- **Dynamic colours**: "Change with a value…" in an element's properties. Thresholds are entered in
-  real units; the editor handles the ×10 scaling and the key colour.
-- **Preview** for 107 devices (screen size and font sizes), night mode, sample values.
-- **Layout string for device**: copy it and paste it into *Default layout string* in the data field's
+### Starting a layout
+
+**New layout** (menu) asks for the device and offers two modes:
+
+- **Whole screen**: pick one of the device's data screen layouts; the dividing lines are drawn for
+  you, optionally with a sample label and value in every field.
+- **Single field**: click one field of a data screen layout; the canvas gets exactly that field's
+  size, for a DIY field that sits beside native Garmin fields.
+
+For 104 of the 106 devices the layouts and field rectangles are Garmin's own, taken from the
+Connect IQ device files. The two without data (Forerunner 45, vívolife) use an even split.
+
+### Tools
+
+Pick a tool, then **drag on the screen**: the dragged box sets the element's size. A plain click
+places nothing. The tool stays active for the next element; **Space**, **Esc** or the **Select**
+tool returns to the pointer.
+
+- **Data**: Value, Gauge arc, Progress bar, Graph, Direction.
+- **Shapes and text**: Label, Line, Frame, Rectangle, Circle, Disc, Arc.
+- **Composite**: ready-made combinations (label + value, now / avg / max, value + unit, framed
+  field, dial, gauge, graph or bar with a value). They are scaled into the dragged box and placed
+  as a group.
+- **Line**: drag for a free line, Shift+drag for a horizontal or vertical one, Ctrl/Cmd+drag to
+  span from the nearest line or screen edge to the next one in the drag direction, double-click
+  for a full-width horizontal line.
+
+Text sizes are stepped, because a device only has a handful of fonts: a dragged Value or Label
+gets the largest font of its family that fits the box.
+
+### Editing
+
+- **On the screen**: drag to move, use the handles to resize, type position and size into the
+  badges next to the selected element. Elements snap to each other and to the centre lines.
+  Select several with Shift+click or by dragging a box.
+- **Grid lines**: a line whose ends touch other lines or the screen edge moves parallel to itself,
+  and the lines attached to it grow or shrink with it.
+- **Groups**: select layers and press Ctrl/Cmd+G. Clicking a member on the screen selects and
+  moves the whole group; a second click selects the single element. A group can be renamed,
+  collapsed, locked, hidden, moved or deleted as a whole. In Designer XML a group is written as a
+  separator.
+- **Properties**: value, format, decimals, sample, font and colour of the selected element. The
+  value picker only offers values that make sense for the element.
+- **Colour rules**: any element's colour can follow a numeric value ("By value"). Thresholds are
+  entered in real units; the editor handles the ×10 scaling and the key colour. A rule can be
+  shared by several elements and is then edited in its own panel, reachable from the
+  "Colour rules" group at the bottom of the layer list. Filling elements (gauge arc, progress
+  bar) take their range from the rule.
+- **Night colours**: "Invert at night" per element; the swatch shows the day and night colour.
+- **Preview** for 106 devices (screen size and font sizes) with sample values. Changing the
+  device offers to rescale the layout to the new screen.
+
+### Getting it onto the device
+
+- **Layout string**: copy it and paste it into *Default layout string* in the data field's
   settings in Garmin Connect or Garmin Express.
-- **Groups**: select layers and press Ctrl/Cmd+G. A group can be renamed, collapsed, locked, hidden,
-  moved or deleted as a whole. In Designer XML a group is written as a separator.
 - **Save / Open**: the editor's own project file (`.json`, keeps groups, locks, hidden layers and a
   custom screen size) or HMs DIY Designer XML (`<DIYLayout>`). A layout string can also be pasted
-  into the Open dialog to load an existing layout back. Work is kept in the browser too.
+  into the Open dialog to load an existing layout back.
 
 ## Layout string
 
@@ -47,12 +94,23 @@ How it was checked:
   file are kept in the XML but encoded without a value.
 - The font index in the string assumes the standard Garmin order; this could differ on the few
   devices that lack one of the standard sizes.
+- Number fonts (`NR_*`) are assumed to hold digits and signs only; the editor warns when other
+  characters are used with them.
+- The data screen layouts come from the Connect IQ device files as found in a public repository,
+  not from Garmin directly, and were not compared with real devices. Garmin's files are known to
+  miss a layout on some newer devices.
+- On round screens the preview does not show how the bezel cuts into a single field.
 
 ## Development
 
     python3 tools/gen_devices.py /path/to/fonts.txt      # device and font table
+    python3 tools/gen_fields.py DEVICES_DIR --write      # data screen layouts and field sizes
     python3 tools/layout_string.py layout.xml            # reference encoder
     python3 tools/layout_string.py --check DIR           # verify *_config_string.txt against XML
+
+`gen_fields.py` reads one `simulator.json` per device, as in the `Devices` folder of a Connect IQ
+SDK installation, and rewrites the `FIELDS` table in `index.html`. It also reports devices whose
+screen size differs from the editor's table.
 
 `tools/types.json` holds the value and graphic types (code, internal id, name, default format,
 sample, memory class) taken from Designer 3.4.2.
