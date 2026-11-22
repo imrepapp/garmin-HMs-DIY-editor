@@ -66,6 +66,8 @@ aside{background:var(--bg);overflow:auto;padding:12px 16px;min-width:0}
 #layerbox{flex:1 1 0;min-height:140px;display:flex;flex-direction:column}
 #layers{flex:1;overflow:auto;min-height:0}
 .empty{font-weight:600;margin:2px 0 6px}
+.gridnote{display:flex;align-items:center;gap:7px;font-size:12px;margin:2px 0 10px;cursor:help}
+.gdot{width:8px;height:8px;background:var(--accent);transform:rotate(45deg);flex:none}
 #newgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:8px;margin:10px 0}
 .thumb{border:1px solid var(--line);background:var(--raise);border-radius:6px;padding:9px 6px 7px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;color:var(--mute)}
 .thumb b{color:var(--ink);font-weight:600;margin-top:4px;text-align:center}
@@ -546,6 +548,9 @@ function draw(){
   c.strokeStyle=acc;
   for(const e of selX()){ if(e.type>1||e.hide) continue; const b=bbox(e); c.setLineDash([4*px,3*px]); c.strokeRect(b.x-2*px,b.y-2*px,b.w+4*px,b.h+4*px); c.setLineDash([]); }
   if(sel.length===1){ const e=byId(sel[0]); if(e&&e.type===1&&!e.hide) for(const h of handles(e)){ c.fillStyle='#fff'; c.beginPath(); if(h.k==='s'||h.k==='e'||h.k==='r') c.arc(h.x,h.y,4.5*px,0,7); else c.rect(h.x-4*px,h.y-4*px,8*px,8*px); c.fill(); c.lineWidth=1.5*px; c.stroke(); } }
+  const junction=(x,y)=>{ c.save(); c.translate(x,y); c.rotate(Math.PI/4); c.fillStyle=acc; c.fillRect(-3.2*px,-3.2*px,6.4*px,6.4*px); c.strokeStyle='#fff'; c.lineWidth=px; c.strokeRect(-3.2*px,-3.2*px,6.4*px,6.4*px); c.restore(); };
+  if(sel.length===1){ const e=byId(sel[0]), g=e&&!e.hide?gridInfo(e):null; if(g) for(const q of g.pts) junction(q.x,q.y); }
+  if(drag&&drag.mode==='d'){ const l=drag.line; c.strokeStyle=acc; c.lineWidth=2*px; c.setLineDash(l.snap[0]&&l.snap[1]?[]:[5*px,4*px]); c.beginPath(); c.moveTo(l.x,l.y); c.lineTo(l.x2,l.y2); c.stroke(); c.setLineDash([]); if(l.snap[0]) junction(l.x,l.y); if(l.snap[1]) junction(l.x2,l.y2); }
   if(marquee){ c.lineWidth=px; c.fillStyle='rgba(10,102,194,.12)'; c.fillRect(marquee.x,marquee.y,marquee.w,marquee.h); c.strokeRect(marquee.x,marquee.y,marquee.w,marquee.h); }
   renderChips();
 }
@@ -591,6 +596,7 @@ function devPt(ev){ const r=$('#cv').getBoundingClientRect(); return {x:(ev.clie
 function pick(p){ for(let i=S.els.length-1;i>=0;i--){ const e=S.els[i]; if(e.type<2 && !e.hide && !e.lock && hit(e,p.x,p.y)) return e; } return null; }
 function onDown(ev){
   if(ev.button) return;
+  if(tool&&tool.draw){ const q=devPt(ev); $('#cv').setPointerCapture(ev.pointerId); clearTimeout(cTimer); commit(); drag={mode:'d',p:q,line:drawnLine(q,q)}; draw(); return; }
   if(tool){ const q=devPt(ev), t=tool; placeAt={x:clamp(Math.round(q.x),0,S.w),y:clamp(Math.round(q.y),0,S.h)}; disarm(); try{ t.fn(); } finally { placeAt=null; } return; }
   const p=devPt(ev), cv=$('#cv'); cv.setPointerCapture(ev.pointerId);
   if(document.activeElement && document.activeElement.blur) document.activeElement.blur();
@@ -611,22 +617,34 @@ function axisOf(e){ if(!e||e.type!==1||e.a.eletype!=='LN') return null; const a=
 function gridInfo(e){
   const ax=axisOf(e); if(!ax) return null; const a=e.a, T=1.5, H=ax==='h';
   const pos=H?N(a.y):N(a.x), s0=H?Math.min(N(a.x),N(a.x2)):Math.min(N(a.y),N(a.y2)), s1=H?Math.max(N(a.x),N(a.x2)):Math.max(N(a.y),N(a.y2));
-  const len=H?S.w:S.h; let lo=0, hi=H?S.h:S.w, touches=0; const anch=[s0<=T,s1>=len-T], att=[], k1=H?'y':'x', k2=k1+'2';
+  const len=H?S.w:S.h; let lo=0, hi=H?S.h:S.w, touches=0; const anch=[s0<=T,s1>=len-T], att=[], pts=[], k1=H?'y':'x', k2=k1+'2';
   for(const o of S.els){ if(o===e||o.hide) continue; const oa=axisOf(o); if(!oa||oa===ax) continue; const b=o.a;
     const opos=H?N(b.x):N(b.y), v1=N(b[k1]), v2=N(b[k2]), omin=Math.min(v1,v2), omax=Math.max(v1,v2);
     if(opos<s0-T||opos>s1+T) continue;
     const e1=Math.abs(v1-pos)<=T, e2=Math.abs(v2-pos)<=T;
-    if(e1||e2){ touches++; const other=e1?v2:v1; att.push({o,key:e1?k1:k2}); if(other>pos) hi=Math.min(hi,other-4); else lo=Math.max(lo,other+4); }
+    if(e1||e2){ touches++; const other=e1?v2:v1; att.push({o,key:e1?k1:k2}); pts.push(H?{x:opos,y:pos}:{x:pos,y:opos}); if(other>pos) hi=Math.min(hi,other-4); else lo=Math.max(lo,other+4); }
     else if(pos>=omin-T&&pos<=omax+T){ const at0=Math.abs(opos-s0)<=T, at1=Math.abs(opos-s1)<=T; if(at0||at1){ touches++; if(at0) anch[0]=true; if(at1) anch[1]=true; lo=Math.max(lo,omin); hi=Math.min(hi,omax); } }
   }
   if(!touches&&!(anch[0]&&anch[1])) return null;
-  return {ax,pos,lo,hi,att,keys:[k1,k2]};
+  if(anch[0]) pts.push(H?{x:s0,y:pos}:{x:pos,y:s0}); if(anch[1]) pts.push(H?{x:s1,y:pos}:{x:pos,y:s1});
+  return {ax,pos,lo,hi,att,keys:[k1,k2],pts,both:anch[0]&&anch[1]};
 }
 function setGridLine(e,g,v){ v=g.lo<=g.hi?clamp(Math.round(v),g.lo,g.hi):g.pos; e.a[g.keys[0]]=e.a[g.keys[1]]=String(v); for(const t of g.att) t.o.a[t.key]=String(v); return v; }
+/* ---------- Drawing a new line: drag from start to end; the ends snap onto nearby perpendicular lines and the screen edge ---------- */
+function lineTargets(H,pos){ const t=[0,H?S.w:S.h]; for(const o of S.els){ if(o.hide) continue; const oa=axisOf(o); if(!oa||(oa==='h')===H) continue; const b=o.a, v1=H?N(b.y):N(b.x), v2=H?N(b.y2):N(b.x2); if(pos>=Math.min(v1,v2)-1.5&&pos<=Math.max(v1,v2)+1.5) t.push(H?N(b.x):N(b.y)); } return t; }
+function drawnLine(p0,p1){
+  const len=Math.hypot(p1.x-p0.x,p1.y-p0.y), H=len<3||Math.abs(p1.x-p0.x)>=Math.abs(p1.y-p0.y), pos=clamp(Math.round(H?p0.y:p0.x),0,H?S.h:S.w), tg=lineTargets(H,pos), tol=14/zoom;
+  let a=H?p0.x:p0.y, c=H?p1.x:p1.y, sa=null, sc=null;
+  if(len<3){ sa=Math.max(...tg.filter(t=>t<=a+.5)); sc=Math.min(...tg.filter(t=>t>=a-.5)); if(!isFinite(sa)) sa=0; if(!isFinite(sc)) sc=H?S.w:S.h; }
+  else { const sn=v=>{ let b=null; for(const t of tg) if(Math.abs(t-v)<=tol&&(b==null||Math.abs(t-v)<Math.abs(b-v))) b=t; return b; }; sa=sn(a); sc=sn(c); }
+  a=Math.round(sa??a); c=Math.round(sc??c);
+  return H?{x:a,y:pos,x2:c,y2:pos,snap:[sa!=null,sc!=null]}:{x:pos,y:a,x2:pos,y2:c,snap:[sa!=null,sc!=null]};
+}
 function snapAxis(vals, targets){ let best=null; for(const v of vals) for(const t of targets){ const d=t-v; if(Math.abs(d)<=5/zoom && (!best||Math.abs(d)<Math.abs(best.d))) best={d,t}; } return best; }
 function onMove(ev){
   const p=devPt(ev); $('#st-pos').textContent=`x ${Math.round(p.x)}  y ${Math.round(p.y)}`;
   if(!drag){ if(!tool){ const h=pick(p), g=h?gridInfo(h):null; $('#cv').style.cursor=g?(g.ax==='h'?'ns-resize':'ew-resize'):''; } return; }
+  if(drag.mode==='d'){ drag.line=drawnLine(drag.p,p); const n=drag.line.snap.filter(Boolean).length; $('#st-sel').textContent=n===2?'Grid line: both ends attached':n===1?'Grid line: one end attached':'Free line: no end touches another line'; draw(); return; }
   if(drag.mode==='m'&&drag.grid){ const g=drag.grid, H=g.ax==='h', d=Math.round(H?p.y-drag.p.y:p.x-drag.p.x); if(!drag.moved&&Math.abs(d)<1) return;
     drag.moved=true; guides=[]; let v=g.pos+d;
     if(snapOn&&!ev.altKey){ const skip=new Set([drag.items[0],...g.att.map(t=>t.o)]), tg=H?[S.h/2,S.h/3,S.h*2/3,S.h/4,S.h*3/4]:[S.w/2,S.w/3,S.w*2/3,S.w/4,S.w*3/4];
@@ -649,7 +667,9 @@ function onMove(ev){
   drag.items.forEach((e,i)=>{ const o=drag.orig[i]; e.a.x=String(o.x+dx); e.a.y=String(o.y+dy); if(hasBox(e)){ e.a.x2=String(o.x2+dx); e.a.y2=String(o.y2+dy); } });
   draw(); selStatus();
 }
-function onUp(){ if(!drag) return; const d=drag; drag=null; guides=[]; marquee=null; if(d.moved) commit(); refresh(); }
+function onUp(){ if(!drag) return; const d=drag; drag=null; guides=[]; marquee=null;
+  if(d.mode==='d'){ const l=d.line; disarm(); if(l.x!==l.x2||l.y!==l.y2) addEls([mkG('LN',{x:String(l.x),y:String(l.y),x2:String(l.x2),y2:String(l.y2)})]); else refresh(); return; }
+  if(d.moved) commit(); refresh(); }
 
 /* ---------- Selection actions ---------- */
 const selEls = () => sel.map(byId).filter(Boolean);
@@ -688,7 +708,7 @@ const ico = k => `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" st
 /* A tool is armed by its button and placed by the next click on the screen. */
 let tool=null, placeAt=null;
 function disarm(){ if(tool){ tool.b.classList.remove('on'); tool.b.setAttribute('aria-pressed','false'); } tool=null; $('#cv').style.cursor=''; selStatus(); }
-function armTool(fn,b,label){ const same=tool&&tool.b===b; disarm(); if(same) return; tool={fn,b,label}; b.classList.add('on'); b.setAttribute('aria-pressed','true'); $('#cv').style.cursor='crosshair'; selStatus(); renderChips(); }
+function armTool(fn,b,label){ const same=tool&&tool.b===b; disarm(); if(same) return; tool={fn,b,label,draw:label==='Line'}; b.classList.add('on'); b.setAttribute('aria-pressed','true'); $('#cv').style.cursor='crosshair'; selStatus(); renderChips(); }
 function buildPalette(){
   const cx=()=>placeAt?placeAt.x:Math.round(S.w/2), cy=()=>placeAt?placeAt.y:Math.round(S.h/2), u=()=>Math.round(Math.min(S.w,S.h)/4);
   const P=[
@@ -765,7 +785,7 @@ function renderLayers(){
   const n=S.els.filter(e=>e.type!==3).length;
   $('#st-count').textContent=n+' elements'; $('#st-count').title='The element limit depends on device memory: low 30, medium 35, high 500 elements.';
 }
-function selStatus(){ const s=selEls(); $('#st-sel').textContent = tool ? 'Click on the screen to place: '+tool.label+'  (Esc cancels)' : s.length===1&&s[0].type<2 ? `${nameOf(s[0])}: ${s[0].a.x}, ${s[0].a.y}` : s.length>1 ? s.length+' elements selected' : ''; }
+function selStatus(){ const s=selEls(); $('#st-sel').textContent = tool ? (tool.draw?'Drag on the screen to draw the line, or click to split a cell  (Esc cancels)':'Click on the screen to place: '+tool.label+'  (Esc cancels)') : s.length===1&&s[0].type<2 ? `${nameOf(s[0])}: ${s[0].a.x}, ${s[0].a.y}` : s.length>1 ? s.length+' elements selected' : ''; }
 
 /* ---------- Property panel ---------- */
 function live(){ draw(); selStatus(); commitSoon(); }
@@ -886,7 +906,9 @@ function renderPanelBody(){
       colorSection(e));
   } else {
     const t=a.eletype, setT=c=>{ a.eletype=c; commit(); refresh(); };
-    p.append(el('h2',{class:'t1'},GT[t]?GT[t].replace(/\s*[–(,].*$/,'').replace(/^Direction.*/,'Direction'):'Unknown type ['+t+']'));
+    const grid=t==='LN'?gridInfo(e):null;
+    p.append(el('h2',{class:'t1'},grid?'Grid line':GT[t]?GT[t].replace(/\s*[–(,].*$/,'').replace(/^Direction.*/,'Direction'):'Unknown type ['+t+']'));
+    if(grid) p.append(el('div',{class:'gridnote',title:'A straight line that touches another line or spans the screen works as a grid line: it only moves parallel to itself, and the ends of the lines that stop at it follow. The diamonds on the drawing mark where it is attached.'},el('span',{class:'gdot','aria-hidden':'true'}),'Part of the grid · '+grid.pts.length+' junction'+(grid.pts.length===1?'':'s')));
     if(t==='RH'||t==='RV') p.append(el('div',{class:'row one'},fld('Fills',seg([['RH','Left to right'],['RV','Bottom to top']],t,setT))));
     if(t==='DT'||t==='DA') p.append(el('div',{class:'row one'},fld('Shape',seg([['DT','Triangle'],['DA','Arrow']],t,setT))));
     if(k==='graph'&&GT[t]){ const right=t==='GR'||t==='GT', top=t==='GL'||t==='GR', code=(r,tp)=>tp?(r?'GR':'GL'):(r?'GT':'GB');
