@@ -85,7 +85,15 @@ aside{background:var(--bg);overflow:auto;padding:12px 16px;min-width:0}
 .scr i.cur{background:var(--accent)!important}
 .newmode{display:flex;gap:16px;margin:10px 0 2px;font-size:13px}
 .newmode label{display:flex;gap:5px;align-items:center;cursor:pointer}
-#info h2:first-child{margin-top:0}
+#info{max-height:min(70vh,640px);overflow:auto;padding-right:4px}
+#info details{border-bottom:1px solid var(--line)}
+#info summary{cursor:pointer;padding:8px 2px;font-weight:600;font-size:13px}
+#info summary:hover{color:var(--accent)}
+#info ul,#info ol{margin:0 0 10px;padding-left:20px;font-size:12.5px;line-height:1.5}
+#info li{margin:3px 0}
+#info .keys{border-collapse:collapse;font-size:12.5px;margin:0 0 8px}
+#info .keys td{padding:3px 14px 3px 2px;vertical-align:top}
+#info .hint{margin:0 0 10px}
 #propkind{font-weight:700;letter-spacing:.06em}
 h2{font:700 12px/1 var(--f-head);letter-spacing:.09em;text-transform:uppercase;color:var(--mute);margin:14px 0 7px;display:flex;align-items:center;gap:6px}
 h2:first-child{margin-top:0}
@@ -321,7 +329,7 @@ dialog li{margin:5px 0}
   <p class="hint">The encoding is the generation "C" format of HMs DIY Designer 3.4.2. If the device shows "Incompatible string!", the data field expects another generation. An existing string can be loaded back by pasting it into the Open dialog.</p>
   <div class="dlgbar"><button class="btn pri" id="strcp">Copy string</button><span class="sp"></span><button class="btn" data-close>Close</button></div>
 </dialog>
-<dialog id="dlg-help" style="width:min(460px,calc(100vw - 32px))">
+<dialog id="dlg-help" style="width:min(560px,calc(100vw - 32px))">
   <h3>Help</h3>
   <div id="info"></div>
   <div class="dlgbar"><span class="sp"></span><button class="btn" data-close>Close</button></div>
@@ -1072,11 +1080,60 @@ function renderPanelBody(){
   if(keep){ const f=document.getElementById(keep); if(f) f.focus(); }
 }
 const dc_ = e => e;
+const HELP=[
+ ['Getting started',[
+  'Menu → New layout: choose your device, then “Whole screen” (a Garmin data screen layout with the dividing lines drawn) or “Single field” (the canvas gets the size of one field).',
+  'Pick a tool on the left and drag on the screen to place an element.',
+  'Select an element to set its value, format, font and colour in Properties.',
+  'Press “Layout string for device”, copy the text and paste it into “Default layout string” in the data field settings in Garmin Connect or Garmin Express.']],
+ ['Tools',[
+  'Every tool is placed by dragging; the dragged box sets the size. A plain click places nothing.',
+  'The tool stays active, so you can place several in a row. Space, Esc or the Select tool goes back to the pointer.',
+  'Data: elements that show a live value (Value, Gauge arc, Progress bar, Graph, Direction).',
+  'Shapes and text: Label, Line, Frame, Rectangle, Circle, Disc, Arc. They show no value, but their colour can follow one.',
+  'Composite: ready-made combinations. They are scaled into the box and placed as a group.',
+  'Texts cannot be scaled freely: a device has only a few font sizes, so a text gets the largest font that fits the box.']],
+ ['Line tool',[
+  'Drag: a free line from the start point to the cursor.',
+  'Shift + drag: a horizontal or vertical line.',
+  'Ctrl + drag: the line starts at the nearest line or screen edge and ends at the next one in the drag direction. Use it to split a cell.',
+  'Double-click: a horizontal line across the whole screen.']],
+ ['Selecting and editing',[
+  'Click selects, Shift + click adds or removes, dragging on empty space selects with a box.',
+  'Drag to move; drag the handles to resize. Shift + drag keeps the direction, Alt + drag turns snapping off.',
+  'The badges next to a selected element show its position and size: click a number to type a new one.',
+  'Double-click a text to jump to its text field in Properties.',
+  'A line whose ends touch other lines or the screen edge is a grid line: it moves parallel to itself and the lines attached to it grow or shrink with it.']],
+ ['Layers and groups',[
+  'The list on the right shows the elements from top to bottom. Drag a row to reorder; the lock and the dot lock or hide an element in the editor.',
+  'Ctrl + G groups the selected elements, Ctrl + Shift + G ungroups.',
+  'On the screen a click on a group member selects and moves the whole group; a second click selects the single element.',
+  'Click a group name to collapse or expand it.']],
+ ['Values',[
+  'The value picker lists only what makes sense for the element; type in its search box to filter.',
+  'Sample is the number used in the preview only. It is shared by all elements showing the same value and never reaches the device.',
+  'Format and Decimals appear only where the value supports them. The Max icon next to the value shows the maximum instead of the current value.',
+  'Number fonts contain digits and signs only; the editor warns if a text needs other characters.']],
+ ['Colours',[
+  'Fixed: one colour. By value: the colour follows a numeric value through a list of thresholds, entered in real units.',
+  'A Value follows the value it shows. A Label or a shape can follow any numeric value you choose.',
+  'A rule can be shared by several elements; shared rules are edited from the “Colour rules” group at the bottom of the layer list.',
+  'Gauge arc and Progress bar take their range from the rule: empty at the lowest threshold, full at the highest.',
+  '“Invert at night” swaps the colour in night mode. The swatch shows day (top left) and night (bottom right).']],
+ ['Saving and loading',[
+  'Save → Project (.json) keeps everything, including groups, locks and hidden layers. Save → XML writes a file the original HMs DIY Designer can open.',
+  'Open accepts a project file, a Designer XML, or a pasted layout string.',
+  'Your work is also kept in this browser between visits.']],
+ ['Good to know',[
+  'The layout string has not been tested on a device. If the data field shows “Incompatible string!”, it expects a different format generation.',
+  'Glyph shapes in the preview are approximations; positions and sizes of shapes are exact.',
+  'Low-memory devices accept about 30 elements, medium 35, high 500. Colour rules count as elements.',
+  'On round screens the corners of a single field can be cut off by the bezel.']]];
+const KEYS=[['arrows','move 1 px'],['Shift + arrows','move 10 px'],['Alt + arrows','resize'],['Space','back to the pointer'],['Esc','leave the tool / clear the selection'],['Del','delete'],['Ctrl + D','duplicate'],['Ctrl + C / X / V','copy / cut / paste'],['Ctrl + A','select all'],['Ctrl + G','group'],['Ctrl + Shift + G','ungroup'],['Ctrl + Z / Y','undo / redo'],['Ctrl + S','save']];
 function renderInfo(){ const p=$('#info'); p.textContent='';
-  p.append(el('h2',{},'Device'),
-    el('div',{class:'hint'},(S.custom?'Custom size, fonts of ':'')+S.device+' · '+S.w+'×'+S.h+' px'+(S.round?' · round':''),el('br'),S.custom?'Use a custom size to design a single field that sits beside native Garmin fields. ':'To use other dimensions, choose “Custom size…” in the device list. ','Font sizes depend on the device; glyph shapes are approximations.'),
-    el('h2',{},'Keyboard'),
-    el('div',{class:'hint',style:'line-height:2;margin-bottom:0'},el('kbd',{},'arrows'),' move 1 px (',el('kbd',{},'Shift'),' 10 px)',el('br'),el('kbd',{},'Alt'),'+',el('kbd',{},'arrows'),' resize',el('br'),el('kbd',{},'Del'),' delete · ',el('kbd',{},'Ctrl'),'+',el('kbd',{},'D'),' duplicate',el('br'),el('kbd',{},'Ctrl'),'+',el('kbd',{},'G'),' group · ',el('kbd',{},'Ctrl'),'+',el('kbd',{},'Shift'),'+',el('kbd',{},'G'),' ungroup',el('br'),el('kbd',{},'Ctrl'),'+',el('kbd',{},'C'),' / ',el('kbd',{},'V'),' copy / paste',el('br'),el('kbd',{},'Ctrl'),'+',el('kbd',{},'Z'),' / ',el('kbd',{},'Y'),' undo / redo',el('br'),el('kbd',{},'Shift'),'+drag: constrain · ',el('kbd',{},'Alt'),'+drag: no snapping'));
+  HELP.forEach(([title,items],i)=>p.append(el('details',i===0?{open:''}:{},el('summary',{},title),el(i===0?'ol':'ul',{},items.map(t=>el('li',{},t))))));
+  p.append(el('details',{},el('summary',{},'Keyboard'),el('table',{class:'keys'},KEYS.map(k=>el('tr',{},el('td',{},k[0].split(' + ').flatMap((x,n)=>n?[' + ',el('kbd',{},x)]:[el('kbd',{},x)])),el('td',{},k[1])))),el('div',{class:'hint'},'On a Mac use Cmd instead of Ctrl.')),
+    el('details',{},el('summary',{},'Current device'),el('div',{class:'hint'},(S.custom?'Custom size, fonts of ':'')+S.device+' · '+S.w+'×'+S.h+' px'+(S.round?' · round':''),el('br'),'To use other dimensions, choose “Custom size…” in the device list. Font sizes depend on the device.')));
 }
 function refresh(){ draw(); renderLayers(); renderPanel(); renderInfo(); selStatus(); updButtons(); }
 
