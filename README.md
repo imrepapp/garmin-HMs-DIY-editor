@@ -17,9 +17,11 @@ browser between visits.
 1. **The field**: pick the device, then the field the layout is for: the whole screen, or one of
    the device's field sizes (each size is listed once) for a DIY field that sits beside native
    Garmin fields.
-2. **A grid inside the field**: for the whole screen the device's own data screen layouts, for a
-   smaller field even grids (2 × 1, 3 × 1, 2 × 2, ...). The dividing lines are drawn for you,
-   optionally with a sample label and value in every cell.
+2. **A grid inside the field**: for the whole screen the device's own data screen layouts. For a
+   smaller field up to eight grid ideas, plus **Custom**: a mesh of equal cells (each at least
+   61 × 31 px) in which you merge cells by dragging across them; a click splits a merged cell
+   again. A cell is never taller than wide. The dividing lines are drawn for you, optionally with
+   a sample label and value in every cell.
 
 For 104 of the 106 devices the layouts and field rectangles are Garmin's own, taken from the
 Connect IQ device files. The two without data (Forerunner 45, vívolife) use an even split.

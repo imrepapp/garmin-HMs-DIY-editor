@@ -83,6 +83,11 @@ aside{background:var(--bg);overflow:auto;padding:12px 16px;min-width:0}
 .scr i.pick{cursor:pointer}
 .scr i.pick:hover{background:var(--accent-soft)}
 .scr i.cur{background:var(--accent)!important}
+#newmesh{position:relative;margin:4px auto 10px;touch-action:none;user-select:none;-webkit-user-select:none;background:var(--mute);border:1.5px solid var(--mute);box-sizing:content-box;cursor:crosshair}
+#newmesh .mc{position:absolute;background:var(--panel);box-shadow:inset 0 0 0 1px var(--line);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--mute);overflow:hidden}
+#newmesh .mc.big{background:var(--accent-soft);color:var(--ink)}
+#newmesh .ms{position:absolute;background:var(--accent);opacity:.35;pointer-events:none}
+.linkbtn{border:0;background:none;padding:0;color:var(--accent);cursor:pointer;font:inherit;text-decoration:underline}
 .newstep{margin:10px 0 2px;font-size:13px;font-weight:600}
 .newstep span{color:var(--mute);font-weight:400}
 #info{max-height:min(70vh,640px);overflow:auto;padding-right:4px}
@@ -360,6 +365,7 @@ dialog li{margin:5px 0}
   <div class="newstep" id="newstep"></div>
   <p class="hint" id="newq" style="margin-bottom:0"></p>
   <div id="newgrid"></div>
+  <div id="newmeshwrap" hidden><p class="hint" style="margin:6px 0">Your own grid: drag across cells to merge them, click a merged cell to split it again. <button type="button" class="linkbtn" id="mesh-reset">Start over</button></p><div id="newmesh"></div></div>
   <p class="hint" id="newnote"></p>
   <div class="dlgbar"><button class="btn" id="new-back">‹ Back</button><button class="btn pri" id="new-sample">Create with sample values</button><button class="btn" id="new-empty">Create lines only</button><span class="sp"></span><button class="btn" data-close>Cancel</button></div>
 </dialog>
@@ -1393,13 +1399,36 @@ function gridsOf(n,f){ if(f.full) return n.list.map(l=>({name:l.cells.length===1
     ['3 × 2', [...cols(0,0,1,.5,[1,1,1]),...cols(0,.5,1,.5,[1,1,1])]], ['4 × 2', [...cols(0,0,1,.5,[1,1,1,1]),...cols(0,.5,1,.5,[1,1,1,1])]],
     ['wide top, 2 × 2 below', [[0,0,1,.4],...cols(0,.4,1,.3,[1,1]),...cols(0,.7,1,.3,[1,1])]], ['2 × 3', [...cols(0,0,1,1/3,[1,1]),...cols(0,1/3,1,1/3,[1,1]),...cols(0,2/3,1,1/3,[1,1])]] ];
   for(const [note,fr] of T){ const cells=fr.map(([x,y,w,h])=>{ const x0=Math.round(x*W), y0=Math.round(y*H); return [x0,y0,Math.round((x+w)*W)-x0,Math.round((y+h)*H)-y0,0]; });
-    if(cells.length>1&&cells.some(c=>c[2]<c[3]||c[2]<40||c[3]<28)) continue;   // never portrait, never too small
+    if(cells.length>1&&cells.some(c=>c[2]<c[3]||c[2]<MESH_W||c[3]<MESH_H)) continue;   // never portrait, never smaller than a mesh cell
     const key=JSON.stringify(cells); if(seen.has(key)) continue; seen.add(key);
     out.push({name:cells.length===1?'No grid':cells.length+' cells',sub:note,cells,n:cells.length}); }
-  return out.sort((a,b)=>a.n-b.n); }
+  // the plain field first, then at most eight ideas, the more characterful ones before the plain splits
+  const want=['big left, 2 stacked','big middle, stacks beside','wide + 2 narrow','2 stacked, big right','big left, 2 × 2','wide in the middle','2 × 2, big right','wide + narrow','big left, 3 stacked','wide top, 2 below','2 above, wide bottom','wide top, 3 below','2 narrow + wide','narrow + wide','2 above, 3 below','3 above, 2 below','wide + 3 narrow','2 columns','3 columns','2 rows','2 × 2','3 × 2','4 columns','4 × 2','3 rows','2 × 3'];
+  const rank=g=>{ const k=want.indexOf(g.sub); return k<0?99:k; }, ideas=out.filter(g=>g.n>1).sort((a,b)=>rank(a)-rank(b)).slice(0,8).sort((a,b)=>a.n-b.n);
+  return [...out.filter(g=>g.n===1),...ideas]; }
+/* The freely editable grid: a mesh of equal cells, each at least MESH_W × MESH_H px, whose cells are merged into the final grid. */
+const MESH_W=61, MESH_H=31;
+let mesh=null;   // {key, cols, rows, regs:[[c0,r0,c1,r1]]}
+function meshFor(f){ const W=f.c[2], H=f.c[3], key=W+'x'+H; if(!mesh||mesh.key!==key){ const cols=Math.max(1,Math.floor(W/MESH_W)), rows=Math.max(1,Math.floor(H/MESH_H)), regs=[]; for(let r=0;r<rows;r++) for(let c=0;c<cols;c++) regs.push([c,r,c,r]); mesh={key,cols,rows,regs}; } return mesh; }
+function meshCells(f){ const m=meshFor(f), W=f.c[2], H=f.c[3], X=c=>Math.round(c*W/m.cols), Y=r=>Math.round(r*H/m.rows); return m.regs.map(g=>[X(g[0]),Y(g[1]),X(g[2]+1)-X(g[0]),Y(g[3]+1)-Y(g[1]),0]); }
+function renderMesh(f){ const m=meshFor(f), W=f.c[2], H=f.c[3], box=$('#newmesh'), k=Math.min(4,Math.min(560/W,260/H)), cells=meshCells(f); box.textContent=''; box.style.width=(W*k)+'px'; box.style.height=(H*k)+'px';
+  cells.forEach((c,i)=>{ const g=m.regs[i]; box.append(el('div',{class:'mc'+(g[0]!==g[2]||g[1]!==g[3]?' big':''),style:`left:${c[0]*k}px;top:${c[1]*k}px;width:${c[2]*k}px;height:${c[3]*k}px`},c[2]+' × '+c[3])); });
+  const at=ev=>{ const r=box.getBoundingClientRect(); return [clamp(Math.floor((ev.clientX-r.left)/r.width*m.cols),0,m.cols-1),clamp(Math.floor((ev.clientY-r.top)/r.height*m.rows),0,m.rows-1)]; };
+  let from=null, sel=null;
+  const show=to=>{ if(sel) sel.remove(); const c0=Math.min(from[0],to[0]), c1=Math.max(from[0],to[0]), r0=Math.min(from[1],to[1]), r1=Math.max(from[1],to[1]); sel=el('div',{class:'ms',style:`left:${c0*W/m.cols*k}px;top:${r0*H/m.rows*k}px;width:${(c1-c0+1)*W/m.cols*k}px;height:${(r1-r0+1)*H/m.rows*k}px`}); box.append(sel); };
+  box.onpointerdown=ev=>{ from=at(ev); box.setPointerCapture(ev.pointerId); show(from); };
+  box.onpointermove=ev=>{ if(from) show(at(ev)); };
+  box.onpointerup=ev=>{ if(!from) return; const to=at(ev), hit=(g,R)=>!(g[2]<R[0]||g[0]>R[2]||g[3]<R[1]||g[1]>R[3]); let R=[Math.min(from[0],to[0]),Math.min(from[1],to[1]),Math.max(from[0],to[0]),Math.max(from[1],to[1])]; const click=from[0]===to[0]&&from[1]===to[1]; from=null;
+    if(click){ const g=m.regs.find(g=>hit(g,R)); if(g&&(g[0]!==g[2]||g[1]!==g[3])){ m.regs=m.regs.filter(x=>x!==g); for(let r=g[1];r<=g[3];r++) for(let c=g[0];c<=g[2];c++) m.regs.push([c,r,c,r]); } }
+    else { for(let grown=true;grown;){ grown=false; for(const g of m.regs) if(hit(g,R)&&(g[0]<R[0]||g[1]<R[1]||g[2]>R[2]||g[3]>R[3])){ R=[Math.min(R[0],g[0]),Math.min(R[1],g[1]),Math.max(R[2],g[2]),Math.max(R[3],g[3])]; grown=true; } }   // a merge swallows whole cells
+      if((R[2]-R[0]+1)*W/m.cols<(R[3]-R[1]+1)*H/m.rows-2) toast('A cell cannot be taller than it is wide.'); else { m.regs=m.regs.filter(g=>!hit(g,R)); m.regs.push(R); } }
+    m.regs.sort((a,b)=>a[1]-b[1]||a[0]-b[0]); renderNew(); };
+}
+
 function renderNew(){
   const box=$('#newgrid'), n=newInfo(), fields=fieldsOf(n); box.textContent='';
   if(newStep===2&&!newField) newStep=1;
+  $('#newmeshwrap').hidden=true;
   const thumb=(W,H,cells,cur,round)=>{ const k=64/Math.max(W,H), pc=v=>(Math.round(v*k*10)/10)+'px'; return el('span',{class:'scr',style:`width:${pc(W)};height:${pc(H)};${round?'border-radius:50%;':''}`},cells.map((c,me)=>el('i',{class:me===cur?'cur':'',style:`left:${pc(c[0])};top:${pc(c[1])};width:${pc(c[2])};height:${pc(c[3])}`}))); };
   $('#new-back').hidden=$('#new-sample').hidden=$('#new-empty').hidden=newStep===1; $('#newdev').closest('.row').hidden=newStep===2;
   if(newStep===1){
@@ -1408,11 +1437,14 @@ function renderNew(){
       box.append(el('button',{type:'button',class:'thumb',title:(u.sz.length>1?'Covers '+u.sz.join(' and ')+' px. ':'')+'Found in: '+u.in.join(', '),onclick:()=>{ newField=u; newGrid=0; newStep=2; renderNew(); }},
         thumb(n.w,n.h,lay.cells,u.me,n.round),el('b',{},u.full?'Whole screen':u.c[2]+' × '+u.c[3]),el('span',{},u.full?u.c[2]+' × '+u.c[3]:(u.in.length===1?u.in[0]:u.in[0]+' +'+(u.in.length-1))))); }
     $('#newnote').textContent=n.real?'Field sizes are Garmin\'s own for this device, taken from the Connect IQ device files.':'No Garmin field data for this device: the screen is split evenly, so the real fields can differ by a few pixels.';
-  } else { const f=newField, W=f.c[2], H=f.c[3], grids=gridsOf(n,f); if(newGrid>=grids.length) newGrid=0; const ob=f.c[4], edges=['left','top','right','bottom'].filter((_,i)=>ob&(1<<i));
+  } else { const f=newField, W=f.c[2], H=f.c[3], grids=gridsOf(n,f); if(newGrid>grids.length||(f.full&&newGrid>=grids.length)) newGrid=0; const ob=f.c[4], edges=['left','top','right','bottom'].filter((_,i)=>ob&(1<<i));
     $('#newstep').innerHTML='Step 2 of 2 <span>· a grid inside the field</span>'; $('#newq').textContent=(f.full?'Whole screen':'Field')+' of '+W+' × '+H+' px on '+n.name+'. How should it be divided?';
     grids.forEach((g,idx)=>{ const on=idx===newGrid; box.append(el('button',{type:'button',class:'thumb'+(on?' on':''),'aria-pressed':String(on),onclick:()=>{ newGrid=idx; renderNew(); },ondblclick:()=>{ newGrid=idx; createNew(true); }},
       thumb(W,H,g.cells,-1,f.full&&n.round),el('b',{},g.name),g.sub?el('span',{},g.sub):null)); });
-    const one=grids[newGrid].cells.length===1; $('#new-sample').textContent=one?'Create with a sample':'Create with sample values'; $('#new-empty').textContent=one?'Create empty':'Create lines only';
+    const custom=!f.full; if(custom){ const on=newGrid===grids.length, m=meshFor(f);
+      box.append(el('button',{type:'button',class:'thumb'+(on?' on':''),'aria-pressed':String(on),title:'Build your own grid from a mesh of '+m.cols+' × '+m.rows+' equal cells',onclick:()=>{ newGrid=grids.length; renderNew(); }},thumb(W,H,meshCells(f),-1,false),el('b',{},'Custom'),el('span',{},'merge cells'))); }
+    const isCustom=custom&&newGrid===grids.length; $('#newmeshwrap').hidden=!isCustom; if(isCustom) renderMesh(f);
+    const one=(isCustom?meshCells(f):grids[newGrid].cells).length===1; $('#new-sample').textContent=one?'Create with a sample':'Create with sample values'; $('#new-empty').textContent=one?'Create empty':'Create lines only';
     $('#newnote').textContent='The dividing lines are drawn for you and can be moved afterwards.'+(edges.length?' The round bezel cuts into this field on the '+edges.join(', ')+' side.':''); }
 }
 /* Dividing lines between the fields of a layout: borders run through the middle of the gap between neighbours, collinear pieces are joined. */
@@ -1426,7 +1458,7 @@ function fitFont(dev,w,h){ // the largest font whose line fits h and whose five-
   const fit=f=>{ const e=mkText({text:'00.00',font:f}), g=textGeom(e); return g.h<=h&&g.w<=w?[f,g.h,g.f.oy]:null; };
   for(const f of ['NR_THAI_HOT','NR_HOT','NR_MEDIUM','NR_MILD','LARGE','MEDIUM','SMALL']){ const r=fit(f); if(r) return r; } const g=textGeom(mkText({text:'0',font:'SMALL'})); return ['SMALL',g.h,g.f.oy]; }
 function createNew(sample){
-  const n=newInfo(); if(!newField) newField=fieldsOf(n)[0]; const f=newField, g=gridsOf(n,f)[newGrid]||gridsOf(n,f)[0], cells=g.cells, R=v=>String(Math.round(v)), m=(DEV[n.name]||[])[3]||{}, labFont=m.XTINY?'XTINY':'TINY'; clearTimeout(cTimer); commit();
+  const n=newInfo(); if(!newField) newField=fieldsOf(n)[0]; const f=newField, gl=gridsOf(n,f), g=(!f.full&&newGrid===gl.length)?{cells:meshCells(f)}:(gl[newGrid]||gl[0]), cells=g.cells, R=v=>String(Math.round(v)), m=(DEV[n.name]||[])[3]||{}, labFont=m.XTINY?'XTINY':'TINY'; clearTimeout(cTimer); commit();
   S.device=n.name; S.w=f.full?n.w:f.c[2]; S.h=f.full?n.h:f.c[3]; S.round=f.full&&n.round; S.custom=!f.full; S.designer=null; S.els=[]; sel=[];
   // a label and a value that fits, centred in one cell
   const fill=(k,x,y,w,h)=>{ const st=STARTERS[k%STARTERS.length], lh=textGeom(mkText({text:'A',font:labFont})).h+3, ff=fitFont(n.name,w-10,h-lh-6), cx=R(x+w/2);
@@ -1533,6 +1565,7 @@ function init(){
   nd.onchange=()=>{ newStep=1; newField=null; renderNew(); };
   $('#bnew').onclick=()=>{ nd.value=DEV[S.device]?S.device:nd.options[0].value; newStep=1; newField=null; renderNew(); $('#dlg-new').showModal(); };
   $('#new-back').onclick=()=>{ newStep=1; renderNew(); };
+  $('#mesh-reset').onclick=()=>{ mesh=null; renderNew(); };
   $('#new-sample').onclick=()=>createNew(true);
   $('#new-empty').onclick=()=>createNew(false);
   window.addEventListener('dragover',ev=>ev.preventDefault());
