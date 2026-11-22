@@ -119,10 +119,15 @@ h2 .sp{flex:1}
 #status{display:flex;gap:14px;flex-wrap:wrap;padding:4px 16px;font:11px var(--f-mono);color:var(--mute);background:var(--panel);border-top:1px solid var(--line)}
 .row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 8px;margin-bottom:6px}
 .row.one{grid-template-columns:minmax(0,1fr)}
-.row.fa{grid-template-columns:minmax(0,1fr) 114px;margin-top:8px}
+.row.fa{grid-template-columns:minmax(0,1fr) 114px;align-items:stretch}
 .row.four{grid-template-columns:repeat(4,minmax(0,1fr))}
 .f{display:flex;flex-direction:column;gap:2px;min-width:0}
 .f>span{font-size:11px;color:var(--mute)}
+#panel h2,#panel .f>span{font:700 11px/1 var(--f-head);letter-spacing:.09em;text-transform:uppercase;color:var(--mute)}
+#panel h2{margin:10px 0 4px}
+#panel .f{gap:4px}
+#panel .row{margin-bottom:8px}
+#panel>h2:first-child,#panel>div:first-child>h2:first-child{margin-top:0}
 .chk{display:flex;gap:6px;align-items:center;margin:4px 0}
 .seg{display:flex;border:1px solid var(--line);border-radius:5px;overflow:hidden}
 .seg button{flex:1;border:0;background:var(--raise);padding:4px 6px;cursor:pointer;border-left:1px solid var(--line)}
@@ -714,7 +719,8 @@ function selStatus(){ const s=selEls(); $('#st-sel').textContent = tool ? 'Click
 
 /* ---------- Property panel ---------- */
 function live(){ draw(); selStatus(); commitSoon(); }
-function fld(label, input){ return el('label',{class:'f'},el('span',{},label),input); }
+const TIPS={Format:'$V is replaced by the value; time values use $H $M $S',Drivetrain:'circumference;chainring;sprockets, small to big',Averaging:'Seconds the value is averaged over',Sample:'Value shown in this preview only (time values in seconds)',Decimals:'Number of decimal places',Target:'What the marker points to; none lets the data field setting decide',Value:'The live value this element shows or follows','Bar width':'Pixels per second','Min/max':'Lower or upper limit of the graph',Stroke:'Line thickness in pixels'};
+function fld(label, input){ const t=TIPS[label]; return el('label',{class:'f',title:t},el('span',{},label),input); }
 function fNum(e,key,label,o){ o=o||{}; const i=el('input',{type:'number',id:'p-'+key,step:o.step||1,min:o.min,value:e.a[key]??'0',oninput:()=>{ if(i.value==='') return; e.a[key]=String(o.float?N(i.value):Math.round(N(i.value))); live(); if(o.after) o.after(); }}); return fld(label,i); }
 function fTxt(e,key,label,o){ o=o||{}; const i=el('input',{type:'text',id:'p-'+key,value:e.a[key]??'',placeholder:o.ph,oninput:()=>{ e.a[key]=i.value; live(); renderLayersSoon(); }}); return fld(label,i); }
 function fChk(e,key,label){ const i=el('input',{type:'checkbox',id:'p-'+key,onchange:()=>{ e.a[key]=String(i.checked); live(); }}); i.checked=e.a[key]==='true'; return el('label',{class:'chk'},i,label); }
@@ -731,7 +737,7 @@ function sampleField(e){
   const code=valCode(e); if(code==='FX') return null; const v=VT[code];
   const cur = e.type===0 && e.a.sampletext ? e.a.sampletext : (S.samples[code]??(v?v.s:0));
   const i=el('input',{type:'text',id:'p-sample',value:cur,oninput:()=>{ if(e.type===0){ if(i.value==='') delete e.a.sampletext; else e.a.sampletext=i.value; } else { const n=parseFloat(i.value.replace(',','.')); if(isFinite(n)) S.samples[code]=n; } live(); }});
-  return fld('Sample value for the preview'+(v&&v.k==='t'?' (seconds)':''), i);
+  return fld('Sample', i);
 }
 /* A colour is always shown as one swatch; clicking it opens the palette dialog. */
 let colorCb=null;
@@ -793,7 +799,7 @@ function renderPanelBody(){
     return;
   }
   const e=s[0], a=e.a, k=kind(e);
-  if(k==='sep'){ const m=groupOf(e); p.append(el('h2',{class:'t3'},'Group'),el('div',{class:'row one'},fTxt(e,'text','Group name')),el('div',{class:'hint'},m.length+' layer'+(m.length===1?'':'s')+' in this group. Arrow keys move them together; the group row in the list collapses, locks or hides them, and dragging it moves the whole group. Groups are an editing aid and are not sent to the device.'),
+  if(k==='sep'){ const m=groupOf(e); p.append(el('h2',{class:'t3'},'Group'),el('div',{class:'row one'},fTxt(e,'text','Name')),el('div',{class:'hint'},m.length+' layer'+(m.length===1?'':'s')+' in this group. Arrow keys move them together; the group row in the list collapses, locks or hides them, and dragging it moves the whole group. Groups are an editing aid and are not sent to the device.'),
       el('div',{class:'dlgbar'},el('button',{class:'btn sm',onclick:ungroupSel},'Ungroup'))); }
   else if(k==='dyn'){ p.append(el('h2',{class:'t2'},'Dynamic colour'),dcEditor(dc_(e),null),el('div',{class:'hint'},'Used by: ',dcUsers(e).map(nameOf).join(', ')||'no element')); }
   else if(k==='text'){
@@ -803,15 +809,16 @@ function renderPanelBody(){
       p.append(el('div',{class:'row one'},fld('Value',valueSelect(a.eletype,c=>{ a.eletype=c; const nv=VT[c]; if(nv) a.text=nv.mask; delete a.sampletext; commit(); refresh(); },'p-eletype'))));
       if(v&&v.mem>30) p.append(el('div',{class:'hint'},v.mem>=500?'(H): only available on high-memory devices.':'(M): available on medium- and high-memory devices.'));
       if(v&&v.id>0&&v.id<10) p.append(el('div',{class:'hint'},'The data field ignores the format for this type; no text is stored in the string.'));
-      p.append(el('div',{class:'row one'},fTxt(e,'text',a.eletype==='BG'?'Drivetrain (circumference;chainring;sprockets)':'Format – $V is replaced by the value')));
+      p.append(el('div',{class:'row one'},fTxt(e,'text',a.eletype==='BG'?'Drivetrain':'Format')));
       if(a.eletype!=='BG'){ const masks = v&&v.k==='t' ? ['$H:$M:$S','$H:$M:$C','$h:$M:$S','$H:$M','$m:$S','$M:$S'] : ['$V','$V%','$V km','$V W','$T'];
         p.append(el('div',{class:'chips'},masks.map(m=>el('button',{type:'button',onclick:()=>{ a.text=m; commit(); refresh(); }},m)))); }
-      p.append(el('div',{class:'row'},fNum(e,'precision','Decimals',{min:0}),fNum(e,'nr_values','Averaging (s)',{min:1})), el('div',{class:'row one'},sampleField(e)), fChk(e,'maxonly','Show only the maximum reached'));
+      p.append(el('div',{class:'row'},fNum(e,'precision','Decimals',{min:0}),fNum(e,'nr_values','Averaging',{min:1})), el('div',{class:'row one'},sampleField(e)), fChk(e,'maxonly','Show only the maximum reached'));
     } else p.append(el('div',{class:'row one'},fTxt(e,'text','Text')));
     const map=(DEV[S.device]||[])[3]||{}, names=Object.keys(map).length?Object.keys(map):Object.keys(FONT_FALLBACK); if(!names.includes(a.font)) names.push(a.font);
     const fs=el('select',{id:'p-font',onchange:()=>{ a.font=fs.value; commit(); refresh(); }},names.map(n=>el('option',{value:n,title:n},(n.startsWith('S_')?'Sys ':'')+(FONT_NAMES[n.replace(/^S_/,'')]||n)+(map[n]?' · '+map[n][1]:''))));
     fs.value=a.font;
-    p.append(el('div',{class:'row fa'},fld('Font',fs),fld('Alignment',seg([['2',alignIco('M2 3.5h12M2 6.5h7M2 9.5h12M2 12.5h7','Left')],['1',alignIco('M2 3.5h12M4.5 6.5h7M2 9.5h12M4.5 12.5h7','Centre')],['0',alignIco('M2 3.5h12M7 6.5h7M2 9.5h12M7 12.5h7','Right')]],a.halignment,v=>{ a.halignment=v; commit(); refresh(); }))),
+    const al=seg([['2',alignIco('M2 3.5h12M2 6.5h7M2 9.5h12M2 12.5h7','Left')],['1',alignIco('M2 3.5h12M4.5 6.5h7M2 9.5h12M4.5 12.5h7','Centre')],['0',alignIco('M2 3.5h12M7 6.5h7M2 9.5h12M7 12.5h7','Right')]],a.halignment,v=>{ a.halignment=v; commit(); refresh(); }); al.setAttribute('role','group'); al.setAttribute('aria-label','Alignment'); fs.setAttribute('aria-label','Font');
+    p.append(el('h2',{},'Font'),el('div',{class:'row fa'},fs,al),
       colorSection(e));
   } else {
     const t=a.eletype, setT=c=>{ a.eletype=c; commit(); refresh(); };
@@ -821,16 +828,15 @@ function renderPanelBody(){
     if(k==='graph'&&GT[t]){ const right=t==='GR'||t==='GT', top=t==='GL'||t==='GR', code=(r,tp)=>tp?(r?'GR':'GL'):(r?'GT':'GB');
       p.append(el('div',{class:'row'},fld('Starts at',seg([['l','Left'],['r','Right']],right?'r':'l',v=>setT(code(v==='r',top)))),fld('Baseline',seg([['b','Bottom'],['t','Top']],top?'t':'b',v=>setT(code(right,v==='t')))))); }
     if(k==='line'||k==='rect'||k==='graph'||k==='box'){
-      if(a.eletype==='LN'||a.eletype==='RC') p.append(el('div',{class:'row'},fNum(e,'stroke','Stroke width',{min:1})));
-      if(k==='graph') p.append(el('div',{class:'row'},fNum(e,'stroke','Bar width (px per second)',{min:1}),fNum(e,'radius','Min./max. value')),fChk(e,'minval','Limit is the minimum value'),fChk(e,'maxonly','Mark min/max values'));
-    } else if(k==='circle'){ if(a.eletype==='CR') p.append(el('div',{class:'row'},fNum(e,'stroke','Stroke width',{min:1}))); }
+      if(a.eletype==='LN'||a.eletype==='RC') p.append(el('div',{class:'row'},fNum(e,'stroke','Stroke',{min:1})));
+      if(k==='graph') p.append(el('div',{class:'row'},fNum(e,'stroke','Bar width',{min:1}),fNum(e,'radius','Min/max')),fChk(e,'minval','Limit is the minimum value'),fChk(e,'maxonly','Mark min/max values'));
+    } else if(k==='circle'){ if(a.eletype==='CR') p.append(el('div',{class:'row'},fNum(e,'stroke','Stroke',{min:1}))); }
     else if(k==='arc'){ p.append(el('div',{class:'row'},fNum(e,'stroke','Stroke',{min:1})),
         el('div',{class:'hint'},'0° points to 3 o\'clock and angles grow clockwise (270° = top). A filling arc runs from the start angle towards the end angle.')); }
-    else if(k==='dir'){ p.append(el('div',{class:'row'},fNum(e,'stroke','Stroke width',{min:1})),
+    else if(k==='dir'){ p.append(el('div',{class:'row'},fNum(e,'stroke','Stroke',{min:1})),
         el('div',{class:'hint'},'With a non-zero offset the marker moves on a circle around the centre, like a compass.')); }
-    p.append(el('h2',{},k==='dir'?'Points to':'Linked value'),
-      el('div',{class:'row one'},fld(k==='dir'?'Target (none: the data field setting decides)':FILL.includes(a.eletype)||k==='graph'?'Which value does it show?':'Which value drives the colour?',valueSelect(a.valuetype||'FX',c=>{ a.valuetype=c; commit(); refresh(); },'p-valuetype'))));
-    if(a.valuetype&&a.valuetype!=='FX'&&k!=='dir'){ p.append(el('div',{class:'row'},sampleField(e),fNum(e,'nr_values','Averaging (s)',{min:1}))); }
+    p.append(el('div',{class:'row one'},fld(k==='dir'?'Target':'Value',valueSelect(a.valuetype||'FX',c=>{ a.valuetype=c; commit(); refresh(); },'p-valuetype'))));
+    if(a.valuetype&&a.valuetype!=='FX'&&k!=='dir'){ p.append(el('div',{class:'row'},sampleField(e),fNum(e,'nr_values','Averaging',{min:1}))); }
     p.append(colorSection(e));
   }
   if(keep){ const f=document.getElementById(keep); if(f) f.focus(); }
