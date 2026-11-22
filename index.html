@@ -128,6 +128,8 @@ h2 .sp{flex:1}
 .seg button{flex:1;border:0;background:var(--raise);padding:4px 6px;cursor:pointer;border-left:1px solid var(--line)}
 .seg button:first-child{border-left:0}
 .seg button.on{background:var(--accent);color:var(--accent-ink);font-weight:600}
+.seg.mini{flex:none}
+.seg.mini button{flex:none;padding:2px 8px;font:500 11px var(--f-ui);letter-spacing:0;text-transform:none}
 .chips{display:flex;flex-wrap:wrap;gap:4px;margin:-2px 0 6px}
 .chips button{border:1px solid var(--line);background:none;border-radius:10px;padding:1px 8px;font:11px var(--f-mono);cursor:pointer}
 .chips button:hover{border-color:var(--accent)}
@@ -746,12 +748,14 @@ function nightBtn(e,col){ const on=e.a.daynight==='true', cb=el('input',{type:'c
 }
 function colorSection(e){
   const box=el('div',{}), dc=dcFor(e.a.color), fill=FILL.includes(e.a.eletype);
-  box.append(el('h2',{},'Colour'));
-  if(dc){ box.append(el('div',{class:'colrow',style:'margin-bottom:8px'},el('span',{class:'hexlab'},'Colour follows a value'),nightBtn(e,null)),dcEditor(dc,e), el('div',{class:'dlgbar',style:'margin-top:0'}, el('button',{class:'btn sm',onclick:()=>{ const rows=[...dc.dc].sort((a,b)=>b.val-a.val); e.a.color=rows.length?rows[rows.length-1].col:'000000'; if(!dcUsers(dc).length) S.els=S.els.filter(x=>x!==dc); commit(); refresh(); }},'Back to a single fixed colour'))); }
+  const toFixed=()=>{ const rows=[...dc.dc].sort((a,b)=>b.val-a.val); e.a.color=rows.length?rows[rows.length-1].col:'000000'; if(!dcUsers(dc).length) S.els=S.els.filter(x=>x!==dc); commit(); refresh(); };
+  const mode=seg([['f','Fixed'],['v','By value']],dc?'v':'f',m=>{ if(m==='v'&&!dc){ attachDyn(e); commit(); refresh(); } else if(m==='f'&&dc) toFixed(); });
+  mode.className='seg mini'; mode.id='p-colmode'; mode.title='Fixed: one colour. By value: the colour'+(fill?' and fill level follow':' follows')+' a live value.';
+  box.append(el('h2',{},'Colour',el('span',{class:'sp'}),mode));
+  if(dc) box.append(el('div',{class:'colrow',style:'margin-bottom:8px'},el('span',{class:'hexlab'},'Colour follows a value'),nightBtn(e,null)),dcEditor(dc,e));
   else {
-    box.append(el('div',{class:'colrow'},colorBtn(e.a.color,c=>{ e.a.color=c; commit(); refresh(); },'p-color'),el('span',{class:'hexlab'},'#'+e.a.color),nightBtn(e,e.a.color)),
-      el('div',{class:'colrow',style:'margin-top:8px'},el('button',{class:'btn sm',title:'Make the colour (or fill level) follow a live value',onclick:()=>{ attachDyn(e); commit(); refresh(); }},fill?'Link to a value…':'Change with a value…')));
-    if(fill) box.append(el('div',{class:'hint'},'The bar only moves on the device when it is linked to a value: empty at the lowest threshold, full at the highest.'));
+    box.append(el('div',{class:'colrow'},colorBtn(e.a.color,c=>{ e.a.color=c; commit(); refresh(); },'p-color'),el('span',{class:'hexlab'},'#'+e.a.color),nightBtn(e,e.a.color)));
+    if(fill) box.append(el('div',{class:'hint'},'The bar only moves on the device when its colour is set to “By value”: empty at the lowest threshold, full at the highest.'));
   }
   return box;
 }
