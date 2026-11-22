@@ -160,7 +160,7 @@ dialog li{margin:5px 0}
   <div class="grp">
     <button class="btn" id="bnew">New</button>
     <button class="btn" id="bopen">Open</button>
-    <button class="btn" id="bsave">Save XML</button>
+    <button class="btn" id="bsave">Save</button>
     <button class="btn pri" id="bdev">Layout string for device</button>
   </div>
 </header>
@@ -178,10 +178,12 @@ dialog li{margin:5px 0}
       <h2>Layers <span class="sp"></span>
         <button class="btn sm ghost" id="lup" title="Bring forward">▲</button>
         <button class="btn sm ghost" id="ldown" title="Send backward">▼</button>
+        <button class="btn sm ghost" id="lgrp" title="Group selection (Ctrl/Cmd+G)"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M1.5 4.5h4l1.5 1.5h7.5v7h-13z"/></svg></button>
+        <button class="btn sm ghost" id="lungrp" title="Ungroup (Ctrl/Cmd+Shift+G)"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M1.5 4.5h4l1.5 1.5h7.5v7h-13z" stroke-dasharray="2 2"/></svg></button>
         <button class="btn sm ghost" id="ldup" title="Duplicate (Ctrl+D)">⧉</button>
-        <button class="btn sm ghost" id="ldel" title="Delete (Del)">✕</button>
+        <button class="btn sm ghost" id="ldel" title="Delete (Del)" aria-label="Delete"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M2.5 4.5h11M6.5 4.5V3h3v1.5M4 4.5l.7 8.5h6.6l.7-8.5M6.8 7v3.8M9.2 7v3.8"/></svg></button>
       </h2>
-      <div class="hint">Top of the list is in front. Drag to reorder. A separator starts a group you can collapse, lock or hide.</div>
+      <div class="hint">Top of the list is in front. Drag to reorder. Select layers and press Ctrl/Cmd+G to group them.</div>
       <ul id="layers"></ul>
     </div>
     <div id="panel"></div>
@@ -189,16 +191,23 @@ dialog li{margin:5px 0}
 </main>
 
 <dialog id="dlg-save">
-  <h3>Save as XML</h3>
-  <p class="hint">This is the HMs DIY Designer XML format. It keeps separators and the device, so use it to store your work. The device itself takes the layout string.</p>
-  <div class="row"><label class="f"><span>File name</span><input type="text" id="fname" value="layout.xml"></label></div>
-  <textarea id="xmlout" readonly aria-label="XML"></textarea>
+  <h3>Save</h3>
+  <div class="seg" id="savefmt" style="margin-bottom:8px"><button type="button" data-fmt="json">Project file (.json)</button><button type="button" data-fmt="xml">Designer XML (.xml)</button></div>
+  <p class="hint" id="savehint"></p>
+  <div class="row"><label class="f"><span>File name</span><input type="text" id="fname" value="layout.json"></label></div>
+  <textarea id="xmlout" readonly aria-label="File contents"></textarea>
   <div class="dlgbar"><button class="btn pri" id="dl">Download</button><button class="btn" id="cp">Copy to clipboard</button><span class="sp"></span><button class="btn" data-close>Close</button></div>
+</dialog>
+<dialog id="dlg-confirm" style="width:min(400px,calc(100vw - 32px))">
+  <h3>Delete</h3>
+  <p id="cf-text"></p>
+  <p class="hint">Undo (Ctrl+Z) brings it back.</p>
+  <div class="dlgbar"><span class="sp"></span><button class="btn" data-close>Cancel</button><button class="btn pri" id="cf-ok" autofocus>Delete</button></div>
 </dialog>
 <dialog id="dlg-open">
   <h3>Open a layout</h3>
-  <p class="hint">Choose a HMs DIY Designer XML file, drop it on the window, or paste XML <b>or a layout string</b> here (for example one copied from Garmin Connect). This replaces the current layout; Undo brings it back.</p>
-  <input type="file" id="file" accept=".xml,text/xml">
+  <p class="hint">Choose a project file (.json) or a HMs DIY Designer XML file, drop it on the window, or paste its contents <b>or a layout string</b> here (for example one copied from Garmin Connect). This replaces the current layout; Undo brings it back.</p>
+  <input type="file" id="file" accept=".json,.xml,application/json,text/xml">
   <textarea id="xmlin" placeholder="&lt;DIYLayout&gt; … &lt;/DIYLayout&gt;   or   C!!iQJ…" aria-label="Paste XML or a layout string" style="margin-top:8px"></textarea>
   <div class="dlgbar"><button class="btn pri" id="loadtxt">Load pasted text</button><span class="sp"></span><button class="btn" data-close>Cancel</button></div>
 </dialog>
@@ -432,7 +441,7 @@ function draw(){
   c.lineWidth=px; c.strokeStyle='#d0289a';
   for(const g of guides){ c.beginPath(); if(g.x!=null){ c.moveTo(g.x,-PAD/zoom); c.lineTo(g.x,S.h+PAD/zoom); } else { c.moveTo(-PAD/zoom,g.y); c.lineTo(S.w+PAD/zoom,g.y); } c.stroke(); }
   c.strokeStyle=acc;
-  for(const id of sel){ const e=byId(id); if(!e||e.type>1||e.hide) continue; const b=bbox(e); c.setLineDash([4*px,3*px]); c.strokeRect(b.x-2*px,b.y-2*px,b.w+4*px,b.h+4*px); c.setLineDash([]); }
+  for(const e of selX()){ if(e.type>1||e.hide) continue; const b=bbox(e); c.setLineDash([4*px,3*px]); c.strokeRect(b.x-2*px,b.y-2*px,b.w+4*px,b.h+4*px); c.setLineDash([]); }
   if(sel.length===1){ const e=byId(sel[0]); if(e&&e.type===1&&!e.hide) for(const h of handles(e)){ c.fillStyle='#fff'; c.beginPath(); if(h.k==='s'||h.k==='e'||h.k==='r') c.arc(h.x,h.y,4.5*px,0,7); else c.rect(h.x-4*px,h.y-4*px,8*px,8*px); c.fill(); c.lineWidth=1.5*px; c.stroke(); } }
   if(marquee){ c.lineWidth=px; c.fillStyle='rgba(10,102,194,.12)'; c.fillRect(marquee.x,marquee.y,marquee.w,marquee.h); c.strokeRect(marquee.x,marquee.y,marquee.w,marquee.h); }
 }
@@ -479,14 +488,30 @@ function onUp(){ if(!drag) return; const d=drag; drag=null; guides=[]; marquee=n
 
 /* ---------- Selection actions ---------- */
 const selEls = () => sel.map(byId).filter(Boolean);
+/* selection with the members of every selected group header */
+function selX(){ const out=new Set(); for(const e of selEls()){ out.add(e); if(e.type===3) groupOf(e).forEach(m=>out.add(m)); } return S.els.filter(e=>out.has(e)); }
+function headerOf(e){ for(let i=S.els.indexOf(e);i>=0;i--) if(S.els[i].type===3) return S.els[i]; return null; }
 function addEls(list, select){
   let at=S.els.length; const s=selEls(); if(s.length) at=Math.max(...s.map(e=>S.els.indexOf(e)))+1;
   S.els.splice(at,0,...list); sel=(select||list).map(e=>e.id); commit(); refresh();
 }
-function delSel(){ if(!sel.length) return; S.els=S.els.filter(e=>!sel.includes(e.id)); sel=[]; pruneDyn(); commit(); refresh(); }
+function delSel(){ const x=selX(); if(!x.length) return; S.els=S.els.filter(e=>!x.includes(e)); sel=[]; pruneDyn(); commit(); refresh(); }
+function askDelete(){ const x=selX(); if(!x.length) return; const g=x.filter(e=>e.type===3), n=x.length-g.length;
+  $('#cf-text').textContent = g.length ? 'Delete '+(g.length===1?'the group “'+(g[0].a.text||'unnamed')+'”':g.length+' groups')+' and the '+n+' layer'+(n===1?'':'s')+' inside?' : n===1 ? 'Delete “'+nameOf(x[0]).replace(/^“|”$/g,'')+'”?' : 'Delete '+n+' layers?';
+  $('#dlg-confirm').showModal(); }
+function groupSel(){
+  const m=selX().filter(e=>e.type<3); if(!m.length){ toast('Select the layers to group first.'); return; }
+  let at=S.els.indexOf(m[m.length-1])+1; while(at<S.els.length&&S.els[at].type!==3) at++;
+  const anchor=S.els[at]||null, sep=mk(3,{text:'Group '+(S.els.filter(e=>e.type===3).length+1)});
+  S.els=S.els.filter(e=>!m.includes(e)); S.els.splice(anchor?S.els.indexOf(anchor):S.els.length,0,sep,...m);
+  S.els=S.els.filter((e,i)=>e.type!==3||e===sep||(S.els[i+1]&&S.els[i+1].type!==3));
+  sel=[sep.id]; commit(); refresh(); const f=document.getElementById('p-text'); if(f){ f.focus(); f.select(); }
+}
+function ungroupSel(){ const hs=new Set(); for(const e of selEls()){ const h=e.type===3?e:headerOf(e); if(h) hs.add(h); }
+  if(!hs.size){ toast('Nothing to ungroup.'); return; } const mem=[...hs].flatMap(h=>groupOf(h)); S.els=S.els.filter(e=>!hs.has(e)); sel=mem.filter(e=>e.type<2).map(e=>e.id); commit(); refresh(); }
 function cloneEls(src, d){ return src.map(e=>{ const c=JSON.parse(JSON.stringify(e)); c.id=S.nid++; if(c.type<2){ c.a.x=String(N(c.a.x)+d); c.a.y=String(N(c.a.y)+d); if(hasBox(c)){ c.a.x2=String(N(c.a.x2)+d); c.a.y2=String(N(c.a.y2)+d); } } if(c.type===2){ c.a.replDC=uniqueKey(c.a.replDC); } return c; }); }
-function dupSel(){ const s=selEls(); if(s.length) addEls(cloneEls(s,8)); }
-function nudge(dx,dy,resize){ const s=selEls().filter(e=>e.type<2); if(!s.length) return; for(const e of s){ if(resize&&hasBox(e)){ e.a.x2=String(N(e.a.x2)+dx); e.a.y2=String(N(e.a.y2)+dy); } else { e.a.x=String(N(e.a.x)+dx); e.a.y=String(N(e.a.y)+dy); if(hasBox(e)){ e.a.x2=String(N(e.a.x2)+dx); e.a.y2=String(N(e.a.y2)+dy); } } } draw(); renderPanel(); commitSoon(); }
+function dupSel(){ const s=selX(); if(!s.length) return; const c=cloneEls(s,8); if(c[0].type===3){ S.els.push(...c); sel=[c[0].id]; commit(); refresh(); } else addEls(c); }
+function nudge(dx,dy,resize){ const s=selX().filter(e=>e.type<2); if(!s.length) return; for(const e of s){ if(resize&&hasBox(e)){ e.a.x2=String(N(e.a.x2)+dx); e.a.y2=String(N(e.a.y2)+dy); } else { e.a.x=String(N(e.a.x)+dx); e.a.y=String(N(e.a.y)+dy); if(hasBox(e)){ e.a.x2=String(N(e.a.x2)+dx); e.a.y2=String(N(e.a.y2)+dy); } } } draw(); renderPanel(); commitSoon(); }
 function moveLayer(dir){ const s=selEls(); if(!s.length) return; const order=dir>0?[...s].sort((a,b)=>S.els.indexOf(b)-S.els.indexOf(a)):[...s].sort((a,b)=>S.els.indexOf(a)-S.els.indexOf(b));
   for(const e of order){ const i=S.els.indexOf(e), j=i+dir; if(j<0||j>=S.els.length||sel.includes(S.els[j].id)) continue; S.els.splice(i,1); S.els.splice(j,0,e); } commit(); refresh(); }
 
@@ -510,7 +535,6 @@ function buildPalette(){
    ['bar','t1','Progress bar',()=>{ const g=mkG('RH',{color:'00AA00',valuetype:'BV',x:String(cx()-u()),y:String(cy()-5),x2:String(cx()+u()),y2:String(cy()+5)}); addEls([g]); const d=attachDyn(g); d.auto=true; d.dc[0].val=1000; d.dc[1].val=0; commit(); refresh(); }],
    ['graph','t1','Graph',()=>addEls([mkG('GB',{color:'AA0000',valuetype:'HR',x:String(cx()-u()),y:String(cy()-u()/2|0),x2:String(cx()+u()),y2:String(cy()+u()/2|0),radius:'0',stroke:'2',maxonly:'false'})])],
    ['dir','t1','Direction',()=>addEls([mkG('DT',{x:String(cx()),y:String(cy()),radius:'12',stroke:'2'})])],
-   ['sep','t3','List separator',()=>addEls([mk(3,{text:'*** SECTION ***'})])],
   ];
   const box=$('#palette');
   for(const [i,cls,label,fn] of P){ const b=el('button',{class:cls,type:'button',onclick:fn}); b.innerHTML=ico(i)+'<span style="color:var(--ink)">'+label+'</span>'; box.append(b); }
@@ -621,18 +645,19 @@ function renderPanel(){
     p.append(el('h2',{},'Getting started'),
       el('div',{class:'hint'},'Click an element on the screen or in the layer list to edit it here. Add new elements from the list on the left.'),
       el('h2',{},'Keyboard'),
-      el('div',{class:'hint',style:'line-height:2'},el('kbd',{},'arrows'),' move 1 px (',el('kbd',{},'Shift'),' 10 px)',el('br'),el('kbd',{},'Alt'),'+',el('kbd',{},'arrows'),' resize',el('br'),el('kbd',{},'Del'),' delete · ',el('kbd',{},'Ctrl'),'+',el('kbd',{},'D'),' duplicate',el('br'),el('kbd',{},'Ctrl'),'+',el('kbd',{},'C'),' / ',el('kbd',{},'V'),' copy / paste',el('br'),el('kbd',{},'Ctrl'),'+',el('kbd',{},'Z'),' / ',el('kbd',{},'Y'),' undo / redo',el('br'),el('kbd',{},'Shift'),'+drag: constrain · ',el('kbd',{},'Alt'),'+drag: no snapping'),
+      el('div',{class:'hint',style:'line-height:2'},el('kbd',{},'arrows'),' move 1 px (',el('kbd',{},'Shift'),' 10 px)',el('br'),el('kbd',{},'Alt'),'+',el('kbd',{},'arrows'),' resize',el('br'),el('kbd',{},'Del'),' delete · ',el('kbd',{},'Ctrl'),'+',el('kbd',{},'D'),' duplicate',el('br'),el('kbd',{},'Ctrl'),'+',el('kbd',{},'G'),' group · ',el('kbd',{},'Ctrl'),'+',el('kbd',{},'Shift'),'+',el('kbd',{},'G'),' ungroup',el('br'),el('kbd',{},'Ctrl'),'+',el('kbd',{},'C'),' / ',el('kbd',{},'V'),' copy / paste',el('br'),el('kbd',{},'Ctrl'),'+',el('kbd',{},'Z'),' / ',el('kbd',{},'Y'),' undo / redo',el('br'),el('kbd',{},'Shift'),'+drag: constrain · ',el('kbd',{},'Alt'),'+drag: no snapping'),
       el('h2',{},'Device'),
       el('div',{class:'hint'},(S.custom?'Custom size, fonts of ':'')+S.device+' · '+S.w+'×'+S.h+' px'+(S.round?' · round':''),el('br'),S.custom?'Use a custom size to design a single field that sits beside native Garmin fields. ':'To use other dimensions, choose “Custom size…” in the device list. ','Font sizes depend on the device; glyph shapes are approximations.'));
     return;
   }
   if(s.length>1){
-    p.append(el('h2',{},s.length+' elements selected'),el('div',{class:'hint'},'Drag or use the arrow keys to move them together.'),
-      el('div',{class:'dlgbar'},el('button',{class:'btn',onclick:dupSel},'Duplicate'),el('button',{class:'btn',onclick:delSel},'Delete')));
+    p.append(el('h2',{},s.length+' elements selected'),el('div',{class:'hint'},'Drag or use the arrow keys to move them together. Ctrl/Cmd+G puts them in a group.'),
+      el('div',{class:'dlgbar'},el('button',{class:'btn',onclick:groupSel},'Group'),el('button',{class:'btn',onclick:dupSel},'Duplicate'),el('button',{class:'btn',onclick:askDelete},'Delete')));
     return;
   }
   const e=s[0], a=e.a, k=kind(e);
-  if(k==='sep'){ p.append(el('h2',{class:'t3'},'Separator'),el('div',{class:'row one'},fTxt(e,'text','Caption in the list')),el('div',{class:'hint'},'A separator starts a group: every element up to the next separator belongs to it. Collapse, lock or hide the group from its row in the layer list, or drag the row to move the whole group. It is not shown on the device.')); }
+  if(k==='sep'){ const m=groupOf(e); p.append(el('h2',{class:'t3'},'Group'),el('div',{class:'row one'},fTxt(e,'text','Group name')),el('div',{class:'hint'},m.length+' layer'+(m.length===1?'':'s')+' in this group. Arrow keys move them together; the group row in the list collapses, locks or hides them, and dragging it moves the whole group. Groups are an editing aid and are not sent to the device.'),
+      el('div',{class:'dlgbar'},el('button',{class:'btn sm',onclick:ungroupSel},'Ungroup'),el('button',{class:'btn sm',onclick:dupSel},'Duplicate'),el('button',{class:'btn sm',onclick:askDelete},'Delete group'))); }
   else if(k==='dyn'){ p.append(el('h2',{class:'t2'},'Dynamic colour'),dcEditor(dc_(e),null),el('div',{class:'hint'},'Used by: ',dcUsers(e).map(nameOf).join(', ')||'no element')); }
   else if(k==='text'){
     const isVal=a.fixedtext!=='true', v=VT[a.eletype];
@@ -673,7 +698,7 @@ function renderPanel(){
     if(a.valuetype&&a.valuetype!=='FX'&&k!=='dir'){ p.append(el('div',{class:'row'},sampleField(e),fNum(e,'nr_values','Averaging (s)',{min:1}))); }
     p.append(colorSection(e));
   }
-  if(e.type<2) p.append(el('div',{class:'dlgbar'},el('button',{class:'btn sm',onclick:dupSel},'Duplicate'),el('button',{class:'btn sm',onclick:delSel},'Delete')));
+  if(e.type<2) p.append(el('div',{class:'dlgbar'},el('button',{class:'btn sm',onclick:dupSel},'Duplicate'),el('button',{class:'btn sm',onclick:askDelete},'Delete')));
   if(keep){ const f=document.getElementById(keep); if(f) f.focus(); }
 }
 const dc_ = e => e;
@@ -709,7 +734,12 @@ function fromXML(text){
   }
   return ns;
 }
-function loadText(text){ try{ let ns, note=''; if(/<DIYLayout/.test(text)) ns=fromXML(text); else { const d=decodeLayout(text); ns=autoLock({device:S.device,w:S.w,h:S.h,round:S.round,custom:S.custom,designer:null,els:d.els,samples:S.samples,nid:d.nid}); note=d.gen==='C'?' (from layout string)':' – note: this is a generation "'+d.gen+'" string, the editor knows format "C"'; } clearTimeout(cTimer); commit(); S=ns; sel=[]; commit(); syncDevice(); fitZoom(); refresh(); toast('Loaded: '+S.els.length+' elements · '+S.device+note); return true; }catch(err){ toast(err.message); return false; } }
+function toProject(){ return JSON.stringify({format:'hms-diy-editor',version:1,layout:S},null,1); }
+function fromProject(text){ let o; try{ o=JSON.parse(text); }catch(e){ throw new Error('The project file is not valid JSON.'); }
+  const st=o&&o.format==='hms-diy-editor'?o.layout:null; if(!st||!Array.isArray(st.els)||!st.els.every(e=>e&&typeof e.a==='object'&&typeof e.type==='number')) throw new Error('This is not an HMs DIY Editor project file.');
+  st.w=clamp(Math.round(N(st.w))||240,50,1000); st.h=clamp(Math.round(N(st.h))||240,50,1000); st.device=String(st.device||S.device); st.samples=st.samples||{}; st.nid=Math.max(1,...st.els.map(e=>(e.id|0)+1)); st.els.forEach(e=>{ if(e.type===2&&!Array.isArray(e.dc)) e.dc=[]; }); return st; }
+let saveFmt='json';
+function loadText(text){ try{ let ns, note=''; if(/^\s*\{/.test(text)){ ns=fromProject(text); note=' (project file)'; } else if(/<DIYLayout/.test(text)) ns=fromXML(text); else { const d=decodeLayout(text); ns=autoLock({device:S.device,w:S.w,h:S.h,round:S.round,custom:S.custom,designer:null,els:d.els,samples:S.samples,nid:d.nid}); note=d.gen==='C'?' (from layout string)':' – note: this is a generation "'+d.gen+'" string, the editor knows format "C"'; } clearTimeout(cTimer); commit(); S=ns; sel=[]; commit(); syncDevice(); fitZoom(); refresh(); toast('Loaded: '+S.els.length+' elements · '+S.device+note); return true; }catch(err){ toast(err.message); return false; } }
 function readFile(f){ const r=new FileReader(); r.onload=()=>{ let t; try{ t=new TextDecoder('utf-8',{fatal:true}).decode(r.result); }catch(e){ t=new TextDecoder('windows-1252').decode(r.result); } if(loadText(t)){ $('#fname').value=f.name; $('#dlg-open').close(); } }; r.readAsArrayBuffer(f); }
 
 /* ---------- Layout string: generation "C" encoding of Designer 3.4.2 ----------
@@ -799,12 +829,12 @@ function fitZoom(){ const st=$('#stage'); const z=Math.min((st.clientWidth-PAD*2
 function sampleLayout(){
   S.els=[]; S.nid=1; const w=S.w, h=S.h, sx=v=>String(Math.round(v*w/246)), sy=v=>String(Math.round(v*h/322)), add=e=>(S.els.push(e),e);
   add(mkG('RF',{color:'FFFFFF',x2:String(w),y2:String(h)},{lock:true}));
-  add(mk(3,{text:'*** HEADER ***'}));
+  add(mk(3,{text:'Header'}));
   add(mkVal('CT',{text:'$H:$M',font:'XTINY',halignment:'2',x:sx(6),y:sy(6)}));
   add(mkVal('TM',{text:'$V°C',font:'XTINY',halignment:'1',precision:'0',x:sx(123),y:sy(6)}));
   add(mkVal('BV',{text:'$V%',font:'XTINY',halignment:'0',precision:'0',x:sx(240),y:sy(6)}));
   add(mkG('LN',{x:'0',y:sy(26),x2:String(w),y2:sy(26)}));
-  add(mk(3,{text:'*** SPEED ***'}));
+  add(mk(3,{text:'Speed'}));
   add(mkText({text:'SPEED km/h',color:'555555',x:sx(123),y:sy(30)}));
   const arcBg=add(mkG('AC',{color:'AAAAAA',x:sx(123),y:sy(150),radius:sx(100),x2:'205',y2:'335',stroke:'10'}));
   const arc=add(mkG('AF',{color:'00AAFF',valuetype:'CS',x:arcBg.a.x,y:arcBg.a.y,radius:arcBg.a.radius,x2:'205',y2:'335',stroke:'10'}));
@@ -812,7 +842,7 @@ function sampleLayout(){
   add(mkVal('CS',{font:'NR_THAI_HOT',precision:'1',x:sx(123),y:sy(62)}));
   add(mkVal('AS',{text:'avg $V',font:'TINY',color:'555555',precision:'1',x:sx(123),y:sy(120)}));
   add(mkG('LN',{x:'0',y:sy(148),x2:String(w),y2:sy(148)}));
-  add(mk(3,{text:'*** HEART RATE / CADENCE ***'}));
+  add(mk(3,{text:'Heart rate / cadence'}));
   add(mkG('LN',{x:sx(123),y:sy(148),x2:sx(123),y2:String(h)}));
   add(mkText({text:'HEART RATE',color:'555555',x:sx(61),y:sy(152)}));
   const hr=add(mkVal('HR',{font:'NR_HOT',x:sx(61),y:sy(170)}));
@@ -822,7 +852,7 @@ function sampleLayout(){
   add(mkText({text:'CADENCE',color:'555555',x:sx(185),y:sy(152)}));
   add(mkVal('CC',{font:'NR_HOT',x:sx(185),y:sy(170)}));
   add(mkG('LN',{x:'0',y:sy(236),x2:String(w),y2:sy(236)}));
-  add(mk(3,{text:'*** DISTANCE / TIME ***'}));
+  add(mk(3,{text:'Distance / time'}));
   add(mkText({text:'DIST km',color:'555555',x:sx(61),y:sy(240)}));
   add(mkVal('DS',{font:'NR_MEDIUM',precision:'2',x:sx(61),y:sy(260)}));
   add(mkText({text:'TIME',color:'555555',x:sx(185),y:sy(240)}));
@@ -847,11 +877,17 @@ function init(){
   $('#undo').onclick=undo; $('#redo').onclick=redo; $('#zin').onclick=()=>setZoom(zoom+.5); $('#zout').onclick=()=>setZoom(zoom-.5); $('#zfit').onclick=fitZoom;
   $('#night').onclick=()=>{ night=!night; $('#night').classList.toggle('on',night); draw(); };
   $('#snap').onclick=()=>{ snapOn=!snapOn; $('#snap').classList.toggle('on',snapOn); };
-  $('#lup').onclick=()=>moveLayer(1); $('#ldown').onclick=()=>moveLayer(-1); $('#ldup').onclick=dupSel; $('#ldel').onclick=delSel;
+  $('#lup').onclick=()=>moveLayer(1); $('#ldown').onclick=()=>moveLayer(-1); $('#ldup').onclick=dupSel; $('#ldel').onclick=askDelete; $('#lgrp').onclick=groupSel; $('#lungrp').onclick=ungroupSel;
+  $('#cf-ok').onclick=()=>{ $('#dlg-confirm').close(); delSel(); };
   document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>b.closest('dialog').close());
-  $('#bsave').onclick=()=>{ clearTimeout(cTimer); commit(); $('#xmlout').value=toXML(); $('#dlg-save').showModal(); };
-  $('#dl').onclick=()=>{ const blob=new Blob(['\uFEFF'+toXML()],{type:'text/xml'}), a=el('a',{href:URL.createObjectURL(blob),download:$('#fname').value||'layout.xml'}); document.body.append(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),2000); toast('Download started. If nothing happens, use Copy instead.'); };
-  $('#cp').onclick=()=>{ const t=$('#xmlout'); const fb=()=>{ t.focus(); t.select(); toast('Selected – press Ctrl+C to copy.'); }; if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(t.value).then(()=>toast('XML copied.'),fb); else fb(); };
+  const fillSave=()=>{ const x=saveFmt==='xml'; $('#xmlout').value=x?toXML():toProject();
+    document.querySelectorAll('#savefmt button').forEach(b=>b.classList.toggle('on',b.dataset.fmt===saveFmt));
+    $('#savehint').textContent=x?'For the Windows HMs DIY Designer. Groups are written as its separators; locks, hidden layers, collapsed groups and a custom screen size are not stored.':'The editor\'s own format. Keeps everything: groups, locks, hidden layers, custom screen size and sample values.';
+    $('#fname').value=($('#fname').value||'layout').replace(/\.(xml|json)$/i,'')+(x?'.xml':'.json'); };
+  document.querySelectorAll('#savefmt button').forEach(b=>b.onclick=()=>{ saveFmt=b.dataset.fmt; fillSave(); });
+  $('#bsave').onclick=()=>{ clearTimeout(cTimer); commit(); fillSave(); $('#dlg-save').showModal(); };
+  $('#dl').onclick=()=>{ const x=saveFmt==='xml', blob=new Blob([x?'\uFEFF'+toXML():toProject()],{type:x?'text/xml':'application/json'}), a=el('a',{href:URL.createObjectURL(blob),download:$('#fname').value||(x?'layout.xml':'layout.json')}); document.body.append(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),2000); toast('Download started. If nothing happens, use Copy instead.'); };
+  $('#cp').onclick=()=>{ const t=$('#xmlout'); const fb=()=>{ t.focus(); t.select(); toast('Selected – press Ctrl+C to copy.'); }; if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(t.value).then(()=>toast('Copied.'),fb); else fb(); };
   $('#bopen').onclick=()=>{ $('#xmlin').value=''; $('#file').value=''; $('#dlg-open').showModal(); };
   $('#file').onchange=ev=>{ if(ev.target.files[0]) readFile(ev.target.files[0]); };
   $('#loadtxt').onclick=()=>{ if(loadText($('#xmlin').value)) $('#dlg-open').close(); };
@@ -872,11 +908,12 @@ function init(){
     if(mod&&k==='z'){ ev.preventDefault(); ev.shiftKey?redo():undo(); }
     else if(mod&&k==='y'){ ev.preventDefault(); redo(); }
     else if(mod&&k==='d'){ ev.preventDefault(); dupSel(); }
-    else if(mod&&k==='c'){ clip=JSON.parse(JSON.stringify(selEls())); if(clip.length) toast(clip.length+' element(s) copied'); }
-    else if(mod&&k==='x'){ clip=JSON.parse(JSON.stringify(selEls())); delSel(); }
+    else if(mod&&k==='g'){ ev.preventDefault(); ev.shiftKey?ungroupSel():groupSel(); }
+    else if(mod&&k==='c'){ clip=JSON.parse(JSON.stringify(selX())); if(clip.length) toast(clip.length+' element(s) copied'); }
+    else if(mod&&k==='x'){ clip=JSON.parse(JSON.stringify(selX())); delSel(); }
     else if(mod&&k==='v'){ if(clip.length){ ev.preventDefault(); addEls(cloneEls(clip,8)); } }
     else if(mod&&k==='a'){ ev.preventDefault(); sel=S.els.filter(e=>e.type<2&&!e.lock&&!e.hide).map(e=>e.id); refresh(); }
-    else if(k==='delete'||k==='backspace'){ ev.preventDefault(); delSel(); }
+    else if(k==='delete'||k==='backspace'){ ev.preventDefault(); askDelete(); }
     else if(k==='escape'){ sel=[]; refresh(); }
     else if(k.startsWith('arrow')){ ev.preventDefault(); const s=ev.shiftKey?10:1; nudge(k==='arrowleft'?-s:k==='arrowright'?s:0, k==='arrowup'?-s:k==='arrowdown'?s:0, ev.altKey); }
   });

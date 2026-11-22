@@ -17,8 +17,11 @@ Open `index.html` in a browser. It is a single file with no build step.
 - **Preview** for 107 devices (screen size and font sizes), night mode, sample values.
 - **Layout string for device**: copy it and paste it into *Default layout string* in the data field's
   settings in Garmin Connect or Garmin Express.
-- **Open / Save XML** in the HMs DIY Designer format (`<DIYLayout>`). A layout string can also be
-  pasted into the Open dialog to load an existing layout back. Work is kept in the browser too.
+- **Groups**: select layers and press Ctrl/Cmd+G. A group can be renamed, collapsed, locked, hidden,
+  moved or deleted as a whole. In Designer XML a group is written as a separator.
+- **Save / Open**: the editor's own project file (`.json`, keeps groups, locks, hidden layers and a
+  custom screen size) or HMs DIY Designer XML (`<DIYLayout>`). A layout string can also be pasted
+  into the Open dialog to load an existing layout back. Work is kept in the browser too.
 
 ## Layout string
 
