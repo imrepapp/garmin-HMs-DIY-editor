@@ -143,6 +143,18 @@ h2 .sp{flex:1}
 .swatch.sm{width:20px;height:20px;cursor:default;border-radius:4px}
 .dc td .swatch{width:30px;height:24px}
 .hexlab{font:11px var(--f-mono);color:var(--mute)}
+.valbtn{display:flex;align-items:center;gap:6px;width:100%;text-align:left;background:var(--raise);border:1px solid var(--line);border-radius:4px;padding:4px 6px;cursor:pointer;min-width:0}
+.valbtn:hover{border-color:var(--accent)}
+.vn{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vc{font:11px var(--f-mono);color:var(--mute);flex:none}
+.va{color:var(--mute);font-size:10px;flex:none}
+.vm{font:600 10px var(--f-mono);color:var(--c-gfx);border:1px solid currentColor;border-radius:3px;padding:0 3px;flex:none}
+#vl-list{height:min(52vh,420px);overflow:auto;border:1px solid var(--line);border-radius:6px;margin-top:8px;background:var(--raise)}
+.vgrp{font:700 11px var(--f-head);letter-spacing:.09em;text-transform:uppercase;color:var(--mute);padding:8px 10px 3px;position:sticky;top:0;background:var(--raise)}
+.vitem{display:flex;align-items:center;gap:8px;width:100%;border:0;background:none;text-align:left;padding:5px 10px;cursor:pointer}
+.vitem:hover,.vitem:focus-visible{background:var(--accent-soft)}
+.vitem.on{background:var(--accent);color:var(--accent-ink)}
+.vitem.on .vc{color:inherit}
 .nightbtn{display:inline-flex;align-items:center;gap:5px;margin-left:auto;cursor:pointer;white-space:nowrap}
 .nightbtn .swatch.sm{width:16px;height:16px;cursor:pointer}
 #cl-grid{display:grid;grid-template-columns:repeat(16,1fr);gap:2px;margin:6px 0 10px}
@@ -292,6 +304,12 @@ dialog li{margin:5px 0}
   <div id="info"></div>
   <div class="dlgbar"><span class="sp"></span><button class="btn" data-close>Close</button></div>
 </dialog>
+<dialog id="dlg-value" style="width:min(460px,calc(100vw - 32px));padding-bottom:12px">
+  <h3>Choose a value</h3>
+  <input type="text" id="vl-q" placeholder="Search by name or code, e.g. heart, power, CS" aria-label="Search values" autocomplete="off">
+  <div id="vl-list" role="listbox" aria-label="Values"></div>
+  <div class="dlgbar" style="margin-top:8px"><span class="hint" style="margin:0">M / H: needs a medium- or high-memory device</span><span class="sp"></span><button class="btn" data-close>Cancel</button></div>
+</dialog>
 <dialog id="dlg-color" style="width:min(420px,calc(100vw - 32px))">
   <h3>Colour</h3>
   <p class="hint" style="margin-top:0">The 64 colours Garmin colour screens can show. Click one to use it.</p>
@@ -379,9 +397,9 @@ const dcFor = color => color ? S.els.find(e=>e.type===2 && (e.a.replDC||'').toUp
 const dcUsers = dc => S.els.filter(e=>e.type<2 && (e.a.color||'').toUpperCase()===(dc.a.replDC||'').toUpperCase());
 function valCode(e){ return e.type===0 ? (e.a.fixedtext==='true'?'FX':e.a.eletype) : e.a.valuetype; }
 function sampleOf(e){
-  const c = valCode(e);
+  const c = valCode(e), g=S.samples[c];
+  if(typeof g==='number') return g;
   if(e.type===0 && e.a.sampletext!=null && e.a.sampletext!==''){ const n=parseFloat(String(e.a.sampletext).replace(',','.')); if(isFinite(n)) return n; }
-  if(S.samples[c]!=null) return S.samples[c];
   const v = VT[c]; return v && typeof v.s==='number' ? v.s : 0;
 }
 function attachDyn(e){
@@ -406,7 +424,7 @@ function fmtTime(mask, sec){
 function textOf(e){
   const a = e.a; if(a.fixedtext==='true') return a.text||'';
   const v = VT[a.eletype], mask = a.eletype==='BG' ? '$V' : (a.text||'$V');
-  if(v && v.k==='s') return a.sampletext || v.s;
+  if(v && v.k==='s') return S.samples[a.eletype] || a.sampletext || v.s;
   const s = sampleOf(e);
   let out = /\$[HhMmSCNDYa]/.test(mask) ? fmtTime(mask, s) : mask;
   const dirs = ['N','NE','E','SE','S','SW','W','NW'];
@@ -719,7 +737,7 @@ function selStatus(){ const s=selEls(); $('#st-sel').textContent = tool ? 'Click
 
 /* ---------- Property panel ---------- */
 function live(){ draw(); selStatus(); commitSoon(); }
-const TIPS={Format:'$V is replaced by the value; time values use $H $M $S',Drivetrain:'circumference;chainring;sprockets, small to big',Averaging:'Seconds the value is averaged over',Sample:'Value shown in this preview only (time values in seconds)',Decimals:'Number of decimal places',Target:'What the marker points to; none lets the data field setting decide',Value:'The live value this element shows or follows','Bar width':'Pixels per second','Min/max':'Lower or upper limit of the graph',Stroke:'Line thickness in pixels'};
+const TIPS={Format:'$V is replaced by the value; time values use $H $M $S',Drivetrain:'circumference;chainring;sprockets, small to big',Averaging:'Seconds the value is averaged over',Sample:'Preview only. One sample per value type: every element showing this value uses it (time values in seconds)',Decimals:'Number of decimal places',Target:'What the marker points to; none lets the data field setting decide',Value:'The live value this element shows or follows','Bar width':'Pixels per second','Min/max':'Lower or upper limit of the graph',Stroke:'Line thickness in pixels'};
 function fld(label, input){ const t=TIPS[label]; return el('label',{class:'f',title:t},el('span',{},label),input); }
 function fNum(e,key,label,o){ o=o||{}; const i=el('input',{type:'number',id:'p-'+key,step:o.step||1,min:o.min,value:e.a[key]??'0',oninput:()=>{ if(i.value==='') return; e.a[key]=String(o.float?N(i.value):Math.round(N(i.value))); live(); if(o.after) o.after(); }}); return fld(label,i); }
 function fTxt(e,key,label,o){ o=o||{}; const i=el('input',{type:'text',id:'p-'+key,value:e.a[key]??'',placeholder:o.ph,oninput:()=>{ e.a[key]=i.value; live(); renderLayersSoon(); }}); return fld(label,i); }
@@ -727,16 +745,31 @@ function fChk(e,key,label){ const i=el('input',{type:'checkbox',id:'p-'+key,onch
 let rlT; function renderLayersSoon(){ clearTimeout(rlT); rlT=setTimeout(renderLayers,200); }
 function alignIco(d,name){ const t=document.createElement('span'); t.title=name; t.setAttribute('role','img'); t.setAttribute('aria-label',name); t.style.display='flex'; t.style.justifyContent='center'; t.innerHTML='<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="'+d+'"/></svg>'; return t; }
 function seg(opts, cur, fn){ return el('div',{class:'seg'},opts.map(([v,l])=>el('button',{type:'button',class:v===cur?'on':'',onclick:()=>fn(v)},l))); }
-function valueSelect(cur, fn, id){
-  const s=el('select',{id,onchange:()=>fn(s.value)}); s.append(el('option',{value:'FX'},'– none –'));
-  for(const [g,list] of VGROUPS){ const og=el('optgroup',{label:g}); for(const c of list) og.append(el('option',{value:c},VT[c].n+'  ['+c+']'+(VT[c].mem>=500?' (H)':VT[c].mem>30?' (M)':''))); s.append(og); }
-  if(!VT[cur]) s.append(el('option',{value:cur},'Unknown code ['+cur+']'));
-  s.value=cur; return s;
+/* The value is shown as one button; clicking it opens a searchable list of all value types. */
+let valueCb=null;
+function valueSelect(cur, fn, id, allowNone){
+  const v=VT[cur], none=!cur||cur==='FX';
+  return el('button',{type:'button',class:'valbtn',id,title:'Click to choose a value',onclick:()=>pickValue(cur,fn,allowNone)},
+    el('span',{class:'vn'},none?'– none –':v?v.n:'Unknown code'),none?null:el('span',{class:'vc'},cur),el('span',{class:'va','aria-hidden':'true'},'▾'));
 }
+function pickValue(cur, fn, allowNone){
+  valueCb=fn; const q=$('#vl-q'), list=$('#vl-list'); q.value='';
+  const fill=()=>{ const t=q.value.trim().toLowerCase(); list.textContent=''; let n=0;
+    const item=(c,name,extra)=>{ n++; return el('button',{type:'button',class:'vitem'+(c===cur?' on':''),'data-code':c,onclick:()=>useValue(c)},el('span',{class:'vn'},name),extra||null,el('span',{class:'vc'},c==='FX'?'':c)); };
+    if(allowNone&&(!t||'none'.includes(t))) list.append(item('FX','– none –'));
+    for(const [g,codes] of VGROUPS){ const hit=codes.filter(c=>!t||VT[c].n.toLowerCase().includes(t)||c.toLowerCase()===t||g.toLowerCase().includes(t)); if(!hit.length) continue;
+      list.append(el('div',{class:'vgrp'},g)); for(const c of hit) list.append(item(c,VT[c].n,VT[c].mem>30?el('span',{class:'vm',title:VT[c].mem>=500?'High-memory devices only':'Medium- and high-memory devices'},VT[c].mem>=500?'H':'M'):null)); }
+    if(!n) list.append(el('div',{class:'hint',style:'padding:10px'},'No value matches “'+q.value+'”.'));
+    list.scrollTop=0;
+  };
+  q.oninput=fill; q.onkeydown=ev=>{ if(ev.key==='Enter'){ ev.preventDefault(); const f=list.querySelector('.vitem'); if(f) useValue(f.dataset.code); } };
+  fill(); $('#dlg-value').showModal(); q.focus(); const on=list.querySelector('.vitem.on'); if(on) on.scrollIntoView({block:'center'});
+}
+function useValue(c){ $('#dlg-value').close(); const cb=valueCb; valueCb=null; if(cb) cb(c); }
 function sampleField(e){
-  const code=valCode(e); if(code==='FX') return null; const v=VT[code];
-  const cur = e.type===0 && e.a.sampletext ? e.a.sampletext : (S.samples[code]??(v?v.s:0));
-  const i=el('input',{type:'text',id:'p-sample',value:cur,oninput:()=>{ if(e.type===0){ if(i.value==='') delete e.a.sampletext; else e.a.sampletext=i.value; } else { const n=parseFloat(i.value.replace(',','.')); if(isFinite(n)) S.samples[code]=n; } live(); }});
+  const code=valCode(e); if(code==='FX') return null; const v=VT[code], str=v&&v.k==='s';
+  const cur = S.samples[code] ?? (e.type===0&&e.a.sampletext ? e.a.sampletext : (v?v.s:0));
+  const i=el('input',{type:'text',id:'p-sample',value:cur,oninput:()=>{ const t=i.value.trim(); if(t==='') delete S.samples[code]; else if(str) S.samples[code]=t; else { const n=parseFloat(t.replace(',','.')); if(isFinite(n)) S.samples[code]=n; } live(); }});
   return fld('Sample', i);
 }
 /* A colour is always shown as one swatch; clicking it opens the palette dialog. */
@@ -835,7 +868,7 @@ function renderPanelBody(){
         el('div',{class:'hint'},'0° points to 3 o\'clock and angles grow clockwise (270° = top). A filling arc runs from the start angle towards the end angle.')); }
     else if(k==='dir'){ p.append(el('div',{class:'row'},fNum(e,'stroke','Stroke',{min:1})),
         el('div',{class:'hint'},'With a non-zero offset the marker moves on a circle around the centre, like a compass.')); }
-    p.append(el('div',{class:'row one'},fld(k==='dir'?'Target':'Value',valueSelect(a.valuetype||'FX',c=>{ a.valuetype=c; commit(); refresh(); },'p-valuetype'))));
+    p.append(el('div',{class:'row one'},fld(k==='dir'?'Target':'Value',valueSelect(a.valuetype||'FX',c=>{ a.valuetype=c; commit(); refresh(); },'p-valuetype',true))));
     if(a.valuetype&&a.valuetype!=='FX'&&k!=='dir'){ p.append(el('div',{class:'row'},sampleField(e),fNum(e,'nr_values','Averaging',{min:1}))); }
     p.append(colorSection(e));
   }
