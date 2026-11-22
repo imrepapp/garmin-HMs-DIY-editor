@@ -81,6 +81,11 @@ aside{background:var(--bg);overflow:auto;padding:12px 16px;min-width:0}
 .scr .r{flex:1;display:flex;min-height:0}
 .scr .r+.r{border-top:1px solid var(--mute)}
 .scr i{flex:1}
+.scr i.pick{cursor:pointer}
+.scr i.pick:hover{background:var(--accent-soft)}
+.scr i.cur{background:var(--accent)!important}
+.newmode{display:flex;gap:16px;margin:10px 0 2px;font-size:13px}
+.newmode label{display:flex;gap:5px;align-items:center;cursor:pointer}
 .scr i+i{border-left:1px solid var(--mute)}
 #info h2:first-child{margin-top:0}
 #propkind{font-weight:700;letter-spacing:.06em}
@@ -346,7 +351,8 @@ dialog li{margin:5px 0}
 <dialog id="dlg-new">
   <h3>New layout</h3>
   <div class="row one"><label class="f"><span>Device</span><select id="newdev"></select></label></div>
-  <p class="hint" style="margin-bottom:0">How should the screen be divided into fields?</p>
+  <div class="newmode" role="radiogroup" aria-label="What to design"><label><input type="radio" name="newmode" value="screen" checked> Whole screen</label><label><input type="radio" name="newmode" value="field"> Single field</label></div>
+  <p class="hint" id="newq" style="margin-bottom:0">How should the screen be divided into fields?</p>
   <div id="newgrid"></div>
   <p class="hint" id="newnote"></p>
   <div class="dlgbar"><button class="btn pri" id="new-sample">Create with sample values</button><button class="btn" id="new-empty">Create lines only</button><span class="sp"></span><button class="btn" data-close>Cancel</button></div>
@@ -1203,21 +1209,30 @@ function fitZoom(){ const st=$('#stage'); const z=Math.min((st.clientWidth-PAD*2
 const SPLITS_RECT=[[1],[1,1],[1,1,1],[1,2],[1,1,1,1],[1,1,2],[2,2],[1,2,2],[1,1,2,2],[2,2,2],[1,2,2,2],[2,2,2,2],[1,2,2,2,2],[2,2,2,2,2]];
 const SPLITS_ROUND=[[1],[1,1],[1,1,1],[1,2,1],[1,2,2,1]];
 const STARTERS=[['CS','SPEED','$V','1'],['HR','HEART RATE','$V','0'],['DS','DISTANCE','$V','2'],['TT','TIMER','$h:$M:$S','0'],['CC','CADENCE','$V','0'],['AS','AVG SPEED','$V','1'],['TA','ASCENT','$V','0'],['CB','POWER','$V','0'],['CT','TIME','$H:$M','0'],['CA','CALORIES','$V','0']];
-let newPick=0;
-function newInfo(){ const name=$('#newdev').value||S.device, d=DEV[name]||[S.w,S.h,S.round?1:0], splits=d[2]?SPLITS_ROUND:SPLITS_RECT; if(newPick>=splits.length) newPick=0; return {name,w:d[0],h:d[1],round:!!d[2],splits,rows:splits[newPick]}; }
+let newPick=0, newMode='screen', newCell=0;
+/* In "Single field" mode the layout is one cell of the chosen split: the size a field has when the DIY field sits beside others. */
+function newInfo(){ const name=$('#newdev').value||S.device, d=DEV[name]||[S.w,S.h,S.round?1:0], splits=d[2]?SPLITS_ROUND:SPLITS_RECT; if(newPick>=splits.length) newPick=0;
+  const rows=splits[newPick], cnt=rows.reduce((a,b)=>a+b,0); if(newCell>=cnt) newCell=0; let r=0, k=newCell; while(k>=rows[r]){ k-=rows[r]; r++; }
+  return {name,w:d[0],h:d[1],round:!!d[2],splits,rows,field:newMode==='field',fw:Math.round(d[0]/rows[r]),fh:Math.round(d[1]/rows.length)}; }
 function renderNew(){
   const box=$('#newgrid'), n=newInfo(); box.textContent='';
-  n.splits.forEach((rows,idx)=>{ const cnt=rows.reduce((a,b)=>a+b,0), on=idx===newPick;
-    const scr=el('span',{class:'scr',style:`width:${Math.round(60*n.w/n.h)}px;${n.round?'border-radius:50%;':''}`}, rows.map(c=>el('span',{class:'r'},Array.from({length:c},()=>el('i',{})))));
-    box.append(el('button',{type:'button',class:'thumb'+(on?' on':''),'aria-pressed':String(on),onclick:()=>{ newPick=idx; renderNew(); }},scr,el('b',{},cnt===1?'1 field':cnt+' fields'),el('span',{},rows.join(' + '))));
+  n.splits.forEach((rows,idx)=>{ const cnt=rows.reduce((a,b)=>a+b,0), on=idx===newPick; let k=0;
+    const scr=el('span',{class:'scr',style:`width:${Math.round(60*n.w/n.h)}px;${n.round?'border-radius:50%;':''}`}, rows.map(c=>el('span',{class:'r'},Array.from({length:c},()=>{ const me=k++; return el('i',n.field?{class:'pick'+(on&&me===newCell?' cur':''),title:'Design this field',onclick:ev=>{ ev.stopPropagation(); newPick=idx; newCell=me; renderNew(); }}:{}); }))));
+    box.append(el('button',{type:'button',class:'thumb'+(on?' on':''),'aria-pressed':String(on),onclick:()=>{ newPick=idx; newCell=0; renderNew(); }},scr,el('b',{},cnt===1?'1 field':cnt+' fields'),el('span',{},rows.join(' + '))));
   });
-  $('#newnote').textContent='The layout always covers the whole '+n.w+' × '+n.h+' px screen; the dividing lines are drawn for you. Rows are split evenly, so compare with your device and drag the lines if Garmin\'s own split differs. For a single field beside native Garmin fields, choose “Custom size…” in the device list instead.';
+  $('#newq').textContent=n.field?'Which field of which data screen is it? Click the field.':'How should the screen be divided into fields?';
+  $('#new-sample').textContent=n.field?'Create with a sample value':'Create with sample values'; $('#new-empty').textContent=n.field?'Create empty':'Create lines only';
+  $('#newnote').textContent=n.field?'The layout is one field of '+n.fw+' × '+n.fh+' px on the '+n.w+' × '+n.h+' px screen of '+n.name+'. The size comes from an even split of the screen, so Garmin\'s own field can differ by a few pixels; correct the width and height in the device box if needed.'+(n.round?' On a round screen the corners of the field are cut off by the bezel.':'')
+    :'The layout always covers the whole '+n.w+' × '+n.h+' px screen; the dividing lines are drawn for you. Rows are split evenly, so compare with your device and drag the lines if Garmin\'s own split differs.';
 }
 function fitFont(dev,w,h){ const m=(DEV[dev]||[])[3]||{}; for(const f of ['NR_THAI_HOT','NR_HOT','NR_MEDIUM','NR_MILD','LARGE','MEDIUM','SMALL']){ const e=m[f]; if(e&&e[1]<=h&&e[1]*2.7<=w) return [f,e[1],e[5]]; } const e=m.SMALL||[0,18,0,0,0,0]; return ['SMALL',e[1],e[5]]; }
 function createNew(sample){
   const n=newInfo(), rows=n.rows; clearTimeout(cTimer); commit();
   S.device=n.name; S.w=n.w; S.h=n.h; S.round=n.round; S.custom=false; S.designer=null; S.els=[]; sel=[];
-  if(rows.length===1&&rows[0]===1){ if(sample) sampleLayout(); }
+  if(n.field&&!(rows.length===1&&rows[0]===1)){ S.w=n.fw; S.h=n.fh; S.round=false; S.custom=true; const m=(DEV[n.name]||[])[3]||{}, lab=m.XTINY||m.TINY||[0,13,0,0,0,0], R=v=>String(Math.round(v));
+    S.els.push(mkG('RF',{color:'FFFFFF',x2:R(S.w),y2:R(S.h)},{lock:true}));
+    if(sample){ const st=STARTERS[0], lh=lab[1]+3, f=fitFont(n.name,S.w-10,S.h-lh-6); S.els.push(mkText({text:st[1],color:'555555',font:m.XTINY?'XTINY':'TINY',x:R(S.w/2),y:R(3-lab[5])}), mkVal(st[0],{text:st[2],precision:st[3],font:f[0],x:R(S.w/2),y:R(lh+(S.h-lh-f[1])/2-f[2])})); } }
+  else if(rows.length===1&&rows[0]===1){ if(sample) sampleLayout(); }
   else { const W=S.w, H=S.h, R=v=>String(Math.round(v)), rh=H/rows.length, m=(DEV[n.name]||[])[3]||{}, lab=m.XTINY||m.TINY||[0,13,0,0,0,0], labFont=m.XTINY?'XTINY':'TINY';
     S.els.push(mkG('RF',{color:'FFFFFF',x2:R(W),y2:R(H)},{lock:true}), mk(3,{text:'Grid'}));
     rows.forEach((c,r)=>{ if(r>0) S.els.push(mkG('LN',{x:'0',y:R(r*rh),x2:R(W),y2:R(r*rh)})); if(c===2) S.els.push(mkG('LN',{x:R(W/2),y:R(r*rh),x2:R(W/2),y2:R((r+1)*rh)})); });
@@ -1320,6 +1335,7 @@ function init(){
   const nd=$('#newdev'); for(const o of ds.options) if(o.value!=='__custom') nd.append(el('option',{value:o.value},o.textContent));
   nd.onchange=()=>{ newPick=0; renderNew(); };
   $('#bnew').onclick=()=>{ nd.value=DEV[S.device]?S.device:nd.options[0].value; newPick=0; renderNew(); $('#dlg-new').showModal(); };
+  document.querySelectorAll('input[name=newmode]').forEach(r=>r.onchange=()=>{ newMode=r.value; newCell=0; renderNew(); });
   $('#new-sample').onclick=()=>createNew(true);
   $('#new-empty').onclick=()=>createNew(false);
   window.addEventListener('dragover',ev=>ev.preventDefault());
