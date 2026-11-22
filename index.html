@@ -66,6 +66,7 @@ aside{background:var(--bg);overflow:auto;padding:12px 16px;min-width:0}
 #layerbox{flex:1 1 0;min-height:140px;display:flex;flex-direction:column}
 #layers{flex:1;overflow:auto;min-height:0}
 .empty{font-weight:600;margin:2px 0 6px}
+.warnline{font-size:11px;color:var(--danger);border-left:3px solid var(--danger);padding:2px 0 2px 8px;margin:0 0 10px}
 .gridnote{display:flex;align-items:center;gap:7px;font-size:12px;margin:2px 0 10px;cursor:help}
 .gdot{width:8px;height:8px;background:var(--accent);transform:rotate(45deg);flex:none}
 #newgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:8px;margin:10px 0}
@@ -812,7 +813,14 @@ function live(){ draw(); selStatus(); commitSoon(); }
 const TIPS={Source:'The live value that drives the colour',Format:'$V is replaced by the number, so text and units can be added around it. Time values use $H $M $S. $T shows the text form where one exists (compass direction, sensor status)',Drivetrain:'circumference;chainring;sprockets, small to big',Averaging:'Seconds the value is averaged over',Sample:'Preview only. One sample per value type: every element showing this value uses it (time values in seconds)',Decimals:'Number of decimal places',Target:'What the marker points to; none lets the data field setting decide',Value:'The live value this element shows or follows','Bar width':'Pixels per second','Min/max':'Lower or upper limit of the graph',Stroke:'Line thickness in pixels'};
 function fld(label, input){ const t=TIPS[label]; return el('label',{class:'f',title:t},el('span',{},label),input); }
 function fNum(e,key,label,o){ o=o||{}; const i=el('input',{type:'number',id:'p-'+key,step:o.step||1,min:o.min,value:e.a[key]??'0',oninput:()=>{ if(i.value==='') return; e.a[key]=String(o.float?N(i.value):Math.round(N(i.value))); live(); if(o.after) o.after(); }}); return fld(label,i); }
-function fTxt(e,key,label,o){ o=o||{}; const i=el('input',{type:'text',id:'p-'+key,value:e.a[key]??'',placeholder:o.ph,oninput:()=>{ e.a[key]=i.value; live(); renderLayersSoon(); }}); return fld(label,i); }
+/* Garmin's number fonts hold digits and a few signs only, so letters set in them may not appear on the device. */
+function numFontIssue(e){ const a=e.a; if(e.type!==0||!/^(S_)?NR_/.test(a.font||'')) return false; const fixed=a.fixedtext==='true';
+  const t=fixed?(a.text||''):(vSet(a.eletype).format&&a.eletype!=='BG'?(a.text||'').replace(/\$T/g,'A').replace(/\$[A-Za-z]/g,''):''); return /[^0-9\s.,:+\-%\/]/.test(t); }
+function textWarn(e){ const a=e.a, out=[]; if(e.type!==0) return '';
+  if(a.fixedtext==='true'&&!(a.text||'').trim()) out.push('Empty label: nothing is shown, but it still counts as an element.');
+  if(numFontIssue(e)) out.push('Number fonts hold digits and a few signs only, so '+(a.fixedtext==='true'?'this text':'the text in the format')+' may not show on the device. Use a text font for it.');
+  return out.join(' '); }
+function fTxt(e,key,label,o){ o=o||{}; const i=el('input',{type:'text',id:'p-'+key,value:e.a[key]??'',placeholder:o.ph,oninput:()=>{ e.a[key]=i.value; live(); renderLayersSoon(); if(o.after) o.after(); }}); return fld(label,i); }
 function fChk(e,key,label){ const i=el('input',{type:'checkbox',id:'p-'+key,onchange:()=>{ e.a[key]=String(i.checked); live(); }}); i.checked=e.a[key]==='true'; return el('label',{class:'chk'},i,label); }
 let rlT; function renderLayersSoon(){ clearTimeout(rlT); rlT=setTimeout(renderLayers,200); }
 function alignIco(d,name){ const t=document.createElement('span'); t.title=name; t.setAttribute('role','img'); t.setAttribute('aria-label',name); t.style.display='flex'; t.style.justifyContent='center'; t.innerHTML='<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="'+d+'"/></svg>'; return t; }
@@ -861,7 +869,7 @@ function nightBtn(e){ const on=e.a.daynight==='true', cb=el('input',{type:'check
 }
 function colorSection(e){
   const box=el('div',{}), dc=dcFor(e.a.color), fill=FILL.includes(e.a.eletype), label=e.type===0&&e.a.fixedtext==='true', vt=VT[e.a.eletype];
-  const setSrc=c=>{ if(label) e.a.eletype=c; else e.a.valuetype=c; commit(); refresh(); }, noSrc=valCode(e)==='FX';
+  const setSrc=c=>{ if(label){ e.a.eletype=c; if(!V_AVG.has(c)) e.a.nr_values='1'; } else e.a.valuetype=c; if(c==='FX'&&detachDyn(e)) toast('Colour set back to fixed: there is no source value to follow.'); commit(); refresh(); }, noSrc=valCode(e)==='FX';
   const toFixed=()=>{ detachDyn(e); if(label) e.a.eletype='FX'; commit(); refresh(); };
   const mode=seg([['f','Fixed'],['v','By value']],dc?'v':'f',m=>{ if(m==='v'&&!dc){ attachDyn(e); commit(); refresh(); if(noSrc) pickValue('FX',setSrc,true,kind(e)==='dir'?TARGETS:NUMERIC); } else if(m==='f'&&dc) toFixed(); });
   mode.className='seg mini'; mode.id='p-colmode'; mode.title='Fixed: one colour. By value: the colour'+(fill?' and fill level follow':' follows')+' a live value.';
@@ -871,7 +879,7 @@ function colorSection(e){
   if(dc){
     const own=e.type===0&&!label;
     if(own) box.append(el('div',{class:'hexlab',style:'margin:0 0 8px'},'Same source as shown'));
-    else if(label){ box.append(el('div',{class:'row one'},fld('Source',valueSelect(valCode(e),setSrc,'p-source',true,NUMERIC)))); if(!noSrc) box.append(el('div',{class:'row one'},sampleField(e))); }
+    else if(label){ const sb=valueSelect(valCode(e),setSrc,'p-source',true,NUMERIC); sb.setAttribute('aria-label','Source value'); sb.title='The live value that drives the colour – click to choose'; box.append(el('div',{class:'row one'},sb)); if(!noSrc) box.append(V_AVG.has(valCode(e))?el('div',{class:'row'},sampleField(e),fNum(e,'nr_values','Averaging',{min:1})):el('div',{class:'row one'},sampleField(e))); }
     else if(noSrc) box.append(el('div',{class:'hexlab',style:'margin:0 0 8px'},'Choose a value above'));
     const ed=dcEditor(dc,e); ed.append(nightBtn(e)); box.append(ed);
   } else {
@@ -896,7 +904,7 @@ function dcEditor(dc, user){
   });
   box.append(el('table',{},el('thead',{},el('tr',{},el('th',{}),el('th',{},inv?'Up to':'From'),el('th',{},'Colour'),el('th',{title:'Hide'},'Hide'),el('th',{title:'Blink'},'Blink'),el('th',{}))),tb),
     el('div',{class:'dlgbar',style:'margin-top:6px'},el('button',{class:'btn sm',onclick:()=>{ const d=[...dc.dc].sort((a,b)=>b.val-a.val), top=d[0]||{val:0,col:'FF0000'}; dc.dc.push({val:top.val+(Math.abs(top.val-(d[1]?d[1].val:0))||100),col:top.col,hide:false,blink:false}); dc.dirty=true; commit(); refresh(); }},'+ Range')),
-    (()=>{ const i=el('input',{type:'checkbox',onchange:()=>{ dc.a.invertcolor=String(i.checked); dc.dirty=true; commit(); refresh(); }}); i.checked=dc.a.invertcolor==='true'; return el('label',{class:'chk'},i,'Inverted order: thresholds are upper limits (for pace)'); })());
+    (()=>{ const i=el('input',{type:'checkbox',onchange:()=>{ dc.a.invertcolor=String(i.checked); dc.dirty=true; commit(); refresh(); }}); i.checked=dc.a.invertcolor==='true'; return el('label',{class:'chk',title:'Reverse order: each threshold is an upper limit instead of a lower one. Use it where smaller is better, such as pace.'},i,'Reverse order'); })());
   return box;
 }
 function renderPanel(){ renderPanelBody(); const p=$('#panel'), h=p.firstElementChild, k=$('#propkind');
@@ -914,7 +922,7 @@ function renderPanelBody(){
       el('div',{class:'dlgbar'},el('button',{class:'btn',onclick:groupSel},'Group')));
     return;
   }
-  const e=s[0], a=e.a, k=kind(e);
+  const e=s[0], a=e.a, k=kind(e); let updWarn=()=>{};
   if(k==='sep'){ const m=groupOf(e); p.append(el('h2',{class:'t3'},'Group'),el('div',{class:'row one'},fTxt(e,'text','Name')),el('div',{class:'hint'},m.length+' layer'+(m.length===1?'':'s')+' in this group. Arrow keys move them together; the group row in the list collapses, locks or hides them, and dragging it moves the whole group. Groups are an editing aid and are not sent to the device.'),
       el('div',{class:'dlgbar'},el('button',{class:'btn sm',onclick:ungroupSel},'Ungroup'))); }
   else if(k==='dyn'){ p.append(el('h2',{class:'t2'},'Dynamic colour'),dcEditor(dc_(e),null),el('div',{class:'hint'},'Used by: ',dcUsers(e).map(nameOf).join(', ')||'no element')); }
@@ -926,18 +934,19 @@ function renderPanelBody(){
       maxBtn.innerHTML='<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M3 2.5h10M8 13.5V5.5M4.5 9L8 5.5 11.5 9"/></svg>';
       p.append(el('div',{class:'row one'},fld('Value',el('div',{class:'valrow'},valueSelect(a.eletype,c=>{ a.eletype=c; const nv=VT[c], ns=vSet(c); if(nv) a.text=nv.mask; delete a.sampletext; if(!ns.avg) a.nr_values='1'; if(!ns.max) a.maxonly='false'; if(!ns.decimals) a.precision='0'; if(nv&&nv.k==='s'&&detachDyn(e)) toast('Colour set back to fixed: “'+nv.n+'” is not a number, so it cannot drive a colour.'); commit(); refresh(); },'p-eletype',false,c=>!V_NOTEXT.has(c)),maxBtn))));
       const vs=vSet(a.eletype); if(!vs.max) maxBtn.hidden=true;
-      if(vs.format) p.append(el('div',{class:'row one'},fTxt(e,'text',vs.drivetrain?'Drivetrain':'Format')));
+      if(vs.format) p.append(el('div',{class:'row one'},fTxt(e,'text',vs.drivetrain?'Drivetrain':'Format',{after:()=>updWarn()})));
       if(vs.chips.length>1) p.append(el('div',{class:'chips'},vs.chips.map(m=>el('button',{type:'button',onclick:()=>{ a.text=m; commit(); refresh(); }},m))));
       const opts=[['0','0'],['1','0.0'],['2','0.00']]; if(N(a.precision)>2) opts.push([a.precision,'0.000']);
       const dec=vs.decimals?fld('Decimals',seg(opts,String(N(a.precision)),d=>{ a.precision=d; commit(); refresh(); })):null; if(dec) dec.id='p-precision';
       if(dec||vs.avg) p.append(el('div',{class:'row'},dec,vs.avg?fNum(e,'nr_values','Averaging',{min:1}):null));
       p.append(el('div',{class:'row one'},sampleField(e)));
-    } else p.append(el('div',{class:'row one'},fTxt(e,'text','Text')));
+    } else p.append(el('div',{class:'row one'},fTxt(e,'text','Text',{after:()=>updWarn()})));
     const map=(DEV[S.device]||[])[3]||{}, names=Object.keys(map).length?Object.keys(map):Object.keys(FONT_FALLBACK); if(!names.includes(a.font)) names.push(a.font);
     const fs=el('select',{id:'p-font',onchange:()=>{ a.font=fs.value; commit(); refresh(); }},names.map(n=>el('option',{value:n,title:n},(n.startsWith('S_')?'Sys ':'')+(FONT_NAMES[n.replace(/^S_/,'')]||n)+(map[n]?' · '+map[n][1]:''))));
     fs.value=a.font;
     const al=seg([['2',alignIco('M2 3.5h12M2 6.5h7M2 9.5h12M2 12.5h7','Left')],['1',alignIco('M2 3.5h12M4.5 6.5h7M2 9.5h12M4.5 12.5h7','Centre')],['0',alignIco('M2 3.5h12M7 6.5h7M2 9.5h12M7 12.5h7','Right')]],a.halignment,v=>{ a.halignment=v; commit(); refresh(); }); al.setAttribute('role','group'); al.setAttribute('aria-label','Alignment'); fs.setAttribute('aria-label','Font');
-    p.append(el('h2',{},'Font'),el('div',{class:'row fa'},fs,al),
+    const warn=el('div',{class:'warnline',id:'p-warn',role:'status'}); updWarn=()=>{ const m=textWarn(e); warn.textContent=m; warn.hidden=!m; }; updWarn();
+    p.append(el('h2',{},'Font'),el('div',{class:'row fa'},fs,al),warn,
       colorSection(e));
   } else {
     const t=a.eletype, setT=c=>{ a.eletype=c; commit(); refresh(); };
@@ -956,7 +965,7 @@ function renderPanelBody(){
         el('div',{class:'hint'},'0° points to 3 o\'clock and angles grow clockwise (270° = top). A filling arc runs from the start angle towards the end angle.')); }
     else if(k==='dir'){ p.append(el('div',{class:'row'},fNum(e,'stroke','Stroke',{min:1})),
         el('div',{class:'hint'},'With a non-zero offset the marker moves on a circle around the centre, like a compass.')); }
-    p.append(el('div',{class:'row one'},fld(k==='dir'?'Target':'Value',valueSelect(a.valuetype||'FX',c=>{ a.valuetype=c; commit(); refresh(); },'p-valuetype',true,k==='dir'?TARGETS:NUMERIC))));
+    p.append(el('div',{class:'row one'},fld(k==='dir'?'Target':'Value',valueSelect(a.valuetype||'FX',c=>{ a.valuetype=c; if(c==='FX'&&k!=='dir'&&detachDyn(e)) toast('Colour set back to fixed: there is no value to follow.'); commit(); refresh(); },'p-valuetype',true,k==='dir'?TARGETS:NUMERIC))));
     if(a.valuetype&&a.valuetype!=='FX'&&k!=='dir'){ p.append(el('div',{class:'row'},sampleField(e),fNum(e,'nr_values','Averaging',{min:1}))); }
     p.append(colorSection(e));
   }
@@ -1026,6 +1035,7 @@ function encodeLayout(){
       const id=vid(a.eletype,name), txt=(id>0&&id<10)?'':(a.text||''); let fi=FONTS.indexOf(a.font);
       if(fi<0){ w(name+': unknown font ('+a.font+').'); fi=0; }
       if(txt.length>255) w(name+': text is longer than 255 characters.');
+      const tw=textWarn(e); if(tw) w(name+': '+tw);
       const x=rng(N(a.x),-50,973,name,'X'), y=rng(N(a.y),-50,973,name,'Y');
       out+=w85(((B(a,'fixedtext')?0:id)&255)<<3|(id&255)<<11|(rng(N(a.nr_values),0,8191,name,'averaging')&0x1fff)<<19)
         +w85(col(a.color)|(txt.length&255)<<24)
