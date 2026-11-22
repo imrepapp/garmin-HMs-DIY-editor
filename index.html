@@ -761,14 +761,15 @@ function moveLayer(dir){ const s=selEls(); if(!s.length) return; const order=dir
   for(const e of order){ const i=S.els.indexOf(e), j=i+dir; if(j<0||j>=S.els.length||sel.includes(S.els[j].id)) continue; S.els.splice(i,1); S.els.splice(j,0,e); } commit(); refresh(); }
 
 /* ---------- Add palette ---------- */
-const ICON = {text:'<path d="M3 4h10M8 4v9"/>',val:'<path d="M3 12V4l4 5 0-5M10 4h3v4h-3v4h3"/>',field:'<path d="M2 4h6M2 8h12M2 12h12"/>',line:'<path d="M2 13L14 3"/>',rect:'<rect x="2.5" y="4" width="11" height="8"/>',rectf:'<rect x="2.5" y="4" width="11" height="8" fill="currentColor"/>',circ:'<circle cx="8" cy="8" r="5.5"/>',circf:'<circle cx="8" cy="8" r="5.5" fill="currentColor"/>',arc:'<path d="M2.5 11a5.5 5.5 0 0 1 11 0"/>',gauge:'<path d="M2.5 11a5.5 5.5 0 0 1 11 0" opacity=".35"/><path d="M2.5 11a5.5 5.5 0 0 1 5.5-5.5" stroke-width="2.4"/>',bar:'<rect x="2" y="6" width="12" height="4"/><rect x="2" y="6" width="7" height="4" fill="currentColor"/>',graph:'<path d="M2 13V9M5 13V6M8 13V8M11 13V4M14 13V7" stroke-width="2"/>',dir:'<path d="M8 2l4 11-4-3-4 3z"/>',bg:'<rect x="2" y="2" width="12" height="12" fill="currentColor" opacity=".35"/><rect x="2" y="2" width="12" height="12"/>',sep:'<path d="M2 8h3M7 8h2M11 8h3"/>'};
+const ICON = {ptr:'<path d="M4 2l8 6.5-3.6.5 2 4-1.6.8-2-4L4 12z" fill="currentColor" stroke-linejoin="round"/>',text:'<path d="M3 4h10M8 4v9"/>',val:'<path d="M3 12V4l4 5 0-5M10 4h3v4h-3v4h3"/>',field:'<path d="M2 4h6M2 8h12M2 12h12"/>',line:'<path d="M2 13L14 3"/>',rect:'<rect x="2.5" y="4" width="11" height="8"/>',rectf:'<rect x="2.5" y="4" width="11" height="8" fill="currentColor"/>',circ:'<circle cx="8" cy="8" r="5.5"/>',circf:'<circle cx="8" cy="8" r="5.5" fill="currentColor"/>',arc:'<path d="M2.5 11a5.5 5.5 0 0 1 11 0"/>',gauge:'<path d="M2.5 11a5.5 5.5 0 0 1 11 0" opacity=".35"/><path d="M2.5 11a5.5 5.5 0 0 1 5.5-5.5" stroke-width="2.4"/>',bar:'<rect x="2" y="6" width="12" height="4"/><rect x="2" y="6" width="7" height="4" fill="currentColor"/>',graph:'<path d="M2 13V9M5 13V6M8 13V8M11 13V4M14 13V7" stroke-width="2"/>',dir:'<path d="M8 2l4 11-4-3-4 3z"/>',bg:'<rect x="2" y="2" width="12" height="12" fill="currentColor" opacity=".35"/><rect x="2" y="2" width="12" height="12"/>',sep:'<path d="M2 8h3M7 8h2M11 8h3"/>'};
 const ico = k => `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true">${ICON[k]}</svg>`;
 /* A tool is armed by its button and placed by the next click on the screen. */
 let tool=null, placeAt=null;
 const BOXTOOL={'Frame':'b','Rectangle':'b','Progress bar':'b','Graph':'b','Circle':'r','Disc':'r','Arc':'r','Gauge arc':'r','Direction':'r'};
 function dragBox(d){ const cl=(v,m)=>clamp(Math.round(v),0,m), x=cl(d.p.x,S.w), y=cl(d.p.y,S.h), x2=cl(d.q.x,S.w), y2=cl(d.q.y,S.h); return {x:Math.min(x,x2),y:Math.min(y,y2),x2:Math.max(x,x2),y2:Math.max(y,y2)}; }
-function disarm(){ if(tool){ tool.b.classList.remove('on'); tool.b.setAttribute('aria-pressed','false'); } tool=null; $('#cv').style.cursor=''; selStatus(); }
-function armTool(fn,b,label){ const same=tool&&tool.b===b; disarm(); if(same) return; tool={fn,b,label,draw:label==='Line',box:BOXTOOL[label]}; b.classList.add('on'); b.setAttribute('aria-pressed','true'); $('#cv').style.cursor='crosshair'; selStatus(); renderChips(); }
+function ptrBtn(on){ const b=$('#tool-ptr'); if(b){ b.classList.toggle('on',on); b.setAttribute('aria-pressed',String(on)); } }
+function disarm(){ if(tool){ tool.b.classList.remove('on'); tool.b.setAttribute('aria-pressed','false'); } tool=null; ptrBtn(true); $('#cv').style.cursor=''; selStatus(); }
+function armTool(fn,b,label){ const same=tool&&tool.b===b; disarm(); if(same) return; tool={fn,b,label,draw:label==='Line',box:BOXTOOL[label]}; ptrBtn(false); b.classList.add('on'); b.setAttribute('aria-pressed','true'); $('#cv').style.cursor='crosshair'; selStatus(); renderChips(); }
 function buildPalette(){
   const cx=()=>placeAt?placeAt.x:Math.round(S.w/2), cy=()=>placeAt?placeAt.y:Math.round(S.h/2), u=()=>Math.round(Math.min(S.w,S.h)/4);
   const P=[
@@ -792,7 +793,8 @@ function buildPalette(){
       const g=mkG('AF',Object.assign({color:'FF5500',valuetype:'CS'},o)); addEls([mkG('AC',Object.assign({color:'AAAAAA'},o)),g,mkVal('CS',{x:String(cx()),y:String(cy()-(r*.6|0))})]); const d=attachDyn(g); d.auto=true; d.dc[0].val=600; d.dc[1].val=0; commit(); refresh(); }],
    ['bar','t1','Bar + label',()=>{ const g=mkG('RH',{color:'00AA00',valuetype:'BV',x:String(cx()-u()),y:String(cy()+4),x2:String(cx()+u()),y2:String(cy()+12)}); addEls([mkText({text:'BATTERY',x:String(cx()),y:String(cy()-14)}),g]); const d=attachDyn(g); d.auto=true; d.dc[0].val=1000; d.dc[1].val=0; commit(); refresh(); }],
   ];
-  const box=$('#palette'); let grid=null;
+  const box=$('#palette'); let grid=el('div',{class:'palette'}); box.append(grid);
+  { const b=el('button',{class:'t1 on',id:'tool-ptr',type:'button',title:'Select, move and resize elements (Space)','aria-pressed':'true',onclick:()=>disarm()}); b.innerHTML=ico('ptr')+'<span style="color:var(--ink)">Select</span>'; grid.append(b); }
   for(const it of P){
     if(typeof it==='string'){ const [name,tip]=it.split('|'); box.append(el('div',{class:'psec',title:tip},name)); grid=el('div',{class:'palette'}); box.append(grid); continue; }
     const [i,cls,label,fn]=it, b=el('button',{class:cls,type:'button',title:label==='Line'?'Pick, then drag on the screen':BOXTOOL[label]?'Pick, then drag on the screen to set its size':'Pick, then click on the screen to place it','aria-pressed':'false',onclick:()=>armTool(fn,b,label)}); b.innerHTML=ico(i)+'<span style="color:var(--ink)">'+label+'</span>'; grid.append(b);
