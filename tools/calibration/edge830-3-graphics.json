@@ -9,7 +9,7 @@
   "designer": null,
   "els": [
    {
-    "id": 59,
+    "id": 76,
     "type": 1,
     "a": {
      "color": "FFFFFF",
@@ -29,7 +29,7 @@
     "lock": true
    },
    {
-    "id": 60,
+    "id": 77,
     "type": 1,
     "a": {
      "color": "000000",
@@ -48,7 +48,7 @@
     }
    },
    {
-    "id": 61,
+    "id": 78,
     "type": 1,
     "a": {
      "color": "AAAAAA",
@@ -67,7 +67,7 @@
     }
    },
    {
-    "id": 62,
+    "id": 79,
     "type": 1,
     "a": {
      "color": "000000",
@@ -86,7 +86,7 @@
     }
    },
    {
-    "id": 63,
+    "id": 80,
     "type": 1,
     "a": {
      "color": "AAAAAA",
@@ -105,7 +105,7 @@
     }
    },
    {
-    "id": 64,
+    "id": 81,
     "type": 1,
     "a": {
      "color": "000000",
@@ -124,7 +124,7 @@
     }
    },
    {
-    "id": 65,
+    "id": 82,
     "type": 1,
     "a": {
      "color": "000000",
@@ -143,7 +143,7 @@
     }
    },
    {
-    "id": 67,
+    "id": 84,
     "type": 2,
     "a": {
      "replDC": "00AA01",
@@ -167,7 +167,7 @@
     "auto": true
    },
    {
-    "id": 66,
+    "id": 83,
     "type": 1,
     "a": {
      "color": "00AA01",
@@ -186,7 +186,7 @@
     }
    },
    {
-    "id": 68,
+    "id": 85,
     "type": 1,
     "a": {
      "color": "000000",
@@ -205,7 +205,7 @@
     }
    },
    {
-    "id": 69,
+    "id": 86,
     "type": 1,
     "a": {
      "color": "000000",
@@ -224,7 +224,7 @@
     }
    },
    {
-    "id": 71,
+    "id": 88,
     "type": 2,
     "a": {
      "replDC": "0000FE",
@@ -248,7 +248,7 @@
     "auto": true
    },
    {
-    "id": 70,
+    "id": 87,
     "type": 1,
     "a": {
      "color": "0000FE",
@@ -267,22 +267,22 @@
     }
    },
    {
-    "id": 73,
+    "id": 90,
     "type": 2,
     "a": {
-     "replDC": "FF0001",
+     "replDC": "FF5501",
      "invertcolor": "false"
     },
     "dc": [
      {
       "val": 1000,
-      "col": "FF0000",
+      "col": "FF5500",
       "hide": false,
       "blink": false
      },
      {
       "val": 0,
-      "col": "FF0000",
+      "col": "FF5500",
       "hide": false,
       "blink": false
      }
@@ -291,14 +291,14 @@
     "auto": true
    },
    {
-    "id": 72,
+    "id": 89,
     "type": 1,
     "a": {
-     "color": "FF0001",
+     "color": "FF5501",
      "x": "130",
      "y": "262",
      "x2": "150",
-     "y2": "317",
+     "y2": "316",
      "eletype": "RV",
      "valuetype": "BV",
      "minval": "false",
@@ -310,7 +310,7 @@
     }
    },
    {
-    "id": 74,
+    "id": 91,
     "type": 1,
     "a": {
      "color": "AA0000",
@@ -329,11 +329,11 @@
     }
    },
    {
-    "id": 75,
+    "id": 92,
     "type": 0,
     "a": {
      "color": "000000",
-     "x": "60",
+     "x": "61",
      "y": "292",
      "fixedtext": "false",
      "daynight": "false",
@@ -348,7 +348,7 @@
    }
   ],
   "samples": {},
-  "nid": 76,
+  "nid": 93,
   "custom": false
  }
 }
