@@ -612,7 +612,7 @@ function renderChips(){
   const box=$('#chips'); if(!box) return; const s=selEls(), e=(s.length===1&&s[0].type<2&&!s[0].hide&&!tool)?s[0]:null;
   const have=new Map([...box.children].map(c=>[c.dataset.k,c]));
   for(const sp of e?chipSpec(e):[]){ const key=e.id+':'+sp.k; let c=have.get(key);
-    if(!c){ c=el('span',{class:'chip','data-k':key,title:sp.k==='s'||sp.k==='e'?'Angle in degrees: 0° points to 3 o\'clock and grows clockwise (270° = top). A filling arc runs from “from” towards “to”.':null});
+    if(!c){ c=el('span',{class:'chip','data-k':key,title:sp.k==='off'?'Distance from the centre. With a non-zero offset the marker moves on a circle around the centre, like a compass.':sp.k==='s'||sp.k==='e'?'Angle in degrees: 0° points to 3 o\'clock and grows clockwise (270° = top). A filling arc runs from “from” towards “to”.':null});
       sp.f.forEach((f,i)=>{ const inp=el('input',{type:'number',step:'1','aria-label':f.l});
         inp.addEventListener('input',()=>{ if(inp.value===''||!isFinite(+inp.value)) return; c._f[i].set(Math.round(+inp.value)); live(); });
         inp.addEventListener('keydown',ev=>{ ev.stopPropagation(); if(ev.key==='Enter'||ev.key==='Escape') inp.blur(); });
@@ -838,7 +838,7 @@ function selStatus(){ const s=selEls(); $('#st-sel').textContent = tool ? (tool.
 
 /* ---------- Property panel ---------- */
 function live(){ draw(); selStatus(); commitSoon(); }
-const TIPS={Source:'The live value that drives the colour',Format:'$V is replaced by the number, so text and units can be added around it. Time values use $H $M $S. $T shows the text form where one exists (compass direction, sensor status)',Drivetrain:'circumference;chainring;sprockets, small to big',Averaging:'Seconds the value is averaged over',Sample:'Preview only. One sample per value type: every element showing this value uses it (time values in seconds)',Decimals:'Number of decimal places',Target:'What the marker points to; none lets the data field setting decide',Value:'The live value this element shows or follows','Bar width':'Pixels per second','Min/max':'Lower or upper limit of the graph',Stroke:'Line thickness in pixels'};
+const TIPS={Limit:'Scale limit of the graph; 0 lets the graph scale itself','Limit is the':'Whether the limit is the top or the bottom of the scale',Source:'The live value that drives the colour',Format:'$V is replaced by the number, so text and units can be added around it. Time values use $H $M $S. $T shows the text form where one exists (compass direction, sensor status)',Drivetrain:'circumference;chainring;sprockets, small to big',Averaging:'Seconds the value is averaged over',Sample:'Preview only. One sample per value type: every element showing this value uses it (time values in seconds)',Decimals:'Number of decimal places',Target:'What the marker points to; none lets the data field setting decide',Value:'The live value this element shows or follows','Bar width':'Pixels per second','Min/max':'Lower or upper limit of the graph',Stroke:'Line thickness in pixels'};
 function fld(label, input){ const t=TIPS[label]; return el('label',{class:'f',title:t},el('span',{},label),input); }
 function fNum(e,key,label,o){ o=o||{}; const i=el('input',{type:'number',id:'p-'+key,step:o.step||1,min:o.min,value:e.a[key]??'0',oninput:()=>{ if(i.value==='') return; e.a[key]=String(o.float?N(i.value):Math.round(N(i.value))); live(); if(o.after) o.after(); }}); return fld(label,i); }
 /* Garmin's number fonts hold digits and a few signs only, so letters set in them may not appear on the device. */
@@ -899,19 +899,19 @@ function nightBtn(e){ const on=e.a.daynight==='true', cb=el('input',{type:'check
   return el('label',{class:'nightbtn',title:'In night mode the data field inverts the colour itself. The night colour is computed, not stored; the swatch shows it in its lower right half.'},cb,'Invert at night');
 }
 function colorSection(e){
-  const box=el('div',{}), dc=dcFor(e.a.color), fill=FILL.includes(e.a.eletype), label=e.type===0&&e.a.fixedtext==='true', vt=VT[e.a.eletype];
-  const setSrc=c=>{ if(label){ e.a.eletype=c; if(!V_AVG.has(c)) e.a.nr_values='1'; } else e.a.valuetype=c; if(c==='FX'&&detachDyn(e)) toast('Colour set back to fixed: there is no source value to follow.'); commit(); refresh(); }, noSrc=valCode(e)==='FX';
-  const toFixed=()=>{ detachDyn(e); if(label) e.a.eletype='FX'; commit(); refresh(); };
+  const box=el('div',{}), dc=dcFor(e.a.color), fill=FILL.includes(e.a.eletype), label=e.type===0&&e.a.fixedtext==='true', vt=VT[e.a.eletype], kd=kind(e);
+  const shape=e.type===1&&!fill&&kd!=='graph'&&kd!=='dir', inBox=label||shape;   // elements that show no value: the source only drives the colour
+  const setSrc=c=>{ if(label) e.a.eletype=c; else e.a.valuetype=c; if(inBox&&!V_AVG.has(c)) e.a.nr_values='1'; if(c==='FX'&&detachDyn(e)) toast('Colour set back to fixed: there is no source value to follow.'); commit(); refresh(); }, noSrc=valCode(e)==='FX';
+  const toFixed=()=>{ detachDyn(e); if(label) e.a.eletype='FX'; else if(shape) e.a.valuetype='FX'; commit(); refresh(); };
   const mode=seg([['f','Fixed'],['v','By value']],dc?'v':'f',m=>{ if(m==='v'&&!dc){ attachDyn(e); commit(); refresh(); if(noSrc) pickValue('FX',setSrc,true,kind(e)==='dir'?TARGETS:NUMERIC); } else if(m==='f'&&dc) toFixed(); });
   mode.className='seg mini'; mode.id='p-colmode'; mode.title='Fixed: one colour. By value: the colour'+(fill?' and fill level follow':' follows')+' a live value.';
-  const canDyn=!!dc||e.type===1||label||(!!vt&&vt.k!=='s');
+  const canDyn=!!dc||(e.type===1&&kd!=='dir')||label||(e.type===0&&!!vt&&vt.k!=='s');   // a direction marker has no numeric value to follow
   box.append(el('h2',{},'Colour',el('span',{class:'sp'}),canDyn&&!fill?mode:null));   // a filling bar or arc always needs a range, so it has no Fixed mode
   const night=e.a.daynight==='true';
   if(dc){
     const own=e.type===0&&!label;
     if(own) box.append(el('div',{class:'hexlab',style:'margin:0 0 8px'},'Same source as shown'));
-    else if(label){ const sb=valueSelect(valCode(e),setSrc,'p-source',true,NUMERIC); sb.setAttribute('aria-label','Source value'); sb.title='The live value that drives the colour – click to choose'; box.append(el('div',{class:'row one'},sb)); if(!noSrc) box.append(V_AVG.has(valCode(e))?el('div',{class:'row'},sampleField(e),fNum(e,'nr_values','Averaging',{min:1})):el('div',{class:'row one'},sampleField(e))); }
-    else if(noSrc) box.append(el('div',{class:'hexlab',style:'margin:0 0 8px'},'Choose a value above'));
+    else if(inBox){ const sb=valueSelect(valCode(e),setSrc,'p-source',true,NUMERIC); sb.setAttribute('aria-label','Source value'); sb.title='The live value that drives the colour – click to choose'; box.append(el('div',{class:'row one'},sb)); if(!noSrc) box.append(V_AVG.has(valCode(e))?el('div',{class:'row'},sampleField(e),fNum(e,'nr_values','Averaging',{min:1})):el('div',{class:'row one'},sampleField(e))); }
     const rules=S.els.filter(x=>x.type===2), others=dcUsers(dc).filter(u=>u!==e), nm=u=>nameOf(u).replace(/^“|”$/g,'');
     if(rules.length>1||others.length){   // one colour rule can serve several elements
       const rs=el('select',{id:'p-rule','aria-label':'Colour rule',title:'Which colour rule this element uses. One rule can be shared by several elements; each follows its own value.',onchange:()=>{ const v=rs.value, old=dc;
@@ -1005,13 +1005,15 @@ function renderPanelBody(){
       p.append(el('div',{class:'row'},fld('Starts at',seg([['l','Left'],['r','Right']],right?'r':'l',v=>setT(code(v==='r',top)))),fld('Baseline',seg([['b','Bottom'],['t','Top']],top?'t':'b',v=>setT(code(right,v==='t')))))); }
     if(k==='line'||k==='rect'||k==='graph'||k==='box'){
       if(a.eletype==='LN'||a.eletype==='RC') p.append(el('div',{class:'row'},fNum(e,'stroke','Stroke',{min:1})));
-      if(k==='graph') p.append(el('div',{class:'row'},fNum(e,'stroke','Bar width',{min:1}),fNum(e,'radius','Min/max')),fChk(e,'minval','Limit is the minimum value'),fChk(e,'maxonly','Mark min/max values'));
+      if(k==='graph') p.append(el('div',{class:'row'},fNum(e,'stroke','Bar width',{min:1}),fNum(e,'radius','Limit')),
+        el('div',{class:'row one'},fld('Limit is the',seg([['false','Maximum'],['true','Minimum']],a.minval==='true'?'true':'false',v=>{ a.minval=v; commit(); refresh(); }))),fChk(e,'maxonly','Mark the lowest and highest point'));
     } else if(k==='circle'){ if(a.eletype==='CR') p.append(el('div',{class:'row'},fNum(e,'stroke','Stroke',{min:1}))); }
     else if(k==='arc'){ p.append(el('div',{class:'row'},fNum(e,'stroke','Stroke',{min:1}))); }
-    else if(k==='dir'){ p.append(el('div',{class:'row'},fNum(e,'stroke','Stroke',{min:1})),
-        el('div',{class:'hint'},'With a non-zero offset the marker moves on a circle around the centre, like a compass.')); }
-    p.append(el('div',{class:'row one'},fld(k==='dir'?'Target':'Value',valueSelect(a.valuetype||'FX',c=>{ a.valuetype=c; if(c==='FX'&&k!=='dir'&&detachDyn(e)) toast('Colour set back to fixed: there is no value to follow.'); commit(); refresh(); },'p-valuetype',true,k==='dir'?TARGETS:FILL.includes(a.eletype)?FILLSRC:NUMERIC))));
-    if(a.valuetype&&a.valuetype!=='FX'&&k!=='dir'){ p.append(el('div',{class:'row'},sampleField(e),fNum(e,'nr_values','Averaging',{min:1}))); }
+    else if(k==='dir'){ p.append(el('div',{class:'row'},fNum(e,'stroke','Stroke',{min:1}))); }
+    const shows=FILL.includes(t)||k==='graph', hasVal=!!a.valuetype&&a.valuetype!=='FX';   // only these draw the value itself; other shapes pick a source in the colour box
+    if(shows||k==='dir') p.append(el('div',{class:'row one'},fld(k==='dir'?'Target':'Value',valueSelect(a.valuetype||'FX',c=>{ a.valuetype=c; if(c==='FX'&&k!=='dir'&&detachDyn(e)) toast('Colour set back to fixed: there is no value to follow.'); commit(); refresh(); },'p-valuetype',true,k==='dir'?TARGETS:FILL.includes(a.eletype)?FILLSRC:NUMERIC))));
+    if(shows&&hasVal) p.append(V_AVG.has(a.valuetype)||k==='graph'?el('div',{class:'row'},sampleField(e),fNum(e,'nr_values','Averaging',{min:1})):el('div',{class:'row one'},sampleField(e)));
+    if(shows&&!hasVal) p.append(el('div',{class:'warnline',id:'p-warn'},'Choose a value: without one this element does nothing on the device.'));
     p.append(colorSection(e));
   }
   if(keep){ const f=document.getElementById(keep); if(f) f.focus(); }
@@ -1098,6 +1100,7 @@ function encodeLayout(){
       else if(g<=8){ w2|=st; w3|=(rng(r,0,1023,name,'radius')&1023)<<20; w4=rng(x2,0,1023,name,'start angle')&1023|(rng(y2,0,1023,name,'end angle')&1023)<<10; }
       else { w2|=st; w3|=(rng(r,0,1023,name,'size')&1023)<<20; w4=rng(y2,0,1023,name,'distance')&1023; }
       w3|=B(a,'maxonly')<<30|B(a,'daynight')<<31;
+      if((g===5||g===6||g===8||g>=11)&&(!a.valuetype||a.valuetype==='FX')) w(name+': no value chosen, so it does nothing on the device.');
       out+=w85(1|g<<3|(vid(a.valuetype,name)&255)<<11|(rng(N(a.nr_values),0,8191,name,'averaging')&0x1fff)<<19)+w85(w2)+w85(w3)+w85(w4);
     } else if(e.type===2){ const rows=(e.dirty?dcRows(e):e.dc).slice(0,10); if(!rows.length) continue; n++;
       if(e.dc.length>10) w('Dynamic colour #'+a.replDC+': at most 10 ranges fit in the string.');
