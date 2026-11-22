@@ -66,6 +66,9 @@ aside{background:var(--bg);overflow:auto;padding:12px 16px;min-width:0}
 #layerbox{flex:1 1 0;min-height:140px;display:flex;flex-direction:column}
 #layers{flex:1;overflow:auto;min-height:0}
 .empty{font-weight:600;margin:2px 0 6px}
+.usedby{display:flex;flex-wrap:wrap;gap:4px}
+.rsw.big{display:flex;gap:2px}
+.rsw.big i{width:18px;height:18px;border:1px solid var(--line);border-radius:3px;display:block}
 .warnline{font-size:11px;color:var(--danger);border-left:3px solid var(--danger);padding:2px 0 2px 8px;margin:0 0 10px}
 .gridnote{display:flex;align-items:center;gap:7px;font-size:12px;margin:2px 0 10px;cursor:help}
 .gdot{width:8px;height:8px;background:var(--accent);transform:rotate(45deg);flex:none}
@@ -103,6 +106,9 @@ h2 .sp{flex:1}
 #layers li.sepr.folded span.n{color:var(--mute)}
 #layers li.sepr.folded span.n::after{content:' …'}
 #layers li.ing{margin-left:14px}
+#layers li.rulehead{margin-top:12px;border-top:1px solid var(--line);padding-top:8px;color:var(--c-dyn)}
+#layers li.rulehead span.n{color:var(--ink)}
+#layers li.rulerow{cursor:pointer}
 #layers li.rule{border-left-color:transparent;color:var(--c-dyn);padding:1px 4px 2px 20px;font-size:12px;cursor:pointer}
 #layers li.rule span.n{color:var(--mute)}
 #layers li.rule.cur span.n{color:var(--ink)}
@@ -444,6 +450,10 @@ function dcRows(dc){ const inv=dc.a.invertcolor==='true'; return [...dc.dc].sort
 /* Back to one fixed colour: the lowest row's colour; the rule goes too when nothing else uses it. */
 function detachDyn(e){ const dc=dcFor(e.a.color); if(!dc) return false; const rows=[...dc.dc].sort((a,b)=>b.val-a.val); e.a.color=rows.length?rows[rows.length-1].col:'000000'; if(!dcUsers(dc).length) S.els=S.els.filter(x=>x!==dc); return true; }
 /* Colour rules are not layers: they are kept beside the elements and removed when nothing uses them any more. */
+const plain=e=>nameOf(e).replace(/^“|”$/g,'');
+/* A rule's name: the one the user gave it, else its single user's name, else a number. */
+function ruleName(r){ if(r.name) return r.name; const us=dcUsers(r); return us.length===1?plain(us[0])+' colours':'Rule '+(S.els.filter(x=>x.type===2).indexOf(r)+1); }
+function deleteRule(r){ for(const u of dcUsers(r)){ const rows=[...r.dc].sort((a,b)=>b.val-a.val); u.a.color=rows.length?rows[rows.length-1].col:'000000'; if(u.type===0&&u.a.fixedtext==='true') u.a.eletype='FX'; } S.els=S.els.filter(x=>x!==r); }
 function pruneDyn(){ S.els = S.els.filter(e=>e.type!==2 || dcUsers(e).length); }
 
 /* ---------- Text formatting ---------- */
@@ -707,12 +717,14 @@ function addEls(list, select){
   let at=S.els.length; const s=selEls(); if(s.length) at=Math.max(...s.map(e=>S.els.indexOf(e)))+1;
   S.els.splice(at,0,...list); sel=(select||list).map(e=>e.id); commit(); refresh();
 }
-function delSel(){ const x=selX().filter(e=>e.type!==2); if(!x.length) return; S.els=S.els.filter(e=>!x.includes(e)); sel=[]; pruneDyn(); commit(); refresh(); }
-function askDelete(){ const x=selX().filter(e=>e.type!==2); if(!x.length) return; const g=x.filter(e=>e.type===3), n=x.filter(e=>e.type<2).length;
+function delSel(){ const rl=selEls().filter(e=>e.type===2); if(rl.length&&rl.length===sel.length){ rl.forEach(deleteRule); sel=[]; commit(); refresh(); return; }
+  const x=selX().filter(e=>e.type!==2); if(!x.length) return; S.els=S.els.filter(e=>!x.includes(e)); sel=[]; pruneDyn(); commit(); refresh(); }
+function askDelete(){ const rl=selEls().filter(e=>e.type===2); if(rl.length&&rl.length===sel.length){ const n=rl.reduce((t,r)=>t+dcUsers(r).length,0); $('#cf-text').textContent='Delete '+(rl.length===1?'the colour rule “'+ruleName(rl[0])+'”':rl.length+' colour rules')+'? '+n+' element'+(n===1?' goes':'s go')+' back to a fixed colour.'; $('#dlg-confirm').showModal(); return; }
+  const x=selX().filter(e=>e.type!==2); if(!x.length) return; const g=x.filter(e=>e.type===3), n=x.filter(e=>e.type<2).length;
   $('#cf-text').textContent = g.length ? 'Delete '+(g.length===1?'the group “'+(g[0].a.text||'unnamed')+'”':g.length+' groups')+' and the '+n+' layer'+(n===1?'':'s')+' inside?' : n===1 ? 'Delete “'+nameOf(x[0]).replace(/^“|”$/g,'')+'”?' : 'Delete '+n+' layers?';
   $('#dlg-confirm').showModal(); }
 function groupSel(){
-  const m=selX().filter(e=>e.type<3); if(!m.length){ toast('Select the layers to group first.'); return; }
+  const m=selX().filter(e=>e.type<2||(e.type===2&&false)); if(!m.length){ toast('Select the layers to group first.'); return; }
   let at=S.els.indexOf(m[m.length-1])+1; while(at<S.els.length&&S.els[at].type!==3) at++;
   const anchor=S.els[at]||null, sep=mk(3,{text:'Group '+(S.els.filter(e=>e.type===3).length+1)});
   S.els=S.els.filter(e=>!m.includes(e)); S.els.splice(anchor?S.els.indexOf(anchor):S.els.length,0,sep,...m);
@@ -722,7 +734,7 @@ function groupSel(){
 function ungroupSel(){ const hs=new Set(); for(const e of selEls()){ const h=e.type===3?e:headerOf(e); if(h) hs.add(h); }
   if(!hs.size){ toast('Nothing to ungroup.'); return; } const mem=[...hs].flatMap(h=>groupOf(h)); S.els=S.els.filter(e=>!hs.has(e)); sel=mem.filter(e=>e.type<2).map(e=>e.id); commit(); refresh(); }
 function cloneEls(src, d){ return src.map(e=>{ const c=JSON.parse(JSON.stringify(e)); c.id=S.nid++; if(c.type<2){ c.a.x=String(N(c.a.x)+d); c.a.y=String(N(c.a.y)+d); if(hasBox(c)){ c.a.x2=String(N(c.a.x2)+d); c.a.y2=String(N(c.a.y2)+d); } } if(c.type===2){ c.a.replDC=uniqueKey(c.a.replDC); } return c; }); }
-function dupSel(){ const s=selX(); if(!s.length) return; const c=cloneEls(s,8); if(c[0].type===3){ S.els.push(...c); sel=[c[0].id]; commit(); refresh(); } else addEls(c); }
+function dupSel(){ const s=selX().filter(e=>e.type!==2); if(!s.length) return; const c=cloneEls(s,8); if(c[0].type===3){ S.els.push(...c); sel=[c[0].id]; commit(); refresh(); } else addEls(c); }
 function nudge(dx,dy,resize){ const s=selX().filter(e=>e.type<2); if(!s.length) return;
   if(s.length===1){ const g=gridInfo(s[0]); if(g){ const d=g.ax==='h'?dy:dx; if(d) setGridLine(s[0],g,g.pos+d); draw(); renderPanel(); commitSoon(); return; } }
   for(const e of s){ if(resize&&hasBox(e)){ e.a.x2=String(N(e.a.x2)+dx); e.a.y2=String(N(e.a.y2)+dy); } else { e.a.x=String(N(e.a.x)+dx); e.a.y=String(N(e.a.y)+dy); if(hasBox(e)){ e.a.x2=String(N(e.a.x2)+dx); e.a.y2=String(N(e.a.y2)+dy); } } } draw(); renderPanel(); commitSoon(); }
@@ -809,9 +821,17 @@ function renderLayers(){
     if(!(sep&&sep.fold)) for(let i=items.length-1;i>=0;i--){ const it=items[i]; if(it.type===2) continue; ul.append(row(it,!!sep));
       const dc=dcFor(it.a.color); if(dc){ const rows=dcRows(dc), src=VT[valCode(it)];   // the colour rule sits under its element and cannot be moved on its own
         ul.append(el('li',{class:'rule'+(sep?' ing':'')+(sel.includes(it.id)?' cur':''),title:'Colour rule of “'+nameOf(it).replace(/^“|”$/g,'')+'”: '+rows.length+' range'+(rows.length===1?'':'s')+(src&&valCode(it)!=='FX'?', follows '+src.n:'')+'. Click to edit it in Properties.',onclick:()=>{ sel=[it.id]; refresh(); const m=document.getElementById('p-colmode'); if(m) m.scrollIntoView({block:'nearest'}); }},
-          el('span',{class:'rl','aria-hidden':'true'},'↳'),el('span',{class:'n'},'Colour by value'),el('span',{class:'rsw'},rows.slice(0,6).map(r=>el('i',{style:'background:#'+r.col}))))); } }
+          el('span',{class:'rl','aria-hidden':'true'},'↳'),el('span',{class:'n'},dcUsers(dc).length>1?ruleName(dc):'Colour by value'),el('span',{class:'rsw'},rows.slice(0,6).map(r=>el('i',{style:'background:#'+r.col}))))); } }
   }
   const cur=ul.querySelector('li.sel'); if(cur&&ul.scrollHeight>ul.clientHeight){ const r=cur.getBoundingClientRect(), u=ul.getBoundingClientRect(); if(r.top<u.top||r.bottom>u.bottom) ul.scrollTop+=r.top-u.top-u.height/2; }
+  const rules=S.els.filter(e=>e.type===2&&dcUsers(e).length);
+  if(rules.length){
+    const head=el('li',{class:'sepr rulehead'+(S.rulesFold?' folded':''),'aria-expanded':String(!S.rulesFold),title:S.rulesFold?'Click to expand':'Click to collapse',onclick:()=>{ S.rulesFold=!S.rulesFold; persist(); renderLayers(); }},el('span',{class:'n'},'Colour rules'),el('span',{class:'cnt'},String(rules.length)));
+    ul.append(head);
+    if(!S.rulesFold) for(const r of rules){ const us=dcUsers(r), rows=dcRows(r);
+      ul.append(el('li',{class:'t2 ing rulerow'+(sel.includes(r.id)?' sel':''),title:ruleName(r)+': '+rows.length+' range'+(rows.length===1?'':'s')+', used by '+us.map(plain).join(', '),onclick:()=>{ sel=[r.id]; refresh(); }},
+        el('span',{class:'n'},ruleName(r)),el('span',{class:'rsw',style:'margin-right:6px'},rows.slice(0,6).map(x=>el('i',{style:'background:#'+x.col}))),el('span',{class:'cnt',title:'Elements using this rule'},us.length+'×'))); }
+  }
   const n=S.els.filter(e=>e.type!==3).length;
   $('#st-count').textContent=n+' elements'; $('#st-count').title='The element limit depends on device memory: low 30, medium 35, high 500 elements.';
 }
@@ -895,12 +915,16 @@ function colorSection(e){
       const rs=el('select',{id:'p-rule','aria-label':'Colour rule',title:'Which colour rule this element uses. One rule can be shared by several elements; each follows its own value.',onchange:()=>{ const v=rs.value, old=dc;
           if(v==='__new'){ const key=uniqueKey(dc.a.replDC), cp=mkDyn(key,JSON.parse(JSON.stringify(dc.dc))); cp.a.invertcolor=dc.a.invertcolor; S.els.splice(S.els.indexOf(e),0,cp); e.a.color=key; } else e.a.color=v;
           if(!dcUsers(old).length) S.els=S.els.filter(x=>x!==old); commit(); refresh(); }},
-        rules.map(r=>{ const us=dcUsers(r).filter(u=>u!==e); return el('option',{value:r.a.replDC},r===dc?(us.length?'Shared rule · '+(us.length+1)+' elements':'Own rule'):'Rule of '+(us.length?nm(us[0])+(us.length>1?' +'+(us.length-1):''):'no element')+' · '+r.dc.length+' range'+(r.dc.length===1?'':'s')); }),
+        rules.map(r=>{ const us=dcUsers(r).filter(u=>u!==e); return el('option',{value:r.a.replDC},r===dc&&!us.length?'Own rule':ruleName(r)+' · '+r.dc.length+' range'+(r.dc.length===1?'':'s')+(us.length+(r===dc?1:0)>1?' · shared':'')); }),
         others.length?el('option',{value:'__new'},'Separate copy for this element'):null);
       rs.value=dc.a.replDC; box.append(el('div',{class:'row one'},rs));
-      if(others.length) box.append(el('div',{class:'hexlab',style:'margin:-2px 0 8px;white-space:normal'},'Also used by '+others.slice(0,3).map(nm).join(', ')+(others.length>3?' and '+(others.length-3)+' more':'')+'. Changes apply to all; each element still follows its own value.'));
+      if(others.length) box.append(el('div',{class:'hexlab',style:'margin:-2px 0 8px;white-space:normal'},'Also used by '+others.slice(0,3).map(nm).join(', ')+(others.length>3?' and '+(others.length-3)+' more':'')+'. Each element follows its own value.'));
     }
-    const ed=dcEditor(dc,e); ed.append(nightBtn(e)); box.append(ed);
+    if(others.length){   // a shared rule is edited in its own editor, not inside one of its elements
+      const rows=dcRows(dc), ed=el('div',{class:'dc'},el('div',{class:'colrow'},el('span',{class:'rsw big'},rows.map(r=>el('i',{style:'background:#'+r.col,title:'#'+r.col}))),el('span',{class:'sp'}),
+        el('button',{type:'button',class:'btn sm',id:'p-editrule',title:'Open the editor of this shared colour rule',onclick:()=>{ sel=[dc.id]; refresh(); }},'Edit rule…')),nightBtn(e));
+      box.append(ed);
+    } else { const ed=dcEditor(dc,e); ed.append(nightBtn(e)); box.append(ed); }
   } else {
     box.append(el('div',{class:'colrow'},colorBtn(e.a.color,c=>{ e.a.color=c; commit(); refresh(); },'p-color',night),el('span',{class:'hexlab'},'#'+e.a.color+(night?'  ·  night #'+invert(e.a.color).toUpperCase():''))),nightBtn(e));
     if(fill) box.append(el('div',{class:'hint',style:'margin-top:8px'},'The bar only moves on the device when its colour is set to “By value”: empty at the lowest threshold, full at the highest.'));
@@ -910,8 +934,7 @@ function colorSection(e){
 function dcEditor(dc, user){
   const fill = user && FILL.includes(user.a.eletype), box=el('div',{class:'dc'});
   const src = user ? valCode(user) : null, v = VT[src];
-  if(!user) box.append(el('div',{class:'hint',style:'margin-top:0'},'This colour rule applies to elements whose key colour is #'+dc.a.replDC+'.'));
-  else if(v&&v.k==='t') box.append(el('div',{class:'hint',style:'margin-top:0'},'Thresholds for time and pace are in seconds.'));
+  if(user&&v&&v.k==='t') box.append(el('div',{class:'hint',style:'margin-top:0'},'Thresholds for time and pace are in seconds.'));
   const tb=el('tbody',{}); const rows=dcRows(dc), inv=dc.a.invertcolor==='true';
   rows.forEach((r,i)=>{
     const vi=el('input',{type:'number',step:'0.1',value:r.val/10,'aria-label':'Threshold',oninput:()=>{ if(vi.value!==''){ r.val=Math.round(N(vi.value)*10); dc.dirty=true; live(); } },onchange:()=>renderPanel()});
@@ -944,7 +967,10 @@ function renderPanelBody(){
   const e=s[0], a=e.a, k=kind(e); let updWarn=()=>{};
   if(k==='sep'){ const m=groupOf(e); p.append(el('h2',{class:'t3'},'Group'),el('div',{class:'row one'},fTxt(e,'text','Name')),el('div',{class:'hint'},m.length+' layer'+(m.length===1?'':'s')+' in this group. Arrow keys move them together; the group row in the list collapses, locks or hides them, and dragging it moves the whole group. Groups are an editing aid and are not sent to the device.'),
       el('div',{class:'dlgbar'},el('button',{class:'btn sm',onclick:ungroupSel},'Ungroup'))); }
-  else if(k==='dyn'){ p.append(el('h2',{class:'t2'},'Dynamic colour'),dcEditor(dc_(e),null),el('div',{class:'hint'},'Used by: ',dcUsers(e).map(nameOf).join(', ')||'no element')); }
+  else if(k==='dyn'){ const us=dcUsers(e), ni=el('input',{type:'text',id:'p-rulename',value:e.name||'',placeholder:ruleName(Object.assign({},e,{name:''}))==='Rule 0'?'Rule':(()=>{ const keep=e.name; e.name=''; const d=ruleName(e); e.name=keep; return d; })(),oninput:()=>{ e.name=ni.value.trim(); commitSoon(); renderLayersSoon(); }});
+    p.append(el('h2',{class:'t2'},'Colour rule'),el('div',{class:'row one'},fld('Name',ni)),dcEditor(e,null),
+      el('h2',{},'Used by'),el('div',{class:'usedby'},us.length?us.map(u=>el('button',{type:'button',class:'btn sm',title:'Select this element',onclick:()=>{ sel=[u.id]; refresh(); }},plain(u))):'no element'),
+      el('div',{class:'hint',style:'margin-top:8px'},'Each element compares its own value with these thresholds. The name is kept in the project file only.')); }
   else if(k==='text'){
     const isVal=a.fixedtext!=='true', v=VT[a.eletype];
     p.append(el('h2',{class:'t0'},isVal?'Value':'Label'));
