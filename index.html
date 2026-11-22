@@ -779,7 +779,7 @@ const ICON = {ptr:'<path d="M4 2l8 6.5-3.6.5 2 4-1.6.8-2-4L4 12z" fill="currentC
 const ico = k => `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true">${ICON[k]}</svg>`;
 /* A tool is armed by its button and placed by the next click on the screen. */
 let tool=null, placeAt=null;
-const BOXTOOL={'Frame':'b','Rectangle':'b','Progress bar':'b','Graph':'b','Circle':'r','Disc':'r','Arc':'r','Gauge arc':'r','Direction':'r'};
+const BOXTOOL={'Frame':'b','Rectangle':'b','Progress bar':'b','Graph':'b','Circle':'r','Disc':'r','Arc':'r','Gauge arc':'r','Direction':'r','Value':'c','Label':'c'};   // b: box, r: circle in the box, c: scaled to the box (font picked to fit)
 function dragBox(d){ const cl=(v,m)=>clamp(Math.round(v),0,m), x=cl(d.p.x,S.w), y=cl(d.p.y,S.h), x2=cl(d.q.x,S.w), y2=cl(d.q.y,S.h); return {x:Math.min(x,x2),y:Math.min(y,y2),x2:Math.max(x,x2),y2:Math.max(y,y2)}; }
 function ptrBtn(on){ const b=$('#tool-ptr'); if(b){ b.classList.toggle('on',on); b.setAttribute('aria-pressed',String(on)); } }
 function disarm(){ if(tool){ tool.b.classList.remove('on'); tool.b.setAttribute('aria-pressed','false'); } tool=null; ptrBtn(true); $('#cv').style.cursor=''; selStatus(); }
@@ -823,7 +823,7 @@ function buildPalette(){
   { const b=el('button',{class:'t1 on',id:'tool-ptr',type:'button',title:'Select, move and resize elements (Space)','aria-pressed':'true',onclick:()=>disarm()}); b.innerHTML=ico('ptr')+'<span style="color:var(--ink)">Select</span>'; grid.append(b); }
   for(const it of P){
     if(typeof it==='string'){ const [name,tip]=it.split('|'); sec=name; box.append(el('div',{class:'psec',title:tip},name)); grid=el('div',{class:'palette'}); box.append(grid); continue; }
-    const [i,cls,label,fn]=it, b=el('button',{class:cls,type:'button',title:label==='Line'?'Pick, then drag on the screen':BOXTOOL[label]?'Pick, then drag on the screen to set its size':'Pick, then click on the screen to place it','aria-pressed':'false',onclick:()=>armTool(fn,b,label)}); if(sec==='Composite'){ b.dataset.comp='1'; b.title='Pick, then drag on the screen to set its size (or click for the default size)'; } b.innerHTML=ico(i)+'<span style="color:var(--ink)">'+label+'</span>'; grid.append(b);
+    const [i,cls,label,fn]=it, b=el('button',{class:cls,type:'button',title:label==='Line'?'Pick, then drag on the screen':BOXTOOL[label]==='c'?'Pick, then drag on the screen to set its size (or click for the default size)':BOXTOOL[label]?'Pick, then drag on the screen to set its size':'Pick, then click on the screen to place it','aria-pressed':'false',onclick:()=>armTool(fn,b,label)}); if(sec==='Composite'){ b.dataset.comp='1'; b.title='Pick, then drag on the screen to set its size (or click for the default size)'; } b.innerHTML=ico(i)+'<span style="color:var(--ink)">'+label+'</span>'; grid.append(b);
   }
 }
 
