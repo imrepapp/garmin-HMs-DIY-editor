@@ -652,7 +652,8 @@ function onDown(ev){
 }
 /* Puts the armed tool's element on the screen. With a dragged box the element takes that size;
    after a plain click it keeps its default size with the clicked point as its top-left corner. */
-function placeTool(t,q,box){ placeAt={x:clamp(Math.round(q.x),0,S.w),y:clamp(Math.round(q.y),0,S.h)}; disarm(); const at=placeAt; try{ t.fn(); } finally { placeAt=null; }
+function placeTool(t,q,box){   // the tool stays armed for the next element
+  placeAt={x:clamp(Math.round(q.x),0,S.w),y:clamp(Math.round(q.y),0,S.h)}; const at=placeAt; try{ t.fn(); } finally { placeAt=null; }
     if(box){ const w=box.x2-box.x, h=box.y2-box.y, n=undoSt.length;
       for(const e of selEls().filter(e=>e.type===1)){ if(hasBox(e)){ e.a.x=String(box.x); e.a.y=String(box.y); e.a.x2=String(box.x2); e.a.y2=String(box.y2); } else { e.a.x=String(Math.round(box.x+w/2)); e.a.y=String(Math.round(box.y+h/2)); e.a.radius=String(Math.max(2,Math.round(Math.min(w,h)/2))); } }
       commit(); if(undoSt.length>n) undoSt.pop(); refresh(); return; }
@@ -723,7 +724,7 @@ function onMove(ev){
 }
 function onUp(){ if(!drag) return; const d=drag; drag=null; guides=[]; marquee=null;
   if(d.mode==='b'){ const b=dragBox(d), t=tool; if(!t){ refresh(); return; } placeTool(t,d.p,b.x2-b.x>=4&&b.y2-b.y>=4?b:null); return; }
-  if(d.mode==='d'){ const l=d.line; if(l.x!==l.x2||l.y!==l.y2){ disarm(); addEls([mkG('LN',{x:String(l.x),y:String(l.y),x2:String(l.x2),y2:String(l.y2)})]); } else { draw(); selStatus(); } return; }   // a plain click keeps the tool armed, so a double-click can follow
+  if(d.mode==='d'){ const l=d.line; if(l.x!==l.x2||l.y!==l.y2){ addEls([mkG('LN',{x:String(l.x),y:String(l.y),x2:String(l.x2),y2:String(l.y2)})]); } else { draw(); selStatus(); } return; }   // a plain click keeps the tool armed, so a double-click can follow
   if(d.moved) commit(); refresh(); }
 
 /* ---------- Selection actions ---------- */
@@ -854,7 +855,7 @@ function renderLayers(){
   const n=S.els.filter(e=>e.type!==3).length;
   $('#st-count').textContent=n+' elements'; $('#st-count').title='The element limit depends on device memory: low 30, medium 35, high 500 elements.';
 }
-function selStatus(){ const s=selEls(); $('#st-sel').textContent = tool ? (tool.draw?'Line: drag = free · Shift+drag = straight · Ctrl+drag = between grid lines · double-click = full width  (Esc cancels)':(tool.box?'Drag on the screen to set the size of: ':'Click on the screen to place: ')+tool.label+'  (Esc cancels)') : s.length===1&&s[0].type<2 ? `${nameOf(s[0])}: ${s[0].a.x}, ${s[0].a.y}` : s.length>1 ? s.length+' elements selected' : ''; }
+function selStatus(){ const s=selEls(); $('#st-sel').textContent = tool ? (tool.draw?'Line: drag = free · Shift+drag = straight · Ctrl+drag = between grid lines · double-click = full width  (Space or Esc: back to the pointer)':(tool.box?'Drag on the screen to set the size of: ':'Click on the screen to place: ')+tool.label+'  (Space or Esc: back to the pointer)') : s.length===1&&s[0].type<2 ? `${nameOf(s[0])}: ${s[0].a.x}, ${s[0].a.y}` : s.length>1 ? s.length+' elements selected' : ''; }
 
 /* ---------- Property panel ---------- */
 function live(){ draw(); selStatus(); commitSoon(); }
@@ -1243,8 +1244,10 @@ function init(){
   if(document.fonts){ ['700 20px "Roboto Condensed"','400 20px "Roboto Condensed"','400 20px "Bebas Neue"'].forEach(f=>document.fonts.load(f).catch(()=>{})); document.fonts.ready.then(draw); document.fonts.addEventListener&&document.fonts.addEventListener('loadingdone',draw); }
 
   const cv=$('#cv'); cv.addEventListener('pointerdown',onDown); cv.addEventListener('pointermove',onMove); cv.addEventListener('pointerup',onUp); cv.addEventListener('pointercancel',onUp);
-  cv.addEventListener('dblclick',ev=>{ if(tool&&tool.draw){ const y=String(clamp(Math.round(devPt(ev).y),0,S.h)); disarm(); addEls([mkG('LN',{x:'0',y,x2:String(S.w),y2:y})]); return; }
+  cv.addEventListener('dblclick',ev=>{ if(tool&&tool.draw){ const y=String(clamp(Math.round(devPt(ev).y),0,S.h)); addEls([mkG('LN',{x:'0',y,x2:String(S.w),y2:y})]); return; }
     const f=document.getElementById('p-text'); if(f){ f.focus(); f.select(); } });
+  // Space goes back to the plain pointer
+  document.addEventListener('keydown',ev=>{ if(ev.key!==' '||!tool||ev.target.closest('input,textarea,select,dialog')) return; ev.preventDefault(); ev.stopPropagation(); if(document.activeElement&&document.activeElement.blur) document.activeElement.blur(); drag=null; disarm(); draw(); },true);
   cv.addEventListener('contextmenu',ev=>{ if(tool) ev.preventDefault(); });
   let pendDev=null;
   ds.onchange=()=>{ if(ds.value==='__custom'){ S.custom=true; commit(); syncDevice(); refresh(); $('#devw').focus(); return; }
