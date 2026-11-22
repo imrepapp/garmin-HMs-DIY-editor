@@ -856,6 +856,9 @@ function seg(opts, cur, fn){ return el('div',{class:'seg'},opts.map(([v,l])=>el(
 /* The value is shown as one button; clicking it opens a searchable list of all value types. */
 let valueCb=null;
 const NUMERIC=c=>VT[c].k!=='s', TARGETS=c=>['SC','SN','SE'].includes(c);
+/* A filling bar or arc needs a quantity that runs over a range: no states, flags, gears, directions or clock times. */
+const V_NOFILL=SET('GH PO J0 OI NO U0 U1 U2 U3 U4 U5 D2 D3 D4 D5 D6 D7 BG LR XX WB CT SR SS EC EV PC PV');
+const FILLSRC=c=>NUMERIC(c)&&VT[c].mask!=='$T'&&!V_NOFILL.has(c);
 function valueSelect(cur, fn, id, allowNone, only){
   const v=VT[cur], none=!cur||cur==='FX';
   return el('button',{type:'button',class:'valbtn',id,title:'Click to choose a value',onclick:()=>pickValue(cur,fn,allowNone,only)},
@@ -925,7 +928,7 @@ function colorSection(e){
     } else { const ed=dcEditor(dc,e); ed.append(nightBtn(e)); box.append(ed); }
   } else {
     box.append(el('div',{class:'colrow'},colorBtn(e.a.color,c=>{ e.a.color=c; commit(); refresh(); },'p-color',night),el('span',{class:'hexlab'},'#'+e.a.color+(night?'  ·  night #'+invert(e.a.color).toUpperCase():''))),nightBtn(e));
-    if(fill) box.append(el('div',{class:'colrow',style:'margin-top:8px'},el('button',{type:'button',class:'btn sm',id:'p-addrange',title:'A filling bar or arc needs a range: empty at the lowest threshold, full at the highest.',onclick:()=>{ attachDyn(e); commit(); refresh(); if(noSrc) pickValue('FX',setSrc,true,NUMERIC); }},'Set the fill range…')),el('div',{class:'hint',style:'margin-top:6px'},'Without a range this element does not move on the device.'));
+    if(fill) box.append(el('div',{class:'colrow',style:'margin-top:8px'},el('button',{type:'button',class:'btn sm',id:'p-addrange',title:'A filling bar or arc needs a range: empty at the lowest threshold, full at the highest.',onclick:()=>{ attachDyn(e); commit(); refresh(); if(noSrc) pickValue('FX',setSrc,true,FILLSRC); }},'Set the fill range…')),el('div',{class:'hint',style:'margin-top:6px'},'Without a range this element does not move on the device.'));
   }
   return box;
 }
@@ -1007,7 +1010,7 @@ function renderPanelBody(){
     else if(k==='arc'){ p.append(el('div',{class:'row'},fNum(e,'stroke','Stroke',{min:1}))); }
     else if(k==='dir'){ p.append(el('div',{class:'row'},fNum(e,'stroke','Stroke',{min:1})),
         el('div',{class:'hint'},'With a non-zero offset the marker moves on a circle around the centre, like a compass.')); }
-    p.append(el('div',{class:'row one'},fld(k==='dir'?'Target':'Value',valueSelect(a.valuetype||'FX',c=>{ a.valuetype=c; if(c==='FX'&&k!=='dir'&&detachDyn(e)) toast('Colour set back to fixed: there is no value to follow.'); commit(); refresh(); },'p-valuetype',true,k==='dir'?TARGETS:NUMERIC))));
+    p.append(el('div',{class:'row one'},fld(k==='dir'?'Target':'Value',valueSelect(a.valuetype||'FX',c=>{ a.valuetype=c; if(c==='FX'&&k!=='dir'&&detachDyn(e)) toast('Colour set back to fixed: there is no value to follow.'); commit(); refresh(); },'p-valuetype',true,k==='dir'?TARGETS:FILL.includes(a.eletype)?FILLSRC:NUMERIC))));
     if(a.valuetype&&a.valuetype!=='FX'&&k!=='dir'){ p.append(el('div',{class:'row'},sampleField(e),fNum(e,'nr_values','Averaging',{min:1}))); }
     p.append(colorSection(e));
   }
