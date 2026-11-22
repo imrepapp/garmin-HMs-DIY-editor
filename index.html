@@ -498,19 +498,27 @@ function advOf(font){ const row=METRICS.dev[S.device], i=row?row[MNAMES.indexOf(
   let m=mCache.get(i); if(!m){ m={}; const hex=METRICS.fonts[i][2]; MCHARS.forEach((c,k)=>{ const w=parseInt(hex.substr(k*2,2),16); if(w) m[c]=w; }); mCache.set(i,m); } return m; }
 /* Width of a text on the device: real advances where known, the browser's measure for the rest. mctx.font must be set. */
 function realWidth(t,adv){ let w=0; for(const ch of t){ const a=adv[ch.codePointAt(0)]; w+=a!=null?a:mctx.measureText(ch).width; } return w; }
+const capCache=new Map();
+/* height of the digit 0 as a fraction of the font size, for a CSS font */
+function capRatio(fam){ const k=fam[0]+' '+fam[1]; let r=capCache.get(k); if(!r){ mctx.font=`${fam[0]} 100px ${fam[1]}`; r=(mctx.measureText('0').actualBoundingBoxAscent||70)/100; capCache.set(k,r); } return r; }
+if(document.fonts&&document.fonts.ready) document.fonts.ready.then(()=>{ capCache.clear(); try{ draw(); }catch(_){} });
 function fontOf(e){
   const name = e.a.font||'SMALL', map = (DEV[S.device]||[])[3]||{};
   let f = map[name] || map[name.replace(/^S_/,'')];
   if(!f){ const fb = FONT_FALLBACK[name.replace(/^S_/,'')]||[1,22]; f=[fb[0],fb[1],0,0,0,0]; }
-  // where the real font is known its line height sets the size: number fonts fill the line, text fonts have about 15 % of leading
-  const row = METRICS.dev[S.device], mi = row ? row[MNAMES.indexOf(name)] : -1; if(mi!=null && mi>=0){ f = f.slice(); f[1] = Math.max(6, Math.round(METRICS.fonts[mi][0]*(/^NR_/.test(name)?1:.853))); }
+  /* Where the real font is known, text is placed the way the device does it (checked against an Edge 830 screenshot):
+     y is the top of the line, the baseline sits `ascent` below it, x is the exact anchor. Digits of a number font are
+     about ascent - 1 tall; capitals of a text font about 0.77 x ascent. The browser font is sized to that height. */
+  const row = METRICS.dev[S.device], mi = row ? row[MNAMES.indexOf(name)] : -1;
+  if(mi!=null && mi>=0){ const m=METRICS.fonts[mi], num=/^NR_/.test(name), fam=FAM[f[0]], cap=Math.max(4, num?m[1]-1:m[1]*.77), px=Math.round(cap/capRatio(fam)*10)/10;
+    return {css:`${fam[0]} ${px}px ${fam[1]}`, size:num?m[1]:m[0], off:[0,0,0], oy:0, asc:m[1]}; }
   const fam = FAM[f[0]]; return {css:`${fam[0]} ${f[1]}px ${fam[1]}`, size:f[1], off:[f[2],f[3],f[4]], oy:f[5]};
 }
 function textGeom(e){
   const f = fontOf(e), al = e.a.halignment; mctx.font = f.css;
   const t = textOf(e), mw = mctx.measureText(t).width, adv = advOf(e.a.font), w = Math.max(6, adv&&t?realWidth(t,adv):mw), sx = adv&&mw>0?w/mw:1;
   const ax = N(e.a.x) + f.off[al==='2'?0:al==='1'?1:2], y = N(e.a.y)+f.oy;
-  return {f, ax, y, w, sx, x: al==='0' ? ax-w : al==='1' ? ax-w/2 : ax, h:f.size};
+  return {f, ax, y, w, sx, x: al==='0' ? ax-w : al==='1' ? ax-w/2 : ax, h:f.size, base:f.asc!=null?y+f.asc:null};
 }
 function bbox(e){
   const a=e.a, k=kind(e), x=N(a.x), y=N(a.y), x2=N(a.x2), y2=N(a.y2), r=N(a.radius), st=Math.max(1,N(a.stroke));
@@ -573,7 +581,7 @@ function drawEl(c, e){
   c.fillStyle=c.strokeStyle='#'+r.col; c.lineWidth=st; c.lineCap='butt';
   const bx=Math.min(x,x2), by=Math.min(y,y2), bw=Math.abs(x2-x), bh=Math.abs(y2-y);
   const ghost = fn => { c.save(); c.globalAlpha=.3; c.lineWidth=1/zoom; c.setLineDash([3/zoom,3/zoom]); c.beginPath(); fn(); c.stroke(); c.restore(); };
-  if(k==='text'){ const g=textGeom(e); c.font=g.f.css; c.textBaseline='top'; c.textAlign='left'; if(g.sx===1) c.fillText(textOf(e), g.x, g.y); else { c.save(); c.translate(g.x,g.y); c.scale(g.sx,1); c.fillText(textOf(e),0,0); c.restore(); } }   // stretched to the real width on the device
+  if(k==='text'){ const g=textGeom(e); c.font=g.f.css; c.textBaseline='top'; c.textAlign='left'; const ty=g.base!=null?g.base:g.y; if(g.base!=null) c.textBaseline='alphabetic'; if(g.sx===1) c.fillText(textOf(e), g.x, ty); else { c.save(); c.translate(g.x,ty); c.scale(g.sx,1); c.fillText(textOf(e),0,0); c.restore(); } }   // stretched to the real width on the device
   else if(k==='line'){ c.beginPath(); c.moveTo(x,y); c.lineTo(x2,y2); c.stroke(); }
   else if(t==='RC'){ const s=Math.min(st,bw,bh); c.lineWidth=s; c.strokeRect(bx+s/2,by+s/2,Math.max(0,bw-s),Math.max(0,bh-s)); }
   else if(t==='RF') c.fillRect(bx,by,bw,bh);
@@ -1323,7 +1331,7 @@ function createNew(sample){
   S.device=n.name; S.w=n.w; S.h=n.h; S.round=n.round; S.custom=false; S.designer=null; S.els=[]; sel=[];
   // a label and a value that fits, centred in one cell
   const fill=(k,x,y,w,h)=>{ const st=STARTERS[k%STARTERS.length], lh=textGeom(mkText({text:'A',font:labFont})).h+3, f=fitFont(n.name,w-10,h-lh-6), cx=R(x+w/2);
-    return [mkText({text:st[1],color:'555555',font:labFont,x:cx,y:R(y+3-lab[5])}), mkVal(st[0],{text:st[2],precision:st[3],font:f[0],x:cx,y:R(y+lh+(h-lh-f[1])/2-f[2])})]; };
+    return [mkText({text:st[1],color:'555555',font:labFont,x:cx,y:R(y+3-textGeom(mkText({text:'A',font:labFont})).f.oy)}), mkVal(st[0],{text:st[2],precision:st[3],font:f[0],x:cx,y:R(y+lh+(h-lh-f[1])/2-f[2])})]; };
   const one=cells.length===1&&cells[0][2]>=n.w-3&&cells[0][3]>=n.h-3;
   if(n.field&&!one){ const c=n.cell; S.w=c[2]; S.h=c[3]; S.round=false; S.custom=true;
     S.els.push(mkG('RF',{color:'FFFFFF',x2:R(S.w),y2:R(S.h)},{lock:true})); if(sample) S.els.push(...fill(0,0,0,S.w,S.h)); }
