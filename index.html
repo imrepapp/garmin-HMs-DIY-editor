@@ -804,17 +804,18 @@ function alignIco(d,name){ const t=document.createElement('span'); t.title=name;
 function seg(opts, cur, fn){ return el('div',{class:'seg'},opts.map(([v,l])=>el('button',{type:'button',class:v===cur?'on':'',onclick:()=>fn(v)},l))); }
 /* The value is shown as one button; clicking it opens a searchable list of all value types. */
 let valueCb=null;
-function valueSelect(cur, fn, id, allowNone){
+const NUMERIC=c=>VT[c].k!=='s', TARGETS=c=>['SC','SN','SE'].includes(c);
+function valueSelect(cur, fn, id, allowNone, only){
   const v=VT[cur], none=!cur||cur==='FX';
-  return el('button',{type:'button',class:'valbtn',id,title:'Click to choose a value',onclick:()=>pickValue(cur,fn,allowNone)},
+  return el('button',{type:'button',class:'valbtn',id,title:'Click to choose a value',onclick:()=>pickValue(cur,fn,allowNone,only)},
     el('span',{class:'vn'},none?'– none –':v?v.n:'Unknown code'),(!none&&v&&v.mem>30)?el('span',{class:'vm',role:'img','aria-label':v.mem>=500?'High-memory devices only':'Medium- and high-memory devices',title:v.mem>=500?'H: only available on high-memory devices':'M: available on medium- and high-memory devices'},v.mem>=500?'H':'M'):null,none?null:el('span',{class:'vc'},cur),el('span',{class:'va','aria-hidden':'true'},'▾'));
 }
-function pickValue(cur, fn, allowNone){
+function pickValue(cur, fn, allowNone, only){
   valueCb=fn; const q=$('#vl-q'), list=$('#vl-list'); q.value='';
   const fill=()=>{ const t=q.value.trim().toLowerCase(); list.textContent=''; let n=0;
     const item=(c,name,extra)=>{ n++; return el('button',{type:'button',class:'vitem'+(c===cur?' on':''),'data-code':c,onclick:()=>useValue(c)},el('span',{class:'vn'},name),extra||null,el('span',{class:'vc'},c==='FX'?'':c)); };
     if(allowNone&&(!t||'none'.includes(t))) list.append(item('FX','– none –'));
-    for(const [g,codes] of VGROUPS){ const hit=codes.filter(c=>!t||VT[c].n.toLowerCase().includes(t)||c.toLowerCase()===t||g.toLowerCase().includes(t)); if(!hit.length) continue;
+    for(const [g,codes] of VGROUPS){ const hit=codes.filter(c=>(!only||only(c))&&(!t||VT[c].n.toLowerCase().includes(t)||c.toLowerCase()===t||g.toLowerCase().includes(t))); if(!hit.length) continue;
       list.append(el('div',{class:'vgrp'},g)); for(const c of hit) list.append(item(c,VT[c].n,VT[c].mem>30?el('span',{class:'vm',title:VT[c].mem>=500?'High-memory devices only':'Medium- and high-memory devices'},VT[c].mem>=500?'H':'M'):null)); }
     if(!n) list.append(el('div',{class:'hint',style:'padding:10px'},'No value matches “'+q.value+'”.'));
     list.scrollTop=0;
@@ -847,7 +848,7 @@ function colorSection(e){
   const box=el('div',{}), dc=dcFor(e.a.color), fill=FILL.includes(e.a.eletype), label=e.type===0&&e.a.fixedtext==='true', vt=VT[e.a.eletype];
   const setSrc=c=>{ if(label) e.a.eletype=c; else e.a.valuetype=c; commit(); refresh(); }, noSrc=valCode(e)==='FX';
   const toFixed=()=>{ const rows=[...dc.dc].sort((a,b)=>b.val-a.val); e.a.color=rows.length?rows[rows.length-1].col:'000000'; if(!dcUsers(dc).length) S.els=S.els.filter(x=>x!==dc); if(label) e.a.eletype='FX'; commit(); refresh(); };
-  const mode=seg([['f','Fixed'],['v','By value']],dc?'v':'f',m=>{ if(m==='v'&&!dc){ attachDyn(e); commit(); refresh(); if(noSrc) pickValue('FX',setSrc,true); } else if(m==='f'&&dc) toFixed(); });
+  const mode=seg([['f','Fixed'],['v','By value']],dc?'v':'f',m=>{ if(m==='v'&&!dc){ attachDyn(e); commit(); refresh(); if(noSrc) pickValue('FX',setSrc,true,kind(e)==='dir'?TARGETS:NUMERIC); } else if(m==='f'&&dc) toFixed(); });
   mode.className='seg mini'; mode.id='p-colmode'; mode.title='Fixed: one colour. By value: the colour'+(fill?' and fill level follow':' follows')+' a live value.';
   const canDyn=!!dc||e.type===1||label||(!!vt&&vt.k!=='s');
   box.append(el('h2',{},'Colour',el('span',{class:'sp'}),canDyn?mode:null));
@@ -855,7 +856,7 @@ function colorSection(e){
   if(dc){
     const own=e.type===0&&!label;
     if(own) box.append(el('div',{class:'hexlab',style:'margin:0 0 8px'},'Same source as shown'));
-    else if(label){ box.append(el('div',{class:'row one'},fld('Source',valueSelect(valCode(e),setSrc,'p-source',true)))); if(!noSrc) box.append(el('div',{class:'row one'},sampleField(e))); }
+    else if(label){ box.append(el('div',{class:'row one'},fld('Source',valueSelect(valCode(e),setSrc,'p-source',true,NUMERIC)))); if(!noSrc) box.append(el('div',{class:'row one'},sampleField(e))); }
     else if(noSrc) box.append(el('div',{class:'hexlab',style:'margin:0 0 8px'},'Choose a value above'));
     const ed=dcEditor(dc,e); ed.append(nightBtn(e)); box.append(ed);
   } else {
@@ -940,7 +941,7 @@ function renderPanelBody(){
         el('div',{class:'hint'},'0° points to 3 o\'clock and angles grow clockwise (270° = top). A filling arc runs from the start angle towards the end angle.')); }
     else if(k==='dir'){ p.append(el('div',{class:'row'},fNum(e,'stroke','Stroke',{min:1})),
         el('div',{class:'hint'},'With a non-zero offset the marker moves on a circle around the centre, like a compass.')); }
-    p.append(el('div',{class:'row one'},fld(k==='dir'?'Target':'Value',valueSelect(a.valuetype||'FX',c=>{ a.valuetype=c; commit(); refresh(); },'p-valuetype',true))));
+    p.append(el('div',{class:'row one'},fld(k==='dir'?'Target':'Value',valueSelect(a.valuetype||'FX',c=>{ a.valuetype=c; commit(); refresh(); },'p-valuetype',true,k==='dir'?TARGETS:NUMERIC))));
     if(a.valuetype&&a.valuetype!=='FX'&&k!=='dir'){ p.append(el('div',{class:'row'},sampleField(e),fNum(e,'nr_values','Averaging',{min:1}))); }
     p.append(colorSection(e));
   }
