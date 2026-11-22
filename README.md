@@ -111,7 +111,8 @@ How it was checked:
 - The data screen layouts come from the Connect IQ device files as found in a public repository,
   not from Garmin directly, and were not compared with real devices. Garmin's files are known to
   miss a layout on some newer devices.
-- On round screens the preview does not show how the bezel cuts into a single field.
+- On round screens a single field shows the part the bezel cuts off, for the position the field
+  has in the layout it was picked from. The same field size at another position is cut differently.
 
 ## Development
 

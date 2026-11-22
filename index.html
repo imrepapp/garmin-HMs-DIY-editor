@@ -629,8 +629,11 @@ function draw(){
   const c=cv.getContext('2d'); c.setTransform(dpr,0,0,dpr,0,0); c.clearRect(0,0,W,H);
   c.translate(PAD,PAD); c.scale(zoom,zoom);
   const shape=()=>{ c.beginPath(); if(S.round) c.ellipse(S.w/2,S.h/2,S.w/2,S.h/2,0,0,7); else c.rect(0,0,S.w,S.h); };
-  c.save(); shape(); c.shadowColor='rgba(0,0,0,.35)'; c.shadowBlur=14; c.shadowOffsetY=3; c.fillStyle=night?'#000':'#fff'; c.fill(); c.restore();
+  /* A single field of a round screen: S.bezel says where the field sits on it, so the part the bezel cuts off can be shown (greyed, nothing drawn there). */
+  const bz=!S.round&&S.bezel?S.bezel:null, glass=()=>{ c.beginPath(); c.ellipse(bz.w/2-bz.x,bz.h/2-bz.y,bz.w/2,bz.h/2,0,0,7); };
+  c.save(); shape(); c.shadowColor='rgba(0,0,0,.35)'; c.shadowBlur=14; c.shadowOffsetY=3; c.fillStyle=bz?(night?'#3a4047':'#aab1b9'):(night?'#000':'#fff'); c.fill(); c.restore();
   c.save(); shape(); c.clip();
+  if(bz){ glass(); c.fillStyle=night?'#000':'#fff'; c.fill(); glass(); c.clip(); }
   for(const e of S.els) if(!e.hide) drawEl(c,e);
   c.restore();
   if(!S.els.length){ c.fillStyle='#888'; c.font=`${12/zoom*1.2}px sans-serif`; c.textAlign='center'; c.fillText('Pick a tool on the left, then click here to place it', S.w/2, S.h/2); }
@@ -1351,7 +1354,7 @@ function showString(){
 function syncDevice(){ const s=$('#device'); if(![...s.options].some(o=>o.value===S.device)) s.append(el('option',{value:S.device},S.device+' (unknown)')); const d=DEV[S.device], custom=!!S.custom||!d||d[0]!==S.w||d[1]!==S.h||!!d[2]!==!!S.round; S.custom=custom;
   s.options[0].textContent='Custom size… (fonts of '+S.device+')'; s.value=custom?'__custom':S.device; $('#customdim').hidden=!custom; $('#devw').value=S.w; $('#devh').value=S.h; $('#devround').checked=S.round; }
 let prevDim=null;
-function setDevice(name){ const d=DEV[name]; prevDim={w:S.w,h:S.h}; S.device=name; S.custom=false; if(d){ S.w=d[0]; S.h=d[1]; S.round=!!d[2]; } $('#rescale').hidden=true; commit(); syncDevice(); fitZoom(); refresh(); }
+function setDevice(name){ const d=DEV[name]; prevDim={w:S.w,h:S.h}; S.device=name; S.custom=false; delete S.bezel; if(d){ S.w=d[0]; S.h=d[1]; S.round=!!d[2]; } $('#rescale').hidden=true; commit(); syncDevice(); fitZoom(); refresh(); }
 function rescale(){ if(!prevDim) return; const fx=S.w/prevDim.w, fy=S.h/prevDim.h, fr=Math.min(fx,fy), R=v=>String(Math.round(v));
   for(const e of S.els){ if(e.type>1) continue; const a=e.a, k=kind(e); a.x=R(N(a.x)*fx); a.y=R(N(a.y)*fy); if(hasBox(e)){ a.x2=R(N(a.x2)*fx); a.y2=R(N(a.y2)*fy); } if(k==='circle'||k==='arc'||k==='dir'){ a.radius=R(N(a.radius)*fr); if(k==='dir') a.y2=R(N(a.y2)*fr); } }
   $('#rescale').hidden=true; commit(); refresh(); toast('Elements scaled to the new screen size.'); }
@@ -1471,6 +1474,7 @@ function fitFont(dev,w,h){ // the largest font whose line fits h and whose five-
 function createNew(sample){
   const n=newInfo(); if(!newField) newField=fieldsOf(n)[0]; const f=newField, gl=gridsOf(n,f), g=(!f.full&&!meshAll(f)&&newGrid===gl.length)?{cells:meshCells(f)}:(gl[newGrid]||gl[0]), cells=g.cells, R=v=>String(Math.round(v)), m=(DEV[n.name]||[])[3]||{}, labFont=m.XTINY?'XTINY':'TINY'; clearTimeout(cTimer); commit();
   S.device=n.name; S.w=f.full?n.w:f.c[2]; S.h=f.full?n.h:f.c[3]; S.round=f.full&&n.round; S.custom=!f.full; S.designer=null; S.els=[]; sel=[];
+  if(!f.full&&n.round) S.bezel={x:f.c[0],y:f.c[1],w:n.w,h:n.h}; else delete S.bezel;
   // a label and a value that fits, centred in one cell
   const fill=(k,x,y,w,h)=>{ const st=STARTERS[k%STARTERS.length], lh=textGeom(mkText({text:'A',font:labFont})).h+3, ff=fitFont(n.name,w-10,h-lh-6), cx=R(x+w/2);
     return [mkText({text:st[1],color:'555555',font:labFont,x:cx,y:R(y+3-textGeom(mkText({text:'A',font:labFont})).f.oy)}), mkVal(st[0],{text:st[2],precision:st[3],font:ff[0],x:cx,y:R(y+lh+(h-lh-ff[1])/2-ff[2])})]; };
@@ -1541,7 +1545,7 @@ function init(){
   $('#dv-scale').onclick=()=>{ const n=pendDev; pendDev=null; $('#dlg-device').close(); setDevice(n); rescale(); };
   $('#dv-keep').onclick=()=>{ const n=pendDev; pendDev=null; $('#dlg-device').close(); setDevice(n); };
   $('#dlg-device').addEventListener('close',()=>{ if(pendDev){ pendDev=null; syncDevice(); } });
-  const dim=()=>{ if(!S.custom) return; S.w=clamp(Math.round(N($('#devw').value))||S.w,50,1000); S.h=clamp(Math.round(N($('#devh').value))||S.h,50,1000); S.round=$('#devround').checked; commit(); fitZoom(); refresh(); };
+  const dim=()=>{ if(!S.custom) return; delete S.bezel; S.w=clamp(Math.round(N($('#devw').value))||S.w,50,1000); S.h=clamp(Math.round(N($('#devh').value))||S.h,50,1000); S.round=$('#devround').checked; commit(); fitZoom(); refresh(); };
   $('#devw').onchange=dim; $('#devh').onchange=dim; $('#devround').onchange=dim; $('#rescale').onclick=rescale;
   $('#bhelp').onclick=()=>{ renderInfo(); $('#dlg-help').showModal(); };
   const menu=$('#menu'), mb=$('#menubtn'), setMenu=o=>{ menu.hidden=!o; mb.setAttribute('aria-expanded',String(o)); mb.classList.toggle('on',o); if(o) menu.querySelector('button').focus(); };
