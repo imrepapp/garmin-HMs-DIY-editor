@@ -739,7 +739,7 @@ function buildPalette(){
    ['bar','t1','Progress bar',()=>{ const g=mkG('RH',{color:'00AA00',valuetype:'BV',x:String(cx()-u()),y:String(cy()-5),x2:String(cx()+u()),y2:String(cy()+5)}); addEls([g]); const d=attachDyn(g); d.auto=true; d.dc[0].val=1000; d.dc[1].val=0; commit(); refresh(); }],
    ['graph','t1','Graph',()=>addEls([mkG('GB',{color:'AA0000',valuetype:'HR',x:String(cx()-u()),y:String(cy()-u()/2|0),x2:String(cx()+u()),y2:String(cy()+u()/2|0),radius:'0',stroke:'2',maxonly:'false'})])],
    ['dir','t1','Direction',()=>addEls([mkG('DT',{x:String(cx()),y:String(cy()),radius:'12',stroke:'2'})])],
-   'Static|Elements that always look the same',
+   'Shapes and text|Elements that show no value themselves; their colour can still follow one',
    ['text','t0','Label',()=>addEls([mkText({x:String(cx()),y:String(cy()-8)})])],
    ['line','t1','Line',()=>addEls([mkG('LN',{x:'8',y:String(cy()),x2:String(S.w-8),y2:String(cy())})])],
    ['rect','t1','Frame',()=>addEls([mkG('RC',{x:String(cx()-u()),y:String(cy()-u()/2),x2:String(cx()+u()),y2:String(cy()+u()/2),stroke:'2'})])],
