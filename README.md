@@ -83,8 +83,14 @@ How it was checked:
 - Those four cover text, lines, filled rectangles, circles, arcs and dynamic colours. The remaining
   element kinds (frames, progress bars, filling arcs, direction markers, graphs) follow the
   Designer's own packing code but have no published sample to compare with.
-- It has not been tried on a device. If the data field shows "Incompatible string!", it expects a
-  different generation than "C".
+- It works on a real Edge 830: text, lines, frames, rectangles, circles, discs, arcs, progress bars and
+  filling arcs were checked against device screenshots (`tools/calibration`). Graphs and direction
+  markers have not been seen on a device yet. If the data field shows "Incompatible string!", it
+  expects a different generation than "C".
+- The Garmin settings refused to save strings containing a backslash, which is one of the format's
+  85 symbols. The string dialog therefore changes offending elements minimally, in the string only:
+  a colour one step off, a position one pixel off, or the averaging count one higher, and lists what
+  it changed. In rare cases a backslash cannot be avoided; the dialog then names the element.
 
 ## Known limits
 

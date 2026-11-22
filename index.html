@@ -1253,12 +1253,47 @@ function encodeLayout(){
         out+=w85(col(r.col)|((a.invertcolor==='true'&&i===0)?1:0)<<25|(r.hide?1:0)<<26|(r.blink?1:0)<<27)+w85(r.val<0?((-r.val)&0xfffff)|0x100000:r.val&0xfffff); });
     }
   }
-  /* One calibration string could not be saved in the Garmin settings until a "\\d" in it was gone, while strings with a backslash
-     before other characters save fine. So only a backslash followed by a letter is reported, as a hint for when saving fails. */
-  if(/\\[A-Za-z]/.test(out)){ const who=marks.filter((m,k)=>/\\[A-Za-z]/.test(out.slice(m[1],k+1<marks.length?marks[k+1][1]:out.length))).map(m=>m[0].type===2?'colour rule '+ruleName(m[0]):plain(m[0]));
-    w('If the Garmin settings refuse to save this string: it contains a backslash followed by a letter'+(who.length?' (from '+who.join(', ')+')':'')+'. Moving that element by one pixel or changing its colour slightly removes it.'); }
-  return {str:out,warn,n,mem};
+  const segs=marks.map((m,k)=>({e:m[0],s:out.slice(m[1],k+1<marks.length?marks[k+1][1]:out.length)}));
+  return {str:out,warn,n,mem,segs};
 }
+/* The Garmin settings refuse to save a string that contains a backslash (found on a device: with one the string cannot be saved,
+   without it it can). The backslash is one of the 85 symbols of the format, so it can only be avoided by changing a value.
+   For the string only, never the layout itself, offending elements get the smallest change that removes it: first a colour
+   one step off (not visible), then a position or size one pixel off. Returns the encoder result plus `moved` (names). */
+function encodeClean(){
+  const orig=S, moved=new Set(); let r;
+  try{
+    S=JSON.parse(JSON.stringify(orig));
+    const bs=t=>(t.match(/\\/g)||[]).length, own=e=>{ const g=encodeLayout().segs.find(g=>g.e===e); return g?bs(g.s):0; };
+    const step=(hex,sh)=>{ const n=parseInt(hex,16)||0, ch=(n>>sh)&255; return ((n&~(255<<sh))|((ch<255?ch+1:ch-1)<<sh)).toString(16).toUpperCase().padStart(6,'0'); };
+    for(let pass=0;pass<6;pass++){
+      const bad=encodeLayout().segs.filter(g=>bs(g.s)); if(!bad.length) break;
+      for(const {e} of bad){ let n=own(e); if(!n) continue; const muts=[];   // each mutation: [apply, what the user would notice]
+        // a colour that is the key of a rule changes together with the rule and everything else that uses it
+        const flip=(rule,b)=>()=>{ const k=(((parseInt(rule.a.replDC,16)||0)^(1<<b))>>>0).toString(16).toUpperCase().padStart(6,'0'); if(S.els.some(x=>(x.type===2&&x.a.replDC===k)||(x.type<2&&x.a.color===k))) return; dcUsers(rule).forEach(u=>u.a.color=k); rule.a.replDC=k; };
+        const rekey=(rule,sh)=>()=>{ const k=step(rule.a.replDC,sh); if(S.els.some(x=>(x.type===2&&x.a.replDC===k)||(x.type<2&&x.a.color===k))) return; dcUsers(rule).forEach(u=>u.a.color=k); rule.a.replDC=k; };
+        if(e.type===2){ for(const sh of [0,8,16]) muts.push([rekey(e,sh),'']); for(let b=1;b<24;b++) muts.push([flip(e,b),'']);   // the key colour is never shown, any free one will do
+          (e.dc||[]).forEach((_,k)=>{ for(const sh of [0,8,16]) muts.push([()=>{ e.dc[k].col=step(e.dc[k].col,sh); },'']); muts.push([()=>{ e.dc[k].val+=1; },''],[()=>{ e.dc[k].val-=1; },'']); });
+        } else { const box=hasBox(e), mv=(dx,dy)=>()=>{ e.a.x=String(N(e.a.x)+dx); e.a.y=String(N(e.a.y)+dy); if(box){ e.a.x2=String(N(e.a.x2)+dx); e.a.y2=String(N(e.a.y2)+dy); } };
+          for(const sh of [0,8,16]) muts.push([()=>{ const rule=dcFor(e.a.color); if(rule) rekey(rule,sh)(); else e.a.color=step(e.a.color,sh); },'']);
+          if(e.type===0&&e.a.fixedtext==='true') for(const pr of ['1','2','3']) muts.push([()=>{ e.a.precision=pr; },'']);   // decimals mean nothing for a fixed text
+          { const rule=dcFor(e.a.color); if(rule) for(let b=1;b<24;b++) muts.push([flip(rule,b),'']); }
+          for(const d of [[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1]]) muts.push([mv(d[0],d[1]),'one pixel off']);
+          if(e.type===1){ if(box) muts.push([()=>{ e.a.x2=String(N(e.a.x2)+1); },'one pixel off'],[()=>{ e.a.y2=String(N(e.a.y2)+1); },'one pixel off']); else muts.push([()=>{ e.a.radius=String(N(e.a.radius)+1); },'one pixel off']); }
+          muts.push([()=>{ e.a.nr_values=String(N(e.a.nr_values)+1); },'averaging one higher']);
+          for(const d of [[0,2],[0,-2],[2,0],[-2,0],[0,3],[0,-3]]) muts.push([mv(d[0],d[1]),Math.max(Math.abs(d[0]),Math.abs(d[1]))+' pixels off']); }   // last resort: the value's code itself makes the backslash
+        const save=()=>JSON.stringify(S.els.map(x=>[x.a,x.dc||null])), load=t=>JSON.parse(t).forEach((v,k)=>{ S.els[k].a=v[0]; if(v[1]) S.els[k].dc=v[1]; });
+        for(let round=0;round<3&&n;round++) for(let k=0;k<muts.length&&n;k++){ const snap=save(), all=bs(encodeLayout().str); muts[k][0](); const m=own(e);
+          if(m<n&&bs(encodeLayout().str)<all){ n=m; if(muts[k][1]) moved.add(plain(e)+' ('+muts[k][1]+')'); } else load(snap); }
+      }
+    }
+    r=encodeLayout();
+  } finally { S=orig; }
+  r.moved=[...moved]; if(r.str.includes('\\')){ const who=[...new Set(r.segs.filter(g=>g.s.includes('\\')).map(g=>g.e.type===2?'colour rule '+ruleName(g.e):plain(g.e)))];
+    r.warn.push('The string still contains a backslash, which the Garmin settings refuse to save. It comes from: '+who.join(', ')+'. Give that element another font size, alignment or number of decimals, or remove a backslash from its text.'); }
+  return r;
+}
+
 function decodeLayout(str){
   str=str.replace(/^\s+|[\r\n]+$/g,''); if(!/^[A-Z][!-uw-z]{5}/.test(str)||/<\w/.test(str)) throw new Error('This is neither HMs DIY XML nor a layout string.');
   let p=1, nid=1; const els=[], GC=Object.keys(GID), b=v=>v?'true':'false', S_=v=>String(v);
@@ -1279,7 +1314,8 @@ function decodeLayout(str){
 }
 function autoLock(st){ for(const e of st.els){ const a=e.a; if(e.type===1&&a.eletype==='RF'&&Math.abs(N(a.x2)-N(a.x))>=st.w-2&&Math.abs(N(a.y2)-N(a.y))>=st.h-2) e.lock=true; } return st; }
 function showString(){
-  clearTimeout(cTimer); commit(); const r=encodeLayout(); $('#strout').value=r.str;
+  clearTimeout(cTimer); commit(); const r=encodeClean(); $('#strout').value=r.str;
+  if(r.moved.length) r.warn.push('The Garmin settings refuse a string with a backslash. To avoid one, these elements differ slightly in the string (the layout itself is unchanged): '+r.moved.join(', ')+'.');
   if(r.str.length>5000) r.warn.unshift('The string is '+r.str.length+' characters long; the data field setting accepts at most 5000. Remove some elements.');
   const lim={30:'on any supported device',35:'on medium- or high-memory devices (M)',500:'on high-memory devices only (H)'}[r.mem];
   $('#strinfo').textContent=r.str.length+' / 5000 characters · '+r.n+' elements · with the types used it runs '+lim+'. Element limits: low memory 30, medium 35, high 500.';
