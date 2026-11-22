@@ -119,6 +119,7 @@ h2 .sp{flex:1}
 #status{display:flex;gap:14px;flex-wrap:wrap;padding:4px 16px;font:11px var(--f-mono);color:var(--mute);background:var(--panel);border-top:1px solid var(--line)}
 .row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 8px;margin-bottom:6px}
 .row.one{grid-template-columns:minmax(0,1fr)}
+.row.fa{grid-template-columns:minmax(0,1fr) 114px;margin-top:8px}
 .row.four{grid-template-columns:repeat(4,minmax(0,1fr))}
 .f{display:flex;flex-direction:column;gap:2px;min-width:0}
 .f>span{font-size:11px;color:var(--mute)}
@@ -318,7 +319,7 @@ const FONTS = 'XTINY TINY SMALL MEDIUM LARGE NR_MILD NR_MEDIUM NR_HOT NR_THAI_HO
 const FILL = ['RH','RV','AF'];
 const FAM = [[700,'"Roboto Condensed","Arial Narrow",sans-serif'],[400,'"Roboto Condensed","Arial Narrow",sans-serif'],[400,'"Bebas Neue","Roboto Condensed",Impact,sans-serif'],[400,'"DejaVu Sans",Verdana,sans-serif'],[700,'"DejaVu Sans",Verdana,sans-serif'],[400,'"DejaVu Sans Condensed","Roboto Condensed","Arial Narrow",sans-serif'],[700,'"DejaVu Sans Condensed","Roboto Condensed","Arial Narrow",sans-serif'],[400,'"Bebas Neue","Roboto Condensed",sans-serif'],[700,'"Bebas Neue","Roboto Condensed",sans-serif']];
 const FONT_FALLBACK = {XTINY:[1,13],TINY:[1,18],SMALL:[1,22],MEDIUM:[1,26],LARGE:[1,36],NR_MILD:[2,34],NR_MEDIUM:[2,42],NR_HOT:[2,56],NR_THAI_HOT:[2,70]};
-const FONT_NAMES = {XTINY:'Extra tiny',TINY:'Tiny',SMALL:'Small',MEDIUM:'Medium',LARGE:'Large',NR_MILD:'Number – mild',NR_MEDIUM:'Number – medium',NR_HOT:'Number – hot',NR_THAI_HOT:'Number – thai hot'};
+const FONT_NAMES = {XTINY:'XTiny',TINY:'Tiny',SMALL:'Small',MEDIUM:'Medium',LARGE:'Large',NR_MILD:'Num mild',NR_MEDIUM:'Num medium',NR_HOT:'Num hot',NR_THAI_HOT:'Num thai hot'};
 const SWATCH = ['000000','555555','AAAAAA','FFFFFF','FF0000','AA0000','FF5500','FFAA00','FFFF00','00FF00','00AA00','00AAFF','0000FF','0000AA','AA00FF','FF00FF'];
 const PAD = 28, KEY = 'hmsdiy.v1';
 
@@ -804,10 +805,9 @@ function renderPanelBody(){
       p.append(el('div',{class:'row'},fNum(e,'precision','Decimals',{min:0}),fNum(e,'nr_values','Averaging (s)',{min:1})), el('div',{class:'row one'},sampleField(e)), fChk(e,'maxonly','Show only the maximum reached'));
     } else p.append(el('div',{class:'row one'},fTxt(e,'text','Text')));
     const map=(DEV[S.device]||[])[3]||{}, names=Object.keys(map).length?Object.keys(map):Object.keys(FONT_FALLBACK); if(!names.includes(a.font)) names.push(a.font);
-    const fs=el('select',{id:'p-font',onchange:()=>{ a.font=fs.value; commit(); refresh(); }},names.map(n=>el('option',{value:n},(FONT_NAMES[n.replace(/^S_/,'')]||n)+(n.startsWith('S_')?' (system)':'')+' – '+n+(map[n]?' · '+map[n][1]+' px':''))));
+    const fs=el('select',{id:'p-font',onchange:()=>{ a.font=fs.value; commit(); refresh(); }},names.map(n=>el('option',{value:n,title:n},(n.startsWith('S_')?'Sys ':'')+(FONT_NAMES[n.replace(/^S_/,'')]||n)+(map[n]?' · '+map[n][1]:''))));
     fs.value=a.font;
-    p.append(el('h2',{},'Font'),el('div',{class:'row one'},fld('Font',fs)),
-      el('div',{class:'row one'},fld('Alignment',seg([['2',alignIco('M2 3.5h12M2 6.5h7M2 9.5h12M2 12.5h7','Left')],['1',alignIco('M2 3.5h12M4.5 6.5h7M2 9.5h12M4.5 12.5h7','Centre')],['0',alignIco('M2 3.5h12M7 6.5h7M2 9.5h12M7 12.5h7','Right')]],a.halignment,v=>{ a.halignment=v; commit(); refresh(); }))),
+    p.append(el('div',{class:'row fa'},fld('Font',fs),fld('Alignment',seg([['2',alignIco('M2 3.5h12M2 6.5h7M2 9.5h12M2 12.5h7','Left')],['1',alignIco('M2 3.5h12M4.5 6.5h7M2 9.5h12M4.5 12.5h7','Centre')],['0',alignIco('M2 3.5h12M7 6.5h7M2 9.5h12M7 12.5h7','Right')]],a.halignment,v=>{ a.halignment=v; commit(); refresh(); }))),
       colorSection(e));
   } else {
     const t=a.eletype, setT=c=>{ a.eletype=c; commit(); refresh(); };
