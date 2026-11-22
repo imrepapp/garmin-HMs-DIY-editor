@@ -12,7 +12,7 @@ RES = [
     (r'^Edge 10[34]0', (282, 470, 0)), (r'^Edge 130', (230, 303, 0)),
     (r'^Edge (520|820)', (200, 265, 0)), (r'^Edge [58]30', (246, 322, 0)),
     (r'^Edge (Explore|1000)', (240, 400, 0)),
-    (r'^(GPSMAP|Oregon|Rino)', (240, 400, 0)), (r'^Montana', (480, 717, 0)),
+    (r'^(GPSMAP|Oregon|Rino)', (240, 400, 0)), (r'^Montana', (480, 800, 0)),
     (r'^(epix$|Forerunner 920XT|v.voactive$)', (205, 148, 0)), (r'^v.voactive HR', (148, 205, 0)),
     (r'^Forerunner (230|235|630|735xt)', (215, 180, 0)),
     (r'^Venu Sq 2', (320, 360, 0)), (r'^Venu Sq', (240, 240, 0)),

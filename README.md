@@ -105,12 +105,17 @@ How it was checked:
 
     python3 tools/gen_devices.py /path/to/fonts.txt      # device and font table
     python3 tools/gen_fields.py DEVICES_DIR --write      # data screen layouts and field sizes
+    python3 tools/gen_fontmetrics.py SDK_DIR --write     # real character widths of the device fonts
     python3 tools/layout_string.py layout.xml            # reference encoder
     python3 tools/layout_string.py --check DIR           # verify *_config_string.txt against XML
 
 `gen_fields.py` reads one `simulator.json` per device, as in the `Devices` folder of a Connect IQ
 SDK installation, and rewrites the `FIELDS` table in `index.html`. It also reports devices whose
 screen size differs from the editor's table.
+
+`gen_fontmetrics.py` reads the SDK's `Fonts/*.cft` files and stores only numbers (line height,
+ascent, character widths), no glyph images. Text in the preview is stretched to these widths.
+Devices whose fonts were not available keep the browser's own text measure.
 
 `tools/types.json` holds the value and graphic types (code, internal id, name, default format,
 sample, memory class) taken from Designer 3.4.2.
