@@ -634,7 +634,11 @@ function pick(p){ for(let i=S.els.length-1;i>=0;i--){ const e=S.els[i]; if(e.typ
 function onDown(ev){
   if(ev.button) return;
   if(tool&&tool.draw){ const q=devPt(ev); $('#cv').setPointerCapture(ev.pointerId); clearTimeout(cTimer); commit(); drag={mode:'d',p:q,line:drawnLine(q,q)}; draw(); return; }
-  if(tool){ const q=devPt(ev), t=tool; placeAt={x:clamp(Math.round(q.x),0,S.w),y:clamp(Math.round(q.y),0,S.h)}; disarm(); try{ t.fn(); } finally { placeAt=null; } return; }
+  if(tool){ const q=devPt(ev), t=tool; placeAt={x:clamp(Math.round(q.x),0,S.w),y:clamp(Math.round(q.y),0,S.h)}; disarm(); const at=placeAt; try{ t.fn(); } finally { placeAt=null; }
+    // the clicked point becomes the top-left corner of what was just placed
+    const put=selEls().filter(e=>e.type<2); if(put.length){ const bs=put.map(bbox), dx=Math.round(at.x-Math.min(...bs.map(b=>b.x))), dy=Math.round(at.y-Math.min(...bs.map(b=>b.y)));
+      if(dx||dy){ for(const e of put){ e.a.x=String(N(e.a.x)+dx); e.a.y=String(N(e.a.y)+dy); if(hasBox(e)){ e.a.x2=String(N(e.a.x2)+dx); e.a.y2=String(N(e.a.y2)+dy); } } const n=undoSt.length; commit(); if(undoSt.length>n) undoSt.pop(); refresh(); } }
+    return; }
   const p=devPt(ev), cv=$('#cv'); cv.setPointerCapture(ev.pointerId);
   if(document.activeElement && document.activeElement.blur) document.activeElement.blur();
   clearTimeout(cTimer); commit();
