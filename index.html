@@ -422,7 +422,10 @@ function attachDyn(e){
   e.a.color = key; const d = mkDyn(key, rows); S.els.splice(S.els.indexOf(e),0,d); return d;
 }
 function dcRows(dc){ const inv=dc.a.invertcolor==='true'; return [...dc.dc].sort((p,q)=>inv?p.val-q.val:q.val-p.val); }
-function pruneDyn(){ S.els = S.els.filter(e=>e.type!==2 || !e.auto || dcUsers(e).length); }
+/* Back to one fixed colour: the lowest row's colour; the rule goes too when nothing else uses it. */
+function detachDyn(e){ const dc=dcFor(e.a.color); if(!dc) return false; const rows=[...dc.dc].sort((a,b)=>b.val-a.val); e.a.color=rows.length?rows[rows.length-1].col:'000000'; if(!dcUsers(dc).length) S.els=S.els.filter(x=>x!==dc); return true; }
+/* Colour rules are not layers: they are kept beside the elements and removed when nothing uses them any more. */
+function pruneDyn(){ S.els = S.els.filter(e=>e.type!==2 || dcUsers(e).length); }
 
 /* ---------- Text formatting ---------- */
 const p2 = n => String(Math.floor(n)).padStart(2,'0');
@@ -685,8 +688,8 @@ function addEls(list, select){
   let at=S.els.length; const s=selEls(); if(s.length) at=Math.max(...s.map(e=>S.els.indexOf(e)))+1;
   S.els.splice(at,0,...list); sel=(select||list).map(e=>e.id); commit(); refresh();
 }
-function delSel(){ const x=selX(); if(!x.length) return; S.els=S.els.filter(e=>!x.includes(e)); sel=[]; pruneDyn(); commit(); refresh(); }
-function askDelete(){ const x=selX(); if(!x.length) return; const g=x.filter(e=>e.type===3), n=x.length-g.length;
+function delSel(){ const x=selX().filter(e=>e.type!==2); if(!x.length) return; S.els=S.els.filter(e=>!x.includes(e)); sel=[]; pruneDyn(); commit(); refresh(); }
+function askDelete(){ const x=selX().filter(e=>e.type!==2); if(!x.length) return; const g=x.filter(e=>e.type===3), n=x.filter(e=>e.type<2).length;
   $('#cf-text').textContent = g.length ? 'Delete '+(g.length===1?'the group “'+(g[0].a.text||'unnamed')+'”':g.length+' groups')+' and the '+n+' layer'+(n===1?'':'s')+' inside?' : n===1 ? 'Delete “'+nameOf(x[0]).replace(/^“|”$/g,'')+'”?' : 'Delete '+n+' layers?';
   $('#dlg-confirm').showModal(); }
 function groupSel(){
@@ -779,12 +782,12 @@ function renderLayers(){
       if(sep.fold&&items.some(e=>sel.includes(e.id))) sep.fold=false;
       const li=row(sep,false), vis=items.filter(e=>e.type<2), allL=vis.length>0&&vis.every(e=>e.lock), allH=vis.length>0&&vis.every(e=>e.hide);
       li.setAttribute('aria-expanded',String(!sep.fold)); li.title=sep.fold?'Click to expand':'Click to collapse'; if(sep.fold) li.classList.add('folded');
-      li.append(el('span',{class:'cnt'},String(items.length)),
+      li.append(el('span',{class:'cnt'},String(vis.length)),
         el('button',{class:'ic'+(allL?' act':''),title:allL?'Unlock the whole group':'Lock the whole group',onclick:()=>{ vis.forEach(e=>e.lock=!allL); if(!allL) sel=sel.filter(id=>!vis.some(e=>e.id===id)); commit(); refresh(); }},allL?'🔒':'🔓'),
         el('button',{class:'ic'+(allH?' act':''),title:allH?'Show the whole group':'Hide the whole group in the editor',onclick:()=>{ vis.forEach(e=>e.hide=!allH); commit(); refresh(); }},allH?'◌':'●'));
       ul.append(li);
     }
-    if(!(sep&&sep.fold)) for(let i=items.length-1;i>=0;i--) ul.append(row(items[i],!!sep));
+    if(!(sep&&sep.fold)) for(let i=items.length-1;i>=0;i--) if(items[i].type!==2) ul.append(row(items[i],!!sep));
   }
   const cur=ul.querySelector('li.sel'); if(cur&&ul.scrollHeight>ul.clientHeight){ const r=cur.getBoundingClientRect(), u=ul.getBoundingClientRect(); if(r.top<u.top||r.bottom>u.bottom) ul.scrollTop+=r.top-u.top-u.height/2; }
   const n=S.els.filter(e=>e.type!==3).length;
@@ -847,7 +850,7 @@ function nightBtn(e){ const on=e.a.daynight==='true', cb=el('input',{type:'check
 function colorSection(e){
   const box=el('div',{}), dc=dcFor(e.a.color), fill=FILL.includes(e.a.eletype), label=e.type===0&&e.a.fixedtext==='true', vt=VT[e.a.eletype];
   const setSrc=c=>{ if(label) e.a.eletype=c; else e.a.valuetype=c; commit(); refresh(); }, noSrc=valCode(e)==='FX';
-  const toFixed=()=>{ const rows=[...dc.dc].sort((a,b)=>b.val-a.val); e.a.color=rows.length?rows[rows.length-1].col:'000000'; if(!dcUsers(dc).length) S.els=S.els.filter(x=>x!==dc); if(label) e.a.eletype='FX'; commit(); refresh(); };
+  const toFixed=()=>{ detachDyn(e); if(label) e.a.eletype='FX'; commit(); refresh(); };
   const mode=seg([['f','Fixed'],['v','By value']],dc?'v':'f',m=>{ if(m==='v'&&!dc){ attachDyn(e); commit(); refresh(); if(noSrc) pickValue('FX',setSrc,true,kind(e)==='dir'?TARGETS:NUMERIC); } else if(m==='f'&&dc) toFixed(); });
   mode.className='seg mini'; mode.id='p-colmode'; mode.title='Fixed: one colour. By value: the colour'+(fill?' and fill level follow':' follows')+' a live value.';
   const canDyn=!!dc||e.type===1||label||(!!vt&&vt.k!=='s');
@@ -909,7 +912,7 @@ function renderPanelBody(){
     if(isVal){
       const mx=a.maxonly==='true', maxBtn=el('button',{type:'button',class:'btn icobtn'+(mx?' on':''),id:'p-maxonly','aria-pressed':String(mx),'aria-label':'Show only the maximum reached',title:(mx?'On: ':'Off: ')+'show the highest value reached during the activity instead of the current one',onclick:()=>{ a.maxonly=String(!mx); commit(); refresh(); }});
       maxBtn.innerHTML='<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M3 2.5h10M8 13.5V5.5M4.5 9L8 5.5 11.5 9"/></svg>';
-      p.append(el('div',{class:'row one'},fld('Value',el('div',{class:'valrow'},valueSelect(a.eletype,c=>{ a.eletype=c; const nv=VT[c]; if(nv) a.text=nv.mask; delete a.sampletext; commit(); refresh(); },'p-eletype'),maxBtn))));
+      p.append(el('div',{class:'row one'},fld('Value',el('div',{class:'valrow'},valueSelect(a.eletype,c=>{ a.eletype=c; const nv=VT[c]; if(nv) a.text=nv.mask; delete a.sampletext; if(nv&&nv.k==='s'&&detachDyn(e)) toast('Colour set back to fixed: “'+nv.n+'” is not a number, so it cannot drive a colour.'); commit(); refresh(); },'p-eletype'),maxBtn))));
       if(v&&v.id>0&&v.id<10) p.append(el('div',{class:'hint'},'The data field ignores the format for this type; no text is stored in the string.'));
       p.append(el('div',{class:'row one'},fTxt(e,'text',a.eletype==='BG'?'Drivetrain':'Format')));
       if(a.eletype!=='BG'){ const txt=v&&(v.mask==='$T'||a.eletype==='WB'), masks = v&&v.k==='t' ? ['$H:$M:$S','$H:$M:$C','$h:$M:$S','$H:$M','$m:$S','$M:$S'] : txt ? ['$T','$V'] : ['$V','$V%','$V km','$V W'];
