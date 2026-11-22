@@ -593,15 +593,17 @@ function drawEl(c, e){
     if(adv){ let x=g.x; for(const ch of textOf(e)){ const w=adv[ch.codePointAt(0)], mw=c.measureText(ch).width, cw=w!=null?w:mw, k=mw>0?clamp(cw/mw,.5,2):1;   // every character in its real cell on the device
         c.save(); c.translate(x+(cw-mw*k)/2,ty); c.scale(k,1); c.fillText(ch,0,0); c.restore(); x+=cw; } }
     else if(g.sx===1) c.fillText(textOf(e), g.x, ty); else { c.save(); c.translate(g.x,ty); c.scale(g.sx,1); c.fillText(textOf(e),0,0); c.restore(); } }   // stretched to the real width on the device
-  else if(k==='line'){ c.beginPath(); c.moveTo(x,y); c.lineTo(x2,y2); c.stroke(); }
-  else if(t==='RC'){ const s=Math.min(st,bw,bh); c.lineWidth=s; c.strokeRect(bx+s/2,by+s/2,Math.max(0,bw-s),Math.max(0,bh-s)); }
+  /* Shapes as the device draws them (checked on an Edge 830 screenshot): coordinates name pixel centres, so strokes are centred
+     on the pixel row or column (+0.5); lines have square ends; a frame's stroke is centred on its edge pixels x..x2-1. */
+  else if(k==='line'){ c.lineCap='square'; c.beginPath(); c.moveTo(x+.5,y+.5); c.lineTo(x2+.5,y2+.5); c.stroke(); }
+  else if(t==='RC'){ c.strokeRect(bx+.5,by+.5,Math.max(0,bw-1),Math.max(0,bh-1)); }
   else if(t==='RF') c.fillRect(bx,by,bw,bh);
   else if(t==='RH'){ c.fillRect(bx,by,bw*r.frac,bh); ghost(()=>c.rect(bx,by,bw,bh)); }
   else if(t==='RV'){ c.fillRect(bx,by+bh*(1-r.frac),bw,bh*r.frac); ghost(()=>c.rect(bx,by,bw,bh)); }
-  else if(t==='CR'){ c.beginPath(); c.arc(x,y,R,0,7); c.stroke(); }
-  else if(t==='CF'){ c.beginPath(); c.arc(x,y,R,0,7); c.fill(); }
-  else if(t==='AC'){ c.beginPath(); c.arc(x,y,R,rad(x2),rad(y2),y2<x2); c.stroke(); }
-  else if(t==='AF'){ const end=x2+(y2-x2)*r.frac; if(r.frac>0){ c.beginPath(); c.arc(x,y,R,rad(x2),rad(end),y2<x2); c.stroke(); } ghost(()=>c.arc(x,y,R,rad(x2),rad(y2),y2<x2)); }
+  else if(t==='CR'){ c.beginPath(); c.arc(x+.5,y+.5,R,0,7); c.stroke(); }
+  else if(t==='CF'){ c.beginPath(); c.arc(x+.5,y+.5,R+.5,0,7); c.fill(); }
+  else if(t==='AC'){ c.beginPath(); c.arc(x+.5,y+.5,R,rad(x2),rad(y2),y2<x2); c.stroke(); }
+  else if(t==='AF'){ const end=x2+(y2-x2)*r.frac; if(r.frac>0){ c.beginPath(); c.arc(x+.5,y+.5,R,rad(x2),rad(end),y2<x2); c.stroke(); } ghost(()=>c.arc(x+.5,y+.5,R,rad(x2),rad(y2),y2<x2)); }
   else if(t==='DA'){ const cy=y-y2; c.beginPath(); c.moveTo(x,cy+R); c.lineTo(x,cy-R); c.moveTo(x-R*.45,cy-R*.4); c.lineTo(x,cy-R); c.lineTo(x+R*.45,cy-R*.4); c.stroke(); }
   else if(k==='dir'){ const cy=y-y2; c.lineJoin='miter'; c.beginPath(); c.moveTo(x,cy-R); c.lineTo(x+R*.75,cy+R*.8); c.lineTo(x,cy+R*.35); c.lineTo(x-R*.75,cy+R*.8); c.closePath(); c.stroke(); }
   else if(k==='graph'){ const n=Math.max(1,Math.floor(bw/st)); for(let i=0;i<n;i++){ const hgt=bh*(.45+.28*Math.sin(i*.37)+.17*Math.sin(i*1.31+1)); const j=(t==='GR'||t==='GT')?n-1-i:i; c.fillRect(bx+j*st,(t==='GL'||t==='GR')?by:by+bh-hgt,st,hgt); } ghost(()=>c.rect(bx,by,bw,bh)); }
@@ -1218,7 +1220,8 @@ function encodeLayout(){
   const w=m=>{ if(!seen.has(m)){ seen.add(m); warn.push(m); } };
   const vid=(c,name)=>{ if(!c) return 0; if(VT[c]){ mem=Math.max(mem,VT[c].mem); return VT[c].id; } const m=/^#(\d+)$/.exec(c); if(m) return +m[1]; w(name+': unknown value type ('+c+'), encoded without a value.'); return 0; };
   const rng=(v,lo,hi,name,what)=>{ if(v<lo||v>hi) w(name+': '+what+' ('+v+') is outside the storable range '+lo+'…'+hi+'.'); return v; };
-  for(const e of S.els){ const a=e.a;
+  const marks=[];
+  for(const e of S.els){ const a=e.a; marks.push([e,out.length]);
     if(e.type===0){ const name=nameOf(e); n++;
       const id=vid(a.eletype,name), txt=(id>0&&id<10)?'':(a.text||''); let fi=FONTS.indexOf(a.font);
       if(fi<0){ w(name+': unknown font ('+a.font+').'); fi=0; }
@@ -1250,6 +1253,9 @@ function encodeLayout(){
         out+=w85(col(r.col)|((a.invertcolor==='true'&&i===0)?1:0)<<25|(r.hide?1:0)<<26|(r.blink?1:0)<<27)+w85(r.val<0?((-r.val)&0xfffff)|0x100000:r.val&0xfffff); });
     }
   }
+  // A backslash made a string impossible to save in the Garmin settings (seen with a calibration layout), so name where it comes from.
+  if(out.includes('\\')){ const who=marks.filter((m,k)=>out.slice(m[1],k+1<marks.length?marks[k+1][1]:out.length).includes('\\')).map(m=>m[0].type===2?'colour rule '+ruleName(m[0]):plain(m[0]));
+    w('The string contains a backslash (\\), which the Garmin settings may refuse to save. It comes from: '+who.join(', ')+'. Move or resize that element by one pixel, or change its colour slightly.'); }
   return {str:out,warn,n,mem};
 }
 function decodeLayout(str){
