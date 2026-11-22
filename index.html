@@ -60,6 +60,14 @@ aside{background:var(--bg);overflow:auto;padding:12px 16px;min-width:0}
 #layerbox{flex:1 1 0;min-height:140px;display:flex;flex-direction:column}
 #layers{flex:1;overflow:auto;min-height:0}
 .empty{font-weight:600;margin:2px 0 6px}
+#infobox{flex:none;max-height:45%;overflow:auto}
+#infobox summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:6px}
+#infobox summary::-webkit-details-marker{display:none}
+#infobox summary::before{content:'▾';color:var(--mute);font-size:11px}
+#infobox:not([open]) summary::before{content:'▸'}
+#infobox summary h2{margin:0;flex:1}
+#infobox[open] summary{margin-bottom:8px}
+#info h2:first-child{margin-top:0}
 #propkind{font-weight:700;letter-spacing:.06em}
 h2{font:700 12px/1 var(--f-head);letter-spacing:.09em;text-transform:uppercase;color:var(--mute);margin:14px 0 7px;display:flex;align-items:center;gap:6px}
 h2:first-child{margin-top:0}
@@ -199,6 +207,10 @@ dialog li{margin:5px 0}
       <div class="hint">Top of the list is in front. Drag to reorder. Select layers and press Ctrl/Cmd+G to group them.</div>
       <ul id="layers"></ul>
     </div>
+    <details id="infobox" class="widget" open>
+      <summary><h2>Info</h2></summary>
+      <div id="info"></div>
+    </details>
   </aside>
 </main>
 
@@ -667,11 +679,7 @@ function renderPanelBody(){
   const s=selEls();
   if(!s.length){
     p.append(el('div',{class:'empty'},'Nothing selected'),
-      el('div',{class:'hint'},'Click an element on the screen or in the layer list to edit it here. Add new elements from the Tools on the left.'),
-      el('h2',{},'Keyboard'),
-      el('div',{class:'hint',style:'line-height:2'},el('kbd',{},'arrows'),' move 1 px (',el('kbd',{},'Shift'),' 10 px)',el('br'),el('kbd',{},'Alt'),'+',el('kbd',{},'arrows'),' resize',el('br'),el('kbd',{},'Del'),' delete · ',el('kbd',{},'Ctrl'),'+',el('kbd',{},'D'),' duplicate',el('br'),el('kbd',{},'Ctrl'),'+',el('kbd',{},'G'),' group · ',el('kbd',{},'Ctrl'),'+',el('kbd',{},'Shift'),'+',el('kbd',{},'G'),' ungroup',el('br'),el('kbd',{},'Ctrl'),'+',el('kbd',{},'C'),' / ',el('kbd',{},'V'),' copy / paste',el('br'),el('kbd',{},'Ctrl'),'+',el('kbd',{},'Z'),' / ',el('kbd',{},'Y'),' undo / redo',el('br'),el('kbd',{},'Shift'),'+drag: constrain · ',el('kbd',{},'Alt'),'+drag: no snapping'),
-      el('h2',{},'Device'),
-      el('div',{class:'hint'},(S.custom?'Custom size, fonts of ':'')+S.device+' · '+S.w+'×'+S.h+' px'+(S.round?' · round':''),el('br'),S.custom?'Use a custom size to design a single field that sits beside native Garmin fields. ':'To use other dimensions, choose “Custom size…” in the device list. ','Font sizes depend on the device; glyph shapes are approximations.'));
+      el('div',{class:'hint',style:'margin-bottom:0'},'Click an element on the screen or in the layer list to edit it here. Add new elements from the Tools on the left.'));
     return;
   }
   if(s.length>1){
@@ -725,7 +733,13 @@ function renderPanelBody(){
   if(keep){ const f=document.getElementById(keep); if(f) f.focus(); }
 }
 const dc_ = e => e;
-function refresh(){ draw(); renderLayers(); renderPanel(); selStatus(); updButtons(); }
+function renderInfo(){ const p=$('#info'); p.textContent='';
+  p.append(el('h2',{},'Device'),
+    el('div',{class:'hint'},(S.custom?'Custom size, fonts of ':'')+S.device+' · '+S.w+'×'+S.h+' px'+(S.round?' · round':''),el('br'),S.custom?'Use a custom size to design a single field that sits beside native Garmin fields. ':'To use other dimensions, choose “Custom size…” in the device list. ','Font sizes depend on the device; glyph shapes are approximations.'),
+    el('h2',{},'Keyboard'),
+    el('div',{class:'hint',style:'line-height:2;margin-bottom:0'},el('kbd',{},'arrows'),' move 1 px (',el('kbd',{},'Shift'),' 10 px)',el('br'),el('kbd',{},'Alt'),'+',el('kbd',{},'arrows'),' resize',el('br'),el('kbd',{},'Del'),' delete · ',el('kbd',{},'Ctrl'),'+',el('kbd',{},'D'),' duplicate',el('br'),el('kbd',{},'Ctrl'),'+',el('kbd',{},'G'),' group · ',el('kbd',{},'Ctrl'),'+',el('kbd',{},'Shift'),'+',el('kbd',{},'G'),' ungroup',el('br'),el('kbd',{},'Ctrl'),'+',el('kbd',{},'C'),' / ',el('kbd',{},'V'),' copy / paste',el('br'),el('kbd',{},'Ctrl'),'+',el('kbd',{},'Z'),' / ',el('kbd',{},'Y'),' undo / redo',el('br'),el('kbd',{},'Shift'),'+drag: constrain · ',el('kbd',{},'Alt'),'+drag: no snapping'));
+}
+function refresh(){ draw(); renderLayers(); renderPanel(); renderInfo(); selStatus(); updButtons(); }
 
 /* ---------- XML ---------- */
 const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -897,6 +911,8 @@ function init(){
   ds.onchange=()=>{ if(ds.value==='__custom'){ S.custom=true; commit(); syncDevice(); refresh(); $('#devw').focus(); } else setDevice(ds.value); };
   const dim=()=>{ if(!S.custom) return; S.w=clamp(Math.round(N($('#devw').value))||S.w,50,1000); S.h=clamp(Math.round(N($('#devh').value))||S.h,50,1000); S.round=$('#devround').checked; commit(); fitZoom(); refresh(); };
   $('#devw').onchange=dim; $('#devh').onchange=dim; $('#devround').onchange=dim; $('#rescale').onclick=rescale;
+  const ib=$('#infobox'); try{ if(localStorage.getItem(KEY+'.info')==='0') ib.open=false; }catch(e){}
+  ib.addEventListener('toggle',()=>{ try{ localStorage.setItem(KEY+'.info',ib.open?'1':'0'); }catch(e){} });
   $('#undo').onclick=undo; $('#redo').onclick=redo; $('#zin').onclick=()=>setZoom(zoom+.5); $('#zout').onclick=()=>setZoom(zoom-.5); $('#zfit').onclick=fitZoom;
   $('#night').onclick=()=>{ night=!night; $('#night').classList.toggle('on',night); draw(); };
   $('#snap').onclick=()=>{ snapOn=!snapOn; $('#snap').classList.toggle('on',snapOn); };
