@@ -898,7 +898,7 @@ function colorSection(e){
         rules.map(r=>{ const us=dcUsers(r).filter(u=>u!==e); return el('option',{value:r.a.replDC},r===dc?(us.length?'Shared rule · '+(us.length+1)+' elements':'Own rule'):'Rule of '+(us.length?nm(us[0])+(us.length>1?' +'+(us.length-1):''):'no element')+' · '+r.dc.length+' range'+(r.dc.length===1?'':'s')); }),
         others.length?el('option',{value:'__new'},'Separate copy for this element'):null);
       rs.value=dc.a.replDC; box.append(el('div',{class:'row one'},rs));
-      if(others.length) box.append(el('div',{class:'hexlab',style:'margin:-2px 0 8px;white-space:normal'},'Also used by '+others.slice(0,3).map(nm).join(', ')+(others.length>3?' and '+(others.length-3)+' more':'')+'. Changes apply to all.'));
+      if(others.length) box.append(el('div',{class:'hexlab',style:'margin:-2px 0 8px;white-space:normal'},'Also used by '+others.slice(0,3).map(nm).join(', ')+(others.length>3?' and '+(others.length-3)+' more':'')+'. Changes apply to all; each element still follows its own value.'));
     }
     const ed=dcEditor(dc,e); ed.append(nightBtn(e)); box.append(ed);
   } else {
