@@ -1,0 +1,354 @@
+{
+ "format": "hms-diy-editor",
+ "version": 1,
+ "layout": {
+  "device": "Edge 830",
+  "w": 246,
+  "h": 322,
+  "round": false,
+  "designer": null,
+  "els": [
+   {
+    "id": 59,
+    "type": 1,
+    "a": {
+     "color": "FFFFFF",
+     "x": "0",
+     "y": "0",
+     "x2": "246",
+     "y2": "322",
+     "eletype": "RF",
+     "valuetype": "FX",
+     "minval": "false",
+     "maxonly": "false",
+     "daynight": "false",
+     "radius": "0",
+     "stroke": "1",
+     "nr_values": "1"
+    },
+    "lock": true
+   },
+   {
+    "id": 60,
+    "type": 1,
+    "a": {
+     "color": "000000",
+     "x": "10",
+     "y": "10",
+     "x2": "110",
+     "y2": "60",
+     "eletype": "RC",
+     "valuetype": "FX",
+     "minval": "false",
+     "maxonly": "false",
+     "daynight": "false",
+     "radius": "0",
+     "stroke": "3",
+     "nr_values": "1"
+    }
+   },
+   {
+    "id": 61,
+    "type": 1,
+    "a": {
+     "color": "AAAAAA",
+     "x": "130",
+     "y": "10",
+     "x2": "230",
+     "y2": "60",
+     "eletype": "RF",
+     "valuetype": "FX",
+     "minval": "false",
+     "maxonly": "false",
+     "daynight": "false",
+     "radius": "0",
+     "stroke": "1",
+     "nr_values": "1"
+    }
+   },
+   {
+    "id": 62,
+    "type": 1,
+    "a": {
+     "color": "000000",
+     "x": "60",
+     "y": "105",
+     "x2": "0",
+     "y2": "0",
+     "eletype": "CR",
+     "valuetype": "FX",
+     "minval": "false",
+     "maxonly": "false",
+     "daynight": "false",
+     "radius": "30",
+     "stroke": "3",
+     "nr_values": "1"
+    }
+   },
+   {
+    "id": 63,
+    "type": 1,
+    "a": {
+     "color": "AAAAAA",
+     "x": "180",
+     "y": "105",
+     "x2": "0",
+     "y2": "0",
+     "eletype": "CF",
+     "valuetype": "FX",
+     "minval": "false",
+     "maxonly": "false",
+     "daynight": "false",
+     "radius": "30",
+     "stroke": "1",
+     "nr_values": "1"
+    }
+   },
+   {
+    "id": 64,
+    "type": 1,
+    "a": {
+     "color": "000000",
+     "x": "45",
+     "y": "185",
+     "x2": "200",
+     "y2": "340",
+     "eletype": "AC",
+     "valuetype": "FX",
+     "minval": "false",
+     "maxonly": "false",
+     "daynight": "false",
+     "radius": "30",
+     "stroke": "5",
+     "nr_values": "1"
+    }
+   },
+   {
+    "id": 65,
+    "type": 1,
+    "a": {
+     "color": "000000",
+     "x": "123",
+     "y": "185",
+     "x2": "0",
+     "y2": "90",
+     "eletype": "AC",
+     "valuetype": "FX",
+     "minval": "false",
+     "maxonly": "false",
+     "daynight": "false",
+     "radius": "30",
+     "stroke": "1",
+     "nr_values": "1"
+    }
+   },
+   {
+    "id": 67,
+    "type": 2,
+    "a": {
+     "replDC": "00AA01",
+     "invertcolor": "false"
+    },
+    "dc": [
+     {
+      "val": 1000,
+      "col": "00AA00",
+      "hide": false,
+      "blink": false
+     },
+     {
+      "val": 0,
+      "col": "00AA00",
+      "hide": false,
+      "blink": false
+     }
+    ],
+    "dirty": true,
+    "auto": true
+   },
+   {
+    "id": 66,
+    "type": 1,
+    "a": {
+     "color": "00AA01",
+     "x": "200",
+     "y": "185",
+     "x2": "200",
+     "y2": "340",
+     "eletype": "AF",
+     "valuetype": "BV",
+     "minval": "false",
+     "maxonly": "false",
+     "daynight": "false",
+     "radius": "30",
+     "stroke": "5",
+     "nr_values": "1"
+    }
+   },
+   {
+    "id": 68,
+    "type": 1,
+    "a": {
+     "color": "000000",
+     "x": "10",
+     "y": "230",
+     "x2": "110",
+     "y2": "250",
+     "eletype": "LN",
+     "valuetype": "FX",
+     "minval": "false",
+     "maxonly": "false",
+     "daynight": "false",
+     "radius": "0",
+     "stroke": "3",
+     "nr_values": "1"
+    }
+   },
+   {
+    "id": 69,
+    "type": 1,
+    "a": {
+     "color": "000000",
+     "x": "130",
+     "y": "240",
+     "x2": "230",
+     "y2": "240",
+     "eletype": "LN",
+     "valuetype": "FX",
+     "minval": "false",
+     "maxonly": "false",
+     "daynight": "false",
+     "radius": "0",
+     "stroke": "5",
+     "nr_values": "1"
+    }
+   },
+   {
+    "id": 71,
+    "type": 2,
+    "a": {
+     "replDC": "0000FE",
+     "invertcolor": "false"
+    },
+    "dc": [
+     {
+      "val": 1000,
+      "col": "0000FF",
+      "hide": false,
+      "blink": false
+     },
+     {
+      "val": 0,
+      "col": "0000FF",
+      "hide": false,
+      "blink": false
+     }
+    ],
+    "dirty": true,
+    "auto": true
+   },
+   {
+    "id": 70,
+    "type": 1,
+    "a": {
+     "color": "0000FE",
+     "x": "10",
+     "y": "270",
+     "x2": "110",
+     "y2": "285",
+     "eletype": "RH",
+     "valuetype": "BV",
+     "minval": "false",
+     "maxonly": "false",
+     "daynight": "false",
+     "radius": "0",
+     "stroke": "1",
+     "nr_values": "1"
+    }
+   },
+   {
+    "id": 73,
+    "type": 2,
+    "a": {
+     "replDC": "FF0001",
+     "invertcolor": "false"
+    },
+    "dc": [
+     {
+      "val": 1000,
+      "col": "FF0000",
+      "hide": false,
+      "blink": false
+     },
+     {
+      "val": 0,
+      "col": "FF0000",
+      "hide": false,
+      "blink": false
+     }
+    ],
+    "dirty": true,
+    "auto": true
+   },
+   {
+    "id": 72,
+    "type": 1,
+    "a": {
+     "color": "FF0001",
+     "x": "130",
+     "y": "262",
+     "x2": "150",
+     "y2": "317",
+     "eletype": "RV",
+     "valuetype": "BV",
+     "minval": "false",
+     "maxonly": "false",
+     "daynight": "false",
+     "radius": "0",
+     "stroke": "1",
+     "nr_values": "1"
+    }
+   },
+   {
+    "id": 74,
+    "type": 1,
+    "a": {
+     "color": "AA0000",
+     "x": "160",
+     "y": "262",
+     "x2": "240",
+     "y2": "317",
+     "eletype": "GB",
+     "valuetype": "HR",
+     "minval": "false",
+     "maxonly": "false",
+     "daynight": "false",
+     "radius": "0",
+     "stroke": "1",
+     "nr_values": "1"
+    }
+   },
+   {
+    "id": 75,
+    "type": 0,
+    "a": {
+     "color": "000000",
+     "x": "60",
+     "y": "292",
+     "fixedtext": "false",
+     "daynight": "false",
+     "eletype": "BV",
+     "text": "$V",
+     "font": "SMALL",
+     "halignment": "1",
+     "precision": "0",
+     "nr_values": "1",
+     "maxonly": "false"
+    }
+   }
+  ],
+  "samples": {},
+  "nid": 76,
+  "custom": false
+ }
+}

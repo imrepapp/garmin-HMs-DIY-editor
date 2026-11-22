@@ -1,0 +1,13 @@
+HMs DIY calibration layouts for Edge 830
+
+Paste one string at a time into "Default layout string" in the data field settings,
+show the field as the only field of a data screen (1 Field layout), take a screenshot, then go on to the next.
+
+=== 1-fonts (19 elements, 479 characters) ===
+C!!iQJ!ww*!%q*I6!!!$d!!iQ)$31y+y-0d0!!!!!Hxgpj08W%/!!iQ)!rrw$!!(+d!!!!!Hg0!!iQ)$31y+y.nat!!!!!Hxgpj08W%/!!iQ)!rrw$!"f)S!!!!!Hg0!!iQ)$31y+y0X_*!!!!!Hxgpj08W%/!!iQ)!rrw$!$Py^!!!!!Hg0!!iQ)$31y+y2Bt=!!!!!Hxgpj08W%/!!iQ)!rrw$!y:;q!!!!!Hg0!!iQ)$31y+y4-d`!!!!!Hxgpj08W%/!!iQ)!rrw$!(%,?!!!!!Hg0!!iQ)$31y+y5o_j!!!!!0123456789!!iQ)!ww*"!)g'I!!!!!%!!iQ)zljr*y7[s`!!!!!08.5:-+/A!!iQ)!ww*"!+S;?!!!!!W!!iQ)"onW'y9I%n!!!!!08.5:-!!iQ)!ww*"!-@BM!!!!!E!!iQ)"98E%y;8+_!!!!!08:%!!iQ)!ww*"!//Hx!!!!!_
+
+=== 2-fonts-s (10 elements, 245 characters) ===
+C!!iQJ!ww*!%q*I6!!!$d!!iQ)"onW'ywOsk!!!!!Hxgp08!!iQ)"onW'yx:4)!!!!!Hxgp08!!iQ)"onW'y@%$L!!!!!Hxgp08!!iQ)"onW'yAeE*!!!!!Hxgp08!!iQ)"onW'yCQ@m!!!!!Hxgp08!!iQ)!WW3z!x0zk!!!!!08!!iQ)"98E%yE@"R!!!!!0859!!iQ)"98E%yG,fX!!!!!0859!!iQ)"98E%yHp$1!!!!!0859
+
+=== 3-graphics (17 elements, 358 characters) ===
+C!!iQJ!ww*!%q*I6!!!$d!!iQB!rrw$z!hZ?!!!!S!!iQJ!33'!z!h[b!!!!S!!iQ2!rrw$!TIp5!!!!!!!iQ:!33'!!TIqX!!!!!!!iQb"TSNy!TU7g!!Q3?!!iQb!ww*"!TU8`!!-a5y-Yl;!!'z!!!!,b!!'z!!!!!!!"4TK"TYP'!TU9X!!Q3?!!iQ*!rrw$$3Xa!!!!$N!!iQ*"TSNyyVPtI!!!$Dy-)t+!!!$!!!!,b!!!$!!!!!!!"4T3!!!zuz"8MS!!!!0(\dt;!w3$!!!!,b!w3$!!!!!!!"4T;!w3$"!CYkQ!!!!X!"0o`!NH,""U*c3!!!!X!"4^@!WW3zzUNSj!!!!!$V
