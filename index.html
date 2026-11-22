@@ -131,10 +131,12 @@ dialog li{margin:5px 0}
   <div class="grp">
     <label for="device">Device</label>
     <select id="device"></select>
-    <input id="devw" type="number" min="50" max="1000" title="Width (px)" aria-label="Width">
-    <span>×</span>
-    <input id="devh" type="number" min="50" max="1000" title="Height (px)" aria-label="Height">
-    <label class="chk" style="margin:0"><input id="devround" type="checkbox"> round</label>
+    <span class="grp" id="customdim" hidden>
+      <input id="devw" type="number" min="50" max="1000" title="Width (px)" aria-label="Width">
+      <span>×</span>
+      <input id="devh" type="number" min="50" max="1000" title="Height (px)" aria-label="Height">
+      <label class="chk" style="margin:0"><input id="devround" type="checkbox"> round</label>
+    </span>
     <button class="btn sm" id="rescale" hidden>Scale elements to fit</button>
   </div>
   <div class="grp">
@@ -591,7 +593,7 @@ function renderPanel(){
       el('h2',{},'Keyboard'),
       el('div',{class:'hint',style:'line-height:2'},el('kbd',{},'arrows'),' move 1 px (',el('kbd',{},'Shift'),' 10 px)',el('br'),el('kbd',{},'Alt'),'+',el('kbd',{},'arrows'),' resize',el('br'),el('kbd',{},'Del'),' delete · ',el('kbd',{},'Ctrl'),'+',el('kbd',{},'D'),' duplicate',el('br'),el('kbd',{},'Ctrl'),'+',el('kbd',{},'C'),' / ',el('kbd',{},'V'),' copy / paste',el('br'),el('kbd',{},'Ctrl'),'+',el('kbd',{},'Z'),' / ',el('kbd',{},'Y'),' undo / redo',el('br'),el('kbd',{},'Shift'),'+drag: constrain · ',el('kbd',{},'Alt'),'+drag: no snapping'),
       el('h2',{},'Device'),
-      el('div',{class:'hint'},S.device+' · '+S.w+'×'+S.h+' px'+(S.round?' · round':''),el('br'),'Font sizes depend on the device; glyph shapes are approximations.'));
+      el('div',{class:'hint'},(S.custom?'Custom size, fonts of ':'')+S.device+' · '+S.w+'×'+S.h+' px'+(S.round?' · round':''),el('br'),S.custom?'Use a custom size to design a single field that sits beside native Garmin fields. ':'To use other dimensions, choose “Custom size…” in the device list. ','Font sizes depend on the device; glyph shapes are approximations.'));
     return;
   }
   if(s.length>1){
@@ -677,7 +679,7 @@ function fromXML(text){
   }
   return ns;
 }
-function loadText(text){ try{ let ns, note=''; if(/<DIYLayout/.test(text)) ns=fromXML(text); else { const d=decodeLayout(text); ns=autoLock({device:S.device,w:S.w,h:S.h,round:S.round,designer:null,els:d.els,samples:S.samples,nid:d.nid}); note=d.gen==='C'?' (from layout string)':' – note: this is a generation "'+d.gen+'" string, the editor knows format "C"'; } clearTimeout(cTimer); commit(); S=ns; sel=[]; commit(); syncDevice(); fitZoom(); refresh(); toast('Loaded: '+S.els.length+' elements · '+S.device+note); return true; }catch(err){ toast(err.message); return false; } }
+function loadText(text){ try{ let ns, note=''; if(/<DIYLayout/.test(text)) ns=fromXML(text); else { const d=decodeLayout(text); ns=autoLock({device:S.device,w:S.w,h:S.h,round:S.round,custom:S.custom,designer:null,els:d.els,samples:S.samples,nid:d.nid}); note=d.gen==='C'?' (from layout string)':' – note: this is a generation "'+d.gen+'" string, the editor knows format "C"'; } clearTimeout(cTimer); commit(); S=ns; sel=[]; commit(); syncDevice(); fitZoom(); refresh(); toast('Loaded: '+S.els.length+' elements · '+S.device+note); return true; }catch(err){ toast(err.message); return false; } }
 function readFile(f){ const r=new FileReader(); r.onload=()=>{ let t; try{ t=new TextDecoder('utf-8',{fatal:true}).decode(r.result); }catch(e){ t=new TextDecoder('windows-1252').decode(r.result); } if(loadText(t)){ $('#fname').value=f.name; $('#dlg-open').close(); } }; r.readAsArrayBuffer(f); }
 
 /* ---------- Layout string: generation "C" encoding of Designer 3.4.2 ----------
@@ -753,9 +755,10 @@ function showString(){
 }
 
 /* ---------- Device, zoom ---------- */
-function syncDevice(){ const s=$('#device'); if(![...s.options].some(o=>o.value===S.device)) s.append(el('option',{value:S.device},S.device+' (unknown)')); s.value=S.device; $('#devw').value=S.w; $('#devh').value=S.h; $('#devround').checked=S.round; }
+function syncDevice(){ const s=$('#device'); if(![...s.options].some(o=>o.value===S.device)) s.append(el('option',{value:S.device},S.device+' (unknown)')); const d=DEV[S.device], custom=!!S.custom||!d||d[0]!==S.w||d[1]!==S.h||!!d[2]!==!!S.round; S.custom=custom;
+  s.options[0].textContent='Custom size… (fonts of '+S.device+')'; s.value=custom?'__custom':S.device; $('#customdim').hidden=!custom; $('#devw').value=S.w; $('#devh').value=S.h; $('#devround').checked=S.round; }
 let prevDim=null;
-function setDevice(name){ const d=DEV[name]; prevDim={w:S.w,h:S.h}; S.device=name; if(d){ S.w=d[0]; S.h=d[1]; S.round=!!d[2]; } $('#rescale').hidden=!(S.els.length&&(prevDim.w!==S.w||prevDim.h!==S.h)); commit(); syncDevice(); fitZoom(); refresh(); }
+function setDevice(name){ const d=DEV[name]; prevDim={w:S.w,h:S.h}; S.device=name; S.custom=false; if(d){ S.w=d[0]; S.h=d[1]; S.round=!!d[2]; } $('#rescale').hidden=!(S.els.length&&(prevDim.w!==S.w||prevDim.h!==S.h)); commit(); syncDevice(); fitZoom(); refresh(); }
 function rescale(){ if(!prevDim) return; const fx=S.w/prevDim.w, fy=S.h/prevDim.h, fr=Math.min(fx,fy), R=v=>String(Math.round(v));
   for(const e of S.els){ if(e.type>1) continue; const a=e.a, k=kind(e); a.x=R(N(a.x)*fx); a.y=R(N(a.y)*fy); if(hasBox(e)){ a.x2=R(N(a.x2)*fx); a.y2=R(N(a.y2)*fy); } if(k==='circle'||k==='arc'||k==='dir'){ a.radius=R(N(a.radius)*fr); if(k==='dir') a.y2=R(N(a.y2)*fr); } }
   $('#rescale').hidden=true; commit(); refresh(); toast('Elements scaled to the new screen size.'); }
@@ -799,7 +802,7 @@ function sampleLayout(){
 
 /* ---------- Start-up, events ---------- */
 function init(){
-  const ds=$('#device'); for(const n of Object.keys(DEV).sort((a,b)=>a.localeCompare(b,'hu',{numeric:true}))) ds.append(el('option',{value:n},n+'  ('+DEV[n][0]+'×'+DEV[n][1]+')'));
+  const ds=$('#device'); ds.append(el('option',{value:'__custom'},'Custom size…')); for(const n of Object.keys(DEV).sort((a,b)=>a.localeCompare(b,'hu',{numeric:true}))) ds.append(el('option',{value:n},n+'  ('+DEV[n][0]+'×'+DEV[n][1]+')'));
   buildPalette();
   let loaded=false; try{ const j=localStorage.getItem(KEY); if(j){ const o=JSON.parse(j); if(o&&Array.isArray(o.els)){ S=o; loaded=true; } } }catch(e){}
   if(!loaded){ const d=DEV[S.device]; if(d){ S.w=d[0]; S.h=d[1]; S.round=!!d[2]; } sampleLayout(); }
@@ -808,8 +811,8 @@ function init(){
 
   const cv=$('#cv'); cv.addEventListener('pointerdown',onDown); cv.addEventListener('pointermove',onMove); cv.addEventListener('pointerup',onUp); cv.addEventListener('pointercancel',onUp);
   cv.addEventListener('dblclick',()=>{ const f=document.getElementById('p-text'); if(f){ f.focus(); f.select(); } });
-  ds.onchange=()=>setDevice(ds.value);
-  const dim=()=>{ S.w=clamp(Math.round(N($('#devw').value))||S.w,50,1000); S.h=clamp(Math.round(N($('#devh').value))||S.h,50,1000); S.round=$('#devround').checked; commit(); fitZoom(); refresh(); };
+  ds.onchange=()=>{ if(ds.value==='__custom'){ S.custom=true; commit(); syncDevice(); refresh(); $('#devw').focus(); } else setDevice(ds.value); };
+  const dim=()=>{ if(!S.custom) return; S.w=clamp(Math.round(N($('#devw').value))||S.w,50,1000); S.h=clamp(Math.round(N($('#devh').value))||S.h,50,1000); S.round=$('#devround').checked; commit(); fitZoom(); refresh(); };
   $('#devw').onchange=dim; $('#devh').onchange=dim; $('#devround').onchange=dim; $('#rescale').onclick=rescale;
   $('#undo').onclick=undo; $('#redo').onclick=redo; $('#zin').onclick=()=>setZoom(zoom+.5); $('#zout').onclick=()=>setZoom(zoom-.5); $('#zfit').onclick=fitZoom;
   $('#night').onclick=()=>{ night=!night; $('#night').classList.toggle('on',night); draw(); };
