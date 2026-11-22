@@ -79,7 +79,9 @@ h2 .sp{flex:1}
 #layers li:hover{background:var(--raise)}
 #layers li.sel{background:var(--accent-soft);border-color:var(--accent);border-left-color:currentColor}
 #layers li.off span.n{opacity:.45}
-#layers li.sepr{border-left-color:transparent;font:700 11px var(--f-head);letter-spacing:.06em;margin-top:5px;padding-left:2px}
+#layers li.sepr{border-left-color:transparent;font:700 11px var(--f-head);letter-spacing:.06em;text-transform:uppercase;margin-top:5px;padding-left:2px}
+#layers li.sepr.folded span.n{color:var(--mute)}
+#layers li.sepr.folded span.n::after{content:' …'}
 #layers li.ing{margin-left:14px}
 #layers .cnt{font:400 10px var(--f-mono);color:var(--mute);letter-spacing:0}
 #layers .ic.fold{opacity:1;font-size:11px;width:14px}
@@ -573,7 +575,7 @@ function nameOf(e){
   if(e.type===0) return e.a.fixedtext==='true' ? '“'+(e.a.text||'')+'”' : (VT[e.a.eletype]?VT[e.a.eletype].n:'Value '+e.a.eletype);
   if(e.type===1){ const v=e.a.valuetype&&e.a.valuetype!=='FX' ? ' · '+(VT[e.a.valuetype]?VT[e.a.valuetype].n:e.a.valuetype) : ''; return (GT[e.a.eletype]||'Graphic '+e.a.eletype)+v; }
   if(e.type===2) return 'Dynamic colour #'+e.a.replDC+' ('+dcUsers(e).length+' used)';
-  return e.a.text||'———';
+  return (e.a.text||'').replace(/^[\s*=_#~<>-]+|[\s*=_#~<>-]+$/g,'')||'Group';
 }
 let dragId=null;
 function groupOf(sep){ const i=S.els.indexOf(sep); let j=i+1; while(j<S.els.length&&S.els[j].type!==3) j++; return S.els.slice(i+1,j); }
@@ -601,7 +603,7 @@ function renderLayers(){
     if(sep){
       if(sep.fold&&items.some(e=>sel.includes(e.id))) sep.fold=false;
       const li=row(sep,false), vis=items.filter(e=>e.type<2), allL=vis.length>0&&vis.every(e=>e.lock), allH=vis.length>0&&vis.every(e=>e.hide);
-      li.prepend(el('button',{class:'ic fold',title:sep.fold?'Expand group':'Collapse group','aria-expanded':String(!sep.fold),onclick:()=>{ sep.fold=!sep.fold; if(sep.fold) sel=sel.filter(id=>!items.some(e=>e.id===id)); commit(); refresh(); }},sep.fold?'▸':'▾'));
+      li.setAttribute('aria-expanded',String(!sep.fold)); li.title=sep.fold?'Click to expand':'Click to collapse'; if(sep.fold) li.classList.add('folded');
       li.append(el('span',{class:'cnt'},String(items.length)),
         el('button',{class:'ic'+(allL?' act':''),title:allL?'Unlock the whole group':'Lock the whole group',onclick:()=>{ vis.forEach(e=>e.lock=!allL); if(!allL) sel=sel.filter(id=>!vis.some(e=>e.id===id)); commit(); refresh(); }},allL?'🔒':'🔓'),
         el('button',{class:'ic'+(allH?' act':''),title:allH?'Show the whole group':'Hide the whole group in the editor',onclick:()=>{ vis.forEach(e=>e.hide=!allH); commit(); refresh(); }},allH?'◌':'●'));
