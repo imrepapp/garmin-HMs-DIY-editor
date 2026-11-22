@@ -438,8 +438,8 @@ const hasBox = e => ['line','rect','graph','box'].includes(kind(e));
 function mk(type, a, extra){ return Object.assign({id:S.nid++, type, a}, extra||{}); }
 function mkText(o){ return mk(0, Object.assign({color:'000000',x:'0',y:'0',fixedtext:'true',daynight:'true',eletype:'FX',text:'LABEL',font:'XTINY',halignment:'1',precision:'0',nr_values:'1',maxonly:'false'}, o)); }
 function mkVal(code, o){ const v=VT[code]||VT.FX; return mkText(Object.assign({fixedtext:'false',eletype:code,text:v.mask||'$V',font:'NR_MEDIUM',precision:String(v.k==='n'&&v.s%1?1:0)}, o)); }
-/* New lines look like the device's own field separators: green (00AA00, seen on an Edge 830), the same by day and by night. */
-function mkG(t, o, extra){ const ln=t==='LN'; return mk(1, Object.assign({color:ln?'00AA00':'000000',x:'0',y:'0',x2:'0',y2:'0',eletype:t,valuetype:'FX',minval:'false',maxonly:'false',daynight:ln?'false':'true',radius:'0',stroke:'1',nr_values:'1'}, o), extra); }
+/* New lines are a neutral mid grey that reads the same by day and by night (the device's own separators take the activity profile's colour). */
+function mkG(t, o, extra){ const ln=t==='LN'; return mk(1, Object.assign({color:ln?'808080':'000000',x:'0',y:'0',x2:'0',y2:'0',eletype:t,valuetype:'FX',minval:'false',maxonly:'false',daynight:ln?'false':'true',radius:'0',stroke:'1',nr_values:'1'}, o), extra); }
 function mkDyn(key, rows){ return mk(2, {replDC:key, invertcolor:'false'}, {dc:rows, dirty:true}); }
 function usedColors(){ const u=new Set(); for(const e of S.els){ if(e.a.color) u.add(e.a.color.toUpperCase()); if(e.type===2){ u.add((e.a.replDC||'').toUpperCase()); e.dc.forEach(r=>u.add(r.col.toUpperCase())); } } return u; }
 function uniqueKey(base){ const u=usedColors(); let n=parseInt(base,16)||0; for(let i=1;i<4096;i++){ const c=((n^i)&0xFFFFFF).toString(16).toUpperCase().padStart(6,'0'); if(!u.has(c)) return c; } return 'FEFEFA'; }
