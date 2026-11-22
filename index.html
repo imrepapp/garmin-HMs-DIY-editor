@@ -26,6 +26,7 @@
   --accent:#5aa9f5; --accent-ink:#06121f; --accent-soft:#1d3550; --stage:#0c1015; --danger:#f2867f;
   --c-val:#5aa9f5; --c-gfx:#f29a6b; --c-dyn:#5fce93; --c-sep:#8794a1; color-scheme:dark}
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 html,body{height:100%}
 body{margin:0;background:var(--bg);color:var(--ink);font:13px/1.4 var(--f-ui);display:flex;flex-direction:column}
 button,input,select,textarea{font:inherit;color:inherit}
@@ -49,15 +50,17 @@ input[type=text],input[type=number],select,textarea{background:var(--raise);bord
 input[type=number]{font-variant-numeric:tabular-nums}
 header select,header input{width:auto}
 header input[type=number]{width:62px}
-main{flex:1;min-height:0;display:grid;grid-template-columns:250px minmax(0,1fr) 310px}
+main{flex:1;min-height:0;display:grid;grid-template-columns:176px minmax(0,1fr) 320px}
 aside{background:var(--panel);overflow:auto;padding:12px 16px 24px;min-width:0}
-#left{border-right:1px solid var(--line);display:flex;flex-direction:column;overflow:hidden}
-#layers{flex:1;overflow:auto;min-height:120px}
-#right{border-left:1px solid var(--line)}
+#left{border-right:1px solid var(--line)}
+#right{border-left:1px solid var(--line);display:flex;flex-direction:column;overflow:hidden;padding-bottom:0}
+#layerbox{flex:0 1 42%;min-height:150px;display:flex;flex-direction:column}
+#layers{flex:1;overflow:auto;min-height:0}
+#panel{flex:1 1 58%;min-height:0;overflow:auto;border-top:1px solid var(--line);margin:10px -16px 0;padding:12px 16px 24px}
 h2{font:700 12px/1 var(--f-head);letter-spacing:.09em;text-transform:uppercase;color:var(--mute);margin:14px 0 7px;display:flex;align-items:center;gap:6px}
 h2:first-child{margin-top:0}
 h2 .sp{flex:1}
-.palette{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+.palette{display:grid;grid-template-columns:1fr;gap:4px}
 .palette button{display:flex;gap:6px;align-items:center;text-align:left;padding:5px 6px;border:1px solid var(--line);background:var(--raise);border-radius:5px;cursor:pointer;font-size:12px;min-width:0}
 .palette button:hover{border-color:var(--accent)}
 .palette svg{flex:none}
@@ -69,7 +72,10 @@ h2 .sp{flex:1}
 #layers li:hover{background:var(--raise)}
 #layers li.sel{background:var(--accent-soft);border-color:var(--accent);border-left-color:currentColor}
 #layers li.off span.n{opacity:.45}
-#layers li.sepr{border-left-color:transparent;font:700 11px var(--f-head);letter-spacing:.06em;margin-top:5px}
+#layers li.sepr{border-left-color:transparent;font:700 11px var(--f-head);letter-spacing:.06em;margin-top:5px;padding-left:2px}
+#layers li.ing{margin-left:14px}
+#layers .cnt{font:400 10px var(--f-mono);color:var(--mute);letter-spacing:0}
+#layers .ic.fold{opacity:1;font-size:11px;width:14px}
 #layers li.drop{box-shadow:0 -2px 0 var(--accent)}
 #layers .ic{border:0;background:none;padding:0 2px;cursor:pointer;color:var(--mute);opacity:.35;font-size:12px;line-height:1}
 #layers .ic.act{opacity:1;color:var(--accent)}
@@ -118,8 +124,10 @@ dialog li{margin:5px 0}
   html,body{height:auto}
   main{display:flex;flex-direction:column}
   #stagewrap{order:-1;height:62vh}
-  #left,#right{border:0;border-top:1px solid var(--line);overflow:visible}
-  #layers{overflow:visible;flex:none}
+  #left,#right{border:0;border-top:1px solid var(--line);overflow:visible;display:block;padding-bottom:24px}
+  .palette{grid-template-columns:1fr 1fr}
+  #layerbox,#panel{display:block;overflow:visible}
+  #layers{overflow:visible}
 }
 </style>
 <!--/PAGE-->
@@ -160,20 +168,24 @@ dialog li{margin:5px 0}
   <aside id="left">
     <h2>Add</h2>
     <div class="palette" id="palette"></div>
-    <h2>Layers <span class="sp"></span>
-      <button class="btn sm ghost" id="lup" title="Bring forward">▲</button>
-      <button class="btn sm ghost" id="ldown" title="Send backward">▼</button>
-      <button class="btn sm ghost" id="ldup" title="Duplicate (Ctrl+D)">⧉</button>
-      <button class="btn sm ghost" id="ldel" title="Delete (Del)">✕</button>
-    </h2>
-    <div class="hint">The top of the list is in front. Drag to reorder.</div>
-    <ul id="layers"></ul>
   </aside>
   <div id="stagewrap">
     <div id="stage"><canvas id="cv"></canvas></div>
     <div id="status"><span id="st-pos">x – y –</span><span id="st-sel"></span><span class="sp"></span><span id="st-count"></span></div>
   </div>
-  <aside id="right"><div id="panel"></div></aside>
+  <aside id="right">
+    <div id="layerbox">
+      <h2>Layers <span class="sp"></span>
+        <button class="btn sm ghost" id="lup" title="Bring forward">▲</button>
+        <button class="btn sm ghost" id="ldown" title="Send backward">▼</button>
+        <button class="btn sm ghost" id="ldup" title="Duplicate (Ctrl+D)">⧉</button>
+        <button class="btn sm ghost" id="ldel" title="Delete (Del)">✕</button>
+      </h2>
+      <div class="hint">Top of the list is in front. Drag to reorder. A separator starts a group you can collapse, lock or hide.</div>
+      <ul id="layers"></ul>
+    </div>
+    <div id="panel"></div>
+  </aside>
 </main>
 
 <dialog id="dlg-save">
@@ -512,20 +524,38 @@ function nameOf(e){
   return e.a.text||'———';
 }
 let dragId=null;
+function groupOf(sep){ const i=S.els.indexOf(sep); let j=i+1; while(j<S.els.length&&S.els[j].type!==3) j++; return S.els.slice(i+1,j); }
 function renderLayers(){
   const ul=$('#layers'); ul.textContent='';
-  for(let i=S.els.length-1;i>=0;i--){ const e=S.els[i];
-    const li=el('li',{class:'t'+e.type+(sel.includes(e.id)?' sel':'')+(e.hide?' off':'')+(e.type===3?' sepr':''),draggable:'true',
+  const groups=[{sep:null,items:[]}]; for(const e of S.els){ if(e.type===3) groups.push({sep:e,items:[]}); else groups[groups.length-1].items.push(e); }
+  const row=(e,inGroup)=>{
+    const li=el('li',{class:'t'+e.type+(sel.includes(e.id)?' sel':'')+(e.hide?' off':'')+(e.type===3?' sepr':'')+(inGroup?' ing':''),draggable:'true',
       onclick:ev=>{ if(ev.target.closest('.ic')) return; if(ev.shiftKey||ev.ctrlKey||ev.metaKey) sel=sel.includes(e.id)?sel.filter(x=>x!==e.id):[...sel,e.id]; else sel=[e.id]; refresh(); },
       ondragstart:ev=>{ dragId=e.id; ev.dataTransfer.effectAllowed='move'; try{ev.dataTransfer.setData('text/plain',String(e.id));}catch(_){} },
       ondragover:ev=>{ ev.preventDefault(); li.classList.add('drop'); }, ondragleave:()=>li.classList.remove('drop'),
-      ondrop:ev=>{ ev.preventDefault(); li.classList.remove('drop'); const d=byId(dragId); if(!d||d===e) return; S.els.splice(S.els.indexOf(d),1); S.els.splice(S.els.indexOf(e)+1,0,d); commit(); refresh(); }},
+      ondrop:ev=>{ ev.preventDefault(); li.classList.remove('drop'); const d=byId(dragId); if(!d||d===e) return;
+        const mv=d.type===3?[d,...groupOf(d)]:[d]; if(mv.includes(e)) return;
+        S.els=S.els.filter(x=>!mv.includes(x)); let at=S.els.indexOf(e)+1;
+        if(d.type===3) while(at<S.els.length&&S.els[at].type!==3) at++;
+        S.els.splice(at,0,...mv); commit(); refresh(); }},
       el('span',{class:'n',title:nameOf(e)},nameOf(e)));
     if(e.type<2){
       li.append(el('button',{class:'ic'+(e.lock?' act':''),title:e.lock?'Locked – cannot be selected on the canvas':'Lock',onclick:()=>{ e.lock=!e.lock; commit(); refresh(); }},e.lock?'🔒':'🔓'),
                 el('button',{class:'ic'+(e.hide?' act':''),title:'Hide in the editor (still exported)',onclick:()=>{ e.hide=!e.hide; commit(); refresh(); }},e.hide?'◌':'●'));
     }
-    ul.append(li);
+    return li;
+  };
+  for(let g=groups.length-1;g>=0;g--){ const sep=groups[g].sep, items=groups[g].items;
+    if(sep){
+      if(sep.fold&&items.some(e=>sel.includes(e.id))) sep.fold=false;
+      const li=row(sep,false), vis=items.filter(e=>e.type<2), allL=vis.length>0&&vis.every(e=>e.lock), allH=vis.length>0&&vis.every(e=>e.hide);
+      li.prepend(el('button',{class:'ic fold',title:sep.fold?'Expand group':'Collapse group','aria-expanded':String(!sep.fold),onclick:()=>{ sep.fold=!sep.fold; if(sep.fold) sel=sel.filter(id=>!items.some(e=>e.id===id)); commit(); refresh(); }},sep.fold?'▸':'▾'));
+      li.append(el('span',{class:'cnt'},String(items.length)),
+        el('button',{class:'ic'+(allL?' act':''),title:allL?'Unlock the whole group':'Lock the whole group',onclick:()=>{ vis.forEach(e=>e.lock=!allL); if(!allL) sel=sel.filter(id=>!vis.some(e=>e.id===id)); commit(); refresh(); }},allL?'🔒':'🔓'),
+        el('button',{class:'ic'+(allH?' act':''),title:allH?'Show the whole group':'Hide the whole group in the editor',onclick:()=>{ vis.forEach(e=>e.hide=!allH); commit(); refresh(); }},allH?'◌':'●'));
+      ul.append(li);
+    }
+    if(!(sep&&sep.fold)) for(let i=items.length-1;i>=0;i--) ul.append(row(items[i],!!sep));
   }
   const n=S.els.filter(e=>e.type!==3).length;
   $('#st-count').textContent=n+' elements'; $('#st-count').title='The element limit depends on device memory: low 30, medium 35, high 500 elements.';
@@ -589,7 +619,7 @@ function renderPanel(){
   const s=selEls();
   if(!s.length){
     p.append(el('h2',{},'Getting started'),
-      el('div',{class:'hint'},'Click an element on the screen or in the layer list to edit it here. Add new elements from the list at the top left.'),
+      el('div',{class:'hint'},'Click an element on the screen or in the layer list to edit it here. Add new elements from the list on the left.'),
       el('h2',{},'Keyboard'),
       el('div',{class:'hint',style:'line-height:2'},el('kbd',{},'arrows'),' move 1 px (',el('kbd',{},'Shift'),' 10 px)',el('br'),el('kbd',{},'Alt'),'+',el('kbd',{},'arrows'),' resize',el('br'),el('kbd',{},'Del'),' delete · ',el('kbd',{},'Ctrl'),'+',el('kbd',{},'D'),' duplicate',el('br'),el('kbd',{},'Ctrl'),'+',el('kbd',{},'C'),' / ',el('kbd',{},'V'),' copy / paste',el('br'),el('kbd',{},'Ctrl'),'+',el('kbd',{},'Z'),' / ',el('kbd',{},'Y'),' undo / redo',el('br'),el('kbd',{},'Shift'),'+drag: constrain · ',el('kbd',{},'Alt'),'+drag: no snapping'),
       el('h2',{},'Device'),
@@ -602,7 +632,7 @@ function renderPanel(){
     return;
   }
   const e=s[0], a=e.a, k=kind(e);
-  if(k==='sep'){ p.append(el('h2',{class:'t3'},'Separator'),el('div',{class:'row one'},fTxt(e,'text','Caption in the list')),el('div',{class:'hint'},'Only organises the layer list; it is not shown on the device.')); }
+  if(k==='sep'){ p.append(el('h2',{class:'t3'},'Separator'),el('div',{class:'row one'},fTxt(e,'text','Caption in the list')),el('div',{class:'hint'},'A separator starts a group: every element up to the next separator belongs to it. Collapse, lock or hide the group from its row in the layer list, or drag the row to move the whole group. It is not shown on the device.')); }
   else if(k==='dyn'){ p.append(el('h2',{class:'t2'},'Dynamic colour'),dcEditor(dc_(e),null),el('div',{class:'hint'},'Used by: ',dcUsers(e).map(nameOf).join(', ')||'no element')); }
   else if(k==='text'){
     const isVal=a.fixedtext!=='true', v=VT[a.eletype];
