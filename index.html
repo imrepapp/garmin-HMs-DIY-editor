@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!--PAGE-->
+<title>HMs DIY szerkesztő</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600&family=Roboto+Condensed:wght@400;700&display=swap">
+<style>
+/* Elrendezés: fejléc-eszköztár, alatta három oszlop – rétegek | előnézet | tulajdonságok. Telefonon egymás alá kerülnek. */
+:root{
+  --bg:#e9edf1; --panel:#f8fafb; --raise:#ffffff; --line:#cfd7df; --ink:#16212c; --mute:#5b6875;
+  --accent:#0a66c2; --accent-ink:#ffffff; --accent-soft:#dbe9f8; --stage:#d5dbe2; --danger:#b3261e;
+  --c-val:#0a66c2; --c-gfx:#c2410c; --c-dyn:#1a7f4b; --c-sep:#7a8591;
+  --f-ui:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-head:"Roboto Condensed","Arial Narrow",var(--f-ui);
+  --f-mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#12171d; --panel:#1a2129; --raise:#222b35; --line:#34404c; --ink:#e6ecf2; --mute:#96a3b0;
+  --accent:#5aa9f5; --accent-ink:#06121f; --accent-soft:#1d3550; --stage:#0c1015; --danger:#f2867f;
+  --c-val:#5aa9f5; --c-gfx:#f29a6b; --c-dyn:#5fce93; --c-sep:#8794a1; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#12171d; --panel:#1a2129; --raise:#222b35; --line:#34404c; --ink:#e6ecf2; --mute:#96a3b0;
+  --accent:#5aa9f5; --accent-ink:#06121f; --accent-soft:#1d3550; --stage:#0c1015; --danger:#f2867f;
+  --c-val:#5aa9f5; --c-gfx:#f29a6b; --c-dyn:#5fce93; --c-sep:#8794a1; color-scheme:dark}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:13px/1.4 var(--f-ui);display:flex;flex-direction:column}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+header{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;padding-block:8px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  background:var(--panel);border-bottom:1px solid var(--line)}
+.brand{font:700 17px/1 var(--f-head);letter-spacing:.04em;text-transform:uppercase;white-space:nowrap}
+.brand small{display:block;font:400 10px/1.3 var(--f-ui);letter-spacing:.02em;text-transform:none;color:var(--mute)}
+.grp{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+.grp label{color:var(--mute);font-size:11px}
+.sp{flex:1}
+.btn{border:1px solid var(--line);background:var(--raise);border-radius:5px;padding:5px 9px;cursor:pointer;white-space:nowrap}
+.btn:hover{border-color:var(--accent)}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+.btn.on{background:var(--accent-soft);border-color:var(--accent)}
+.btn.sm{padding:2px 7px;font-size:12px}
+.btn.ghost{border-color:transparent;background:none}
+.btn:disabled{opacity:.4;cursor:default}
+input[type=text],input[type=number],select,textarea{background:var(--raise);border:1px solid var(--line);border-radius:4px;padding:4px 6px;min-width:0;width:100%}
+input[type=number]{font-variant-numeric:tabular-nums}
+header select,header input{width:auto}
+header input[type=number]{width:62px}
+main{flex:1;min-height:0;display:grid;grid-template-columns:250px minmax(0,1fr) 310px}
+aside{background:var(--panel);overflow:auto;padding:12px 16px 24px;min-width:0}
+#left{border-right:1px solid var(--line);display:flex;flex-direction:column;overflow:hidden}
+#layers{flex:1;overflow:auto;min-height:120px}
+#right{border-left:1px solid var(--line)}
+h2{font:700 12px/1 var(--f-head);letter-spacing:.09em;text-transform:uppercase;color:var(--mute);margin:14px 0 7px;display:flex;align-items:center;gap:6px}
+h2:first-child{margin-top:0}
+h2 .sp{flex:1}
+.palette{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+.palette button{display:flex;gap:6px;align-items:center;text-align:left;padding:5px 6px;border:1px solid var(--line);background:var(--raise);border-radius:5px;cursor:pointer;font-size:12px;min-width:0}
+.palette button:hover{border-color:var(--accent)}
+.palette svg{flex:none}
+.palette .wide{grid-column:1/-1}
+.t0{color:var(--c-val)}.t1{color:var(--c-gfx)}.t2{color:var(--c-dyn)}.t3{color:var(--c-sep)}
+#layers{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:1px}
+#layers li{display:flex;align-items:center;gap:6px;padding:3px 4px 3px 6px;border-radius:4px;cursor:pointer;border:1px solid transparent;border-left:3px solid currentColor}
+#layers li span.n{flex:1;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#layers li:hover{background:var(--raise)}
+#layers li.sel{background:var(--accent-soft);border-color:var(--accent);border-left-color:currentColor}
+#layers li.off span.n{opacity:.45}
+#layers li.sepr{border-left-color:transparent;font:700 11px var(--f-head);letter-spacing:.06em;margin-top:5px}
+#layers li.drop{box-shadow:0 -2px 0 var(--accent)}
+#layers .ic{border:0;background:none;padding:0 2px;cursor:pointer;color:var(--mute);opacity:.35;font-size:12px;line-height:1}
+#layers .ic.act{opacity:1;color:var(--accent)}
+#layers li:hover .ic{opacity:.8}
+#stagewrap{display:flex;flex-direction:column;min-width:0;min-height:0;background:var(--stage)}
+#stage{flex:1;overflow:auto;display:flex;min-height:0}
+#cv{margin:auto;touch-action:none;display:block;flex:none}
+#status{display:flex;gap:14px;flex-wrap:wrap;padding:4px 16px;font:11px var(--f-mono);color:var(--mute);background:var(--panel);border-top:1px solid var(--line)}
+.row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 8px;margin-bottom:6px}
+.row.one{grid-template-columns:minmax(0,1fr)}
+.row.four{grid-template-columns:repeat(4,minmax(0,1fr))}
+.f{display:flex;flex-direction:column;gap:2px;min-width:0}
+.f>span{font-size:11px;color:var(--mute)}
+.chk{display:flex;gap:6px;align-items:center;margin:4px 0}
+.seg{display:flex;border:1px solid var(--line);border-radius:5px;overflow:hidden}
+.seg button{flex:1;border:0;background:var(--raise);padding:4px 6px;cursor:pointer;border-left:1px solid var(--line)}
+.seg button:first-child{border-left:0}
+.seg button.on{background:var(--accent);color:var(--accent-ink);font-weight:600}
+.chips{display:flex;flex-wrap:wrap;gap:4px;margin:-2px 0 6px}
+.chips button{border:1px solid var(--line);background:none;border-radius:10px;padding:1px 8px;font:11px var(--f-mono);cursor:pointer}
+.chips button:hover{border-color:var(--accent)}
+.colrow{display:flex;gap:6px;align-items:center}
+.colrow input[type=color]{width:34px;height:28px;padding:0;border:1px solid var(--line);border-radius:4px;background:none;flex:none}
+.colrow input[type=text]{font-family:var(--f-mono);text-transform:uppercase;width:84px;flex:none}
+.sw{display:grid;grid-template-columns:repeat(8,1fr);gap:3px;margin:6px 0}
+.sw button{aspect-ratio:1;border:1px solid var(--line);border-radius:3px;cursor:pointer;padding:0}
+.dc{border:1px solid var(--line);border-radius:6px;padding:8px;background:var(--raise);margin-bottom:6px}
+.dc table{border-collapse:collapse;width:100%}
+.dc th{font:400 10px var(--f-ui);color:var(--mute);text-align:left;padding:0 3px 3px}
+.dc td{padding:2px 3px;vertical-align:middle}
+.dc td input[type=number]{width:70px}
+.dc td input[type=color]{width:30px;height:24px;padding:0;border:1px solid var(--line);border-radius:3px;background:none}
+.hint{font-size:11px;color:var(--mute);margin:4px 0 8px}
+.hint b{color:var(--ink);font-weight:600}
+kbd{font:10px var(--f-mono);border:1px solid var(--line);border-radius:3px;padding:0 4px;background:var(--raise)}
+dialog{border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink);padding:18px;width:min(640px,calc(100vw - 32px));max-height:calc(100% - 32px)}
+dialog::backdrop{background:rgba(8,14,20,.55)}
+dialog h3{font:700 16px var(--f-head);letter-spacing:.04em;text-transform:uppercase;margin:0 0 10px}
+dialog textarea{height:220px;font:11px/1.35 var(--f-mono);white-space:pre;resize:vertical}
+dialog ol{padding-left:20px;margin:6px 0}
+dialog li{margin:5px 0}
+.dlgbar{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center}
+#toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:7px 14px;border-radius:6px;z-index:20;max-width:calc(100vw - 32px)}
+@media (max-width:900px){
+  html,body{height:auto}
+  main{display:flex;flex-direction:column}
+  #stagewrap{order:-1;height:62vh}
+  #left,#right{border:0;border-top:1px solid var(--line);overflow:visible}
+  #layers{overflow:visible;flex:none}
+}
+</style>
+<!--/PAGE-->
+</head>
+<body>
+<!--PAGE-->
+<header>
+  <div class="brand">HMs DIY szerkesztő<small>Garmin adatmező-elrendezés tervező</small></div>
+  <div class="grp">
+    <label for="device">Eszköz</label>
+    <select id="device"></select>
+    <input id="devw" type="number" min="50" max="1000" title="Szélesség (px)" aria-label="Szélesség">
+    <span>×</span>
+    <input id="devh" type="number" min="50" max="1000" title="Magasság (px)" aria-label="Magasság">
+    <label class="chk" style="margin:0"><input id="devround" type="checkbox"> kerek</label>
+    <button class="btn sm" id="rescale" hidden>Elemek átméretezése</button>
+  </div>
+  <div class="grp">
+    <button class="btn" id="undo" title="Visszavonás (Ctrl+Z)">↶</button>
+    <button class="btn" id="redo" title="Mégis (Ctrl+Y)">↷</button>
+    <button class="btn" id="zout" title="Kicsinyítés">−</button>
+    <button class="btn" id="zfit" title="Nagyítás illesztése" style="min-width:52px">100%</button>
+    <button class="btn" id="zin" title="Nagyítás">+</button>
+    <button class="btn" id="night" title="Éjszakai mód előnézete">☾ Éjszaka</button>
+    <button class="btn on" id="snap" title="Illesztés más elemekhez és a középvonalhoz">⌗ Illesztés</button>
+  </div>
+  <div class="sp"></div>
+  <div class="grp">
+    <button class="btn" id="bnew">Új</button>
+    <button class="btn" id="bopen">Megnyitás</button>
+    <button class="btn pri" id="bsave">Mentés (XML)</button>
+    <button class="btn" id="bdev">Hogyan kerül az órára?</button>
+  </div>
+</header>
+<main>
+  <aside id="left">
+    <h2>Hozzáadás</h2>
+    <div class="palette" id="palette"></div>
+    <h2>Rétegek <span class="sp"></span>
+      <button class="btn sm ghost" id="lup" title="Előrébb">▲</button>
+      <button class="btn sm ghost" id="ldown" title="Hátrébb">▼</button>
+      <button class="btn sm ghost" id="ldup" title="Duplikálás (Ctrl+D)">⧉</button>
+      <button class="btn sm ghost" id="ldel" title="Törlés (Del)">✕</button>
+    </h2>
+    <div class="hint">Felül van, ami legelöl látszik. Húzással átrendezhető.</div>
+    <ul id="layers"></ul>
+  </aside>
+  <div id="stagewrap">
+    <div id="stage"><canvas id="cv"></canvas></div>
+    <div id="status"><span id="st-pos">x – y –</span><span id="st-sel"></span><span class="sp"></span><span id="st-count"></span></div>
+  </div>
+  <aside id="right"><div id="panel"></div></aside>
+</main>
+
+<dialog id="dlg-save">
+  <h3>Mentés XML-be</h3>
+  <p class="hint">Ez ugyanaz az XML formátum, amit a HMs DIY Designer használ – ott megnyitható (Load), és innen is visszatölthető.</p>
+  <div class="row"><label class="f"><span>Fájlnév</span><input type="text" id="fname" value="layout.xml"></label></div>
+  <textarea id="xmlout" readonly aria-label="XML"></textarea>
+  <div class="dlgbar"><button class="btn pri" id="dl">Letöltés</button><button class="btn" id="cp">Másolás vágólapra</button><span class="sp"></span><button class="btn" data-close>Bezár</button></div>
+</dialog>
+<dialog id="dlg-open">
+  <h3>Elrendezés megnyitása</h3>
+  <p class="hint">Válassz egy HMs DIY Designer XML fájlt, húzd az ablakra, vagy illeszd be a tartalmát. A jelenlegi elrendezést felülírja (visszavonható).</p>
+  <input type="file" id="file" accept=".xml,text/xml">
+  <textarea id="xmlin" placeholder="&lt;DIYLayout&gt; … &lt;/DIYLayout&gt;" aria-label="XML beillesztése" style="margin-top:8px"></textarea>
+  <div class="dlgbar"><button class="btn pri" id="loadtxt">Betöltés a szövegből</button><span class="sp"></span><button class="btn" data-close>Mégse</button></div>
+</dialog>
+<dialog id="dlg-dev">
+  <h3>Hogyan kerül az órára?</h3>
+  <p>Az adatmező egy kódolt „layout stringet” vár a beállításaiban. Ezt a karakterláncot jelenleg csak az eredeti (windowsos) HMs DIY Designer tudja előállítani, mert a kódolás nincs dokumentálva. A lépések:</p>
+  <ol>
+    <li>Itt: <b>Mentés (XML)</b> → töltsd le a fájlt.</li>
+    <li>HMs DIY Designer: <b>Load</b> → nyisd meg az XML-t, majd <b>Copy to clipboard</b> (Ctrl+B).</li>
+    <li>Garmin Connect / Garmin Express: a HMs DIY adatmező beállításaiban illeszd be a <b>Default layout string</b> mezőbe.</li>
+  </ol>
+  <p class="hint">Az előnézet betűi közelítések (a Garmin nem adja ki a készülékek betűtípusait), a grafikus elemek helye pontos. Az élő értékek helyén mintaértékek látszanak.</p>
+  <div class="dlgbar"><span class="sp"></span><button class="btn" data-close>Rendben</button></div>
+</dialog>
+<dialog id="dlg-new">
+  <h3>Új elrendezés</h3>
+  <p>Mivel induljunk? A mostani elrendezés a Visszavonással visszahozható.</p>
+  <div class="dlgbar"><button class="btn pri" id="new-sample">Minta elrendezés</button><button class="btn" id="new-empty">Üres lap</button><span class="sp"></span><button class="btn" data-close>Mégse</button></div>
+</dialog>
+<div id="toast" hidden></div>
+
+<script>
+"use strict";
+const DEV = /*DATA*/{"Approach S60":[240,240,1,{"TINY":[6,21,-4,0,5,5],"SMALL":[6,21,-4,0,5,5],"MEDIUM":[6,25,-5,0,5,5],"LARGE":[6,25,-5,0,5,5],"NR_MILD":[6,29,-6,0,6,4],"NR_MEDIUM":[6,35,-7,0,7,7],"NR_HOT":[6,55,-9,0,11,9],"NR_THAI_HOT":[5,68,-13,0,14,11],"S_XTINY":[4,16,-3,0,3,3],"S_TINY":[6,21,-4,0,5,5],"S_SMALL":[6,21,-4,0,5,5],"S_MEDIUM":[6,25,-5,0,5,5],"S_LARGE":[6,25,-5,0,5,5],"S_NR_MILD":[6,29,-6,0,6,4],"S_NR_MEDIUM":[6,35,-7,0,7,7],"S_NR_HOT":[6,55,-9,0,11,9],"S_NR_THAI_HOT":[5,68,-13,0,14,11]}],"Approach S62":[260,260,1,{"XTINY":[2,18,-3,0,3,0],"TINY":[2,24,-4,0,4,4],"SMALL":[2,30,-5,0,5,5],"MEDIUM":[2,36,-5,0,5,5],"LARGE":[2,42,-6,0,6,7],"NR_MILD":[2,35,-6,0,6,6],"NR_MEDIUM":[2,45,-7,0,7,7],"NR_HOT":[2,50,-9,0,9,8],"NR_THAI_HOT":[2,70,0,0,0,9],"S_XTINY":[2,18,-3,0,3,0],"S_TINY":[2,24,-4,0,4,4],"S_SMALL":[2,30,-5,0,5,5],"S_MEDIUM":[2,36,-5,0,5,5],"S_LARGE":[2,42,-6,0,6,7],"S_NR_MILD":[2,35,-6,0,6,6],"S_NR_MEDIUM":[2,45,-7,0,7,7],"S_NR_HOT":[2,50,-9,0,9,8],"S_NR_THAI_HOT":[2,70,0,0,0,9]}],"Darth Vader":[260,260,1,{"XTINY":[2,18,-3,0,3,0],"TINY":[2,24,-4,0,4,4],"SMALL":[2,30,-5,0,5,5],"MEDIUM":[2,36,-5,0,5,5],"LARGE":[2,42,-6,0,6,7],"NR_MILD":[2,35,-6,0,6,6],"NR_MEDIUM":[2,45,-7,0,7,7],"NR_HOT":[2,50,-9,0,9,8],"NR_THAI_HOT":[2,70,0,0,0,9],"S_XTINY":[2,18,-3,0,3,0],"S_TINY":[2,24,-4,0,4,4],"S_SMALL":[2,30,-5,0,5,5],"S_MEDIUM":[2,36,-5,0,5,5],"S_LARGE":[2,42,-6,0,6,7],"S_NR_MILD":[2,35,-6,0,6,6],"S_NR_MEDIUM":[2,45,-7,0,7,7],"S_NR_HOT":[2,50,-9,0,9,8],"S_NR_THAI_HOT":[2,70,0,0,0,9]}],"D2 Bravo":[218,218,1,{"XTINY":[0,12,-1,0,1,0],"TINY":[0,15,-2,0,2,2],"SMALL":[1,20,-2,0,3,0],"MEDIUM":[1,24,-4,0,5,-1],"LARGE":[0,29,-4,0,5,0],"NR_MILD":[7,26,-4,0,5,0],"NR_MEDIUM":[7,48,-7,0,8,2],"NR_HOT":[7,62,-10,0,11,4],"NR_THAI_HOT":[7,89,-15,0,16,5]}],"D2 Bravo Titanium":[218,218,1,{"XTINY":[0,12,-1,0,1,0],"TINY":[0,15,-2,0,2,2],"SMALL":[1,20,-2,0,3,0],"MEDIUM":[1,24,-4,0,5,-1],"LARGE":[0,29,-4,0,5,0],"NR_MILD":[7,26,-4,0,5,0],"NR_MEDIUM":[7,48,-7,0,8,2],"NR_HOT":[7,62,-10,0,11,4],"NR_THAI_HOT":[7,89,-15,0,16,5]}],"D2 Charlie":[240,240,1,{"XTINY":[1,21,-4,0,4,0],"TINY":[0,21,-3,0,3,0],"SMALL":[0,23,-4,0,5,0],"MEDIUM":[0,28,-5,0,4,0],"LARGE":[0,32,-5,0,6,-4],"NR_MILD":[2,37,-7,0,9,-6],"NR_MEDIUM":[2,51,-10,0,11,-9],"NR_HOT":[2,71,-12,0,12,-12],"NR_THAI_HOT":[2,80,-15,0,15,-14],"S_XTINY":[1,21,-4,0,4,0],"S_TINY":[0,21,-3,0,3,0],"S_SMALL":[0,23,-4,0,5,0],"S_MEDIUM":[0,28,-5,0,4,0],"S_LARGE":[0,32,-5,0,6,-4],"S_NR_MILD":[2,37,-7,0,9,-6],"S_NR_MEDIUM":[2,51,-10,0,11,-9],"S_NR_HOT":[2,71,-12,0,12,-12],"S_NR_THAI_HOT":[2,80,-15,0,15,-14]}],"D2 Delta":[240,240,1,{"XTINY":[1,21,-4,0,4,0],"TINY":[0,21,-3,0,3,0],"SMALL":[0,23,-4,0,5,0],"MEDIUM":[0,28,-5,0,4,0],"LARGE":[0,32,-5,0,6,-4],"NR_MILD":[2,37,-7,0,9,-6],"NR_MEDIUM":[2,51,-10,0,11,-9],"NR_HOT":[2,71,-12,0,12,-12],"NR_THAI_HOT":[2,80,-15,0,15,-14],"S_XTINY":[1,21,-4,0,4,0],"S_TINY":[0,21,-3,0,3,0],"S_SMALL":[0,23,-4,0,5,0],"S_MEDIUM":[0,28,-5,0,4,0],"S_LARGE":[0,32,-5,0,6,-4],"S_NR_MILD":[2,37,-7,0,9,-6],"S_NR_MEDIUM":[2,51,-10,0,11,-9],"S_NR_HOT":[2,71,-12,0,12,-12],"S_NR_THAI_HOT":[2,80,-15,0,15,-14]}],"D2 Delta PX":[240,240,1,{"XTINY":[1,21,-4,0,4,0],"TINY":[0,21,-3,0,3,0],"SMALL":[0,23,-4,0,5,0],"MEDIUM":[0,28,-5,0,4,0],"LARGE":[0,32,-5,0,6,-4],"NR_MILD":[2,37,-7,0,9,-6],"NR_MEDIUM":[2,51,-10,0,11,-9],"NR_HOT":[2,71,-12,0,12,-12],"NR_THAI_HOT":[2,80,-15,0,15,-14],"S_XTINY":[1,21,-4,0,4,0],"S_TINY":[0,21,-3,0,3,0],"S_SMALL":[0,23,-4,0,5,0],"S_MEDIUM":[0,28,-5,0,4,0],"S_LARGE":[0,32,-5,0,6,-4],"S_NR_MILD":[2,37,-7,0,9,-6],"S_NR_MEDIUM":[2,51,-10,0,11,-9],"S_NR_HOT":[2,71,-12,0,12,-12],"S_NR_THAI_HOT":[2,80,-15,0,15,-14]}],"D2 Delta S":[240,240,1,{"XTINY":[1,21,-4,0,4,0],"TINY":[0,21,-3,0,3,0],"SMALL":[0,23,-4,0,5,0],"MEDIUM":[0,28,-5,0,4,0],"LARGE":[0,32,-5,0,6,-4],"NR_MILD":[2,37,-7,0,9,-6],"NR_MEDIUM":[2,51,-10,0,11,-9],"NR_HOT":[2,71,-12,0,12,-12],"NR_THAI_HOT":[2,80,-15,0,15,-14],"S_XTINY":[1,21,-4,0,4,0],"S_TINY":[0,21,-3,0,3,0],"S_SMALL":[0,23,-4,0,5,0],"S_MEDIUM":[0,28,-5,0,4,0],"S_LARGE":[0,32,-5,0,6,-4],"S_NR_MILD":[2,37,-7,0,9,-6],"S_NR_MEDIUM":[2,51,-10,0,11,-9],"S_NR_HOT":[2,71,-12,0,12,-12],"S_NR_THAI_HOT":[2,80,-15,0,15,-14]}],"D2 Air":[390,390,1,{"XTINY":[2,10,0,0,0,0],"TINY":[2,12,0,0,0,0],"SMALL":[2,15,0,0,0,0],"MEDIUM":[2,20,0,0,0,0],"LARGE":[2,20,0,0,0,0],"NR_MILD":[2,2,0,0,0,0],"NR_MEDIUM":[2,3,0,0,0,0],"NR_HOT":[2,6,0,0,0,0],"NR_THAI_HOT":[2,7,0,0,0,0],"S_XTINY":[2,10,0,0,0,0],"S_TINY":[2,12,0,0,0,0],"S_SMALL":[2,15,0,0,0,0],"S_MEDIUM":[2,20,0,0,0,0],"S_LARGE":[2,20,0,0,0,0],"S_NR_MILD":[2,2,0,0,0,0],"S_NR_MEDIUM":[2,3,0,0,0,0],"S_NR_HOT":[2,6,0,0,0,0],"S_NR_THAI_HOT":[2,7,0,0,0,0]}],"Descent Mk1":[240,240,1,{"XTINY":[1,21,-4,0,4,0],"TINY":[0,21,-3,0,3,0],"SMALL":[0,23,-4,0,5,0],"MEDIUM":[0,28,-5,0,4,0],"LARGE":[0,32,-5,0,6,-4],"NR_MILD":[2,37,-7,0,9,-6],"NR_MEDIUM":[2,51,-10,0,11,-9],"NR_HOT":[2,71,-12,0,12,-12],"NR_THAI_HOT":[2,80,-15,0,15,-14],"S_XTINY":[1,21,-4,0,4,0],"S_TINY":[0,21,-3,0,3,0],"S_SMALL":[0,23,-4,0,5,0],"S_MEDIUM":[0,28,-5,0,4,0],"S_LARGE":[0,32,-5,0,6,-4],"S_NR_MILD":[2,37,-7,0,9,-6],"S_NR_MEDIUM":[2,51,-10,0,11,-9],"S_NR_HOT":[2,71,-12,0,12,-12],"S_NR_THAI_HOT":[2,80,-15,0,15,-14]}],"Descent Mk2 / Descent Mk2i":[280,280,1,{"XTINY":[0,15,-2,0,3,0],"TINY":[0,24,-4,0,5,1],"SMALL":[0,28,-4,0,5,0],"MEDIUM":[0,30,-5,0,6,2],"LARGE":[0,35,-6,0,6,-2],"NR_MILD":[6,45,-8,0,8,6],"NR_MEDIUM":[6,50,-9,0,10,12],"NR_HOT":[4,70,-12,0,13,13],"NR_THAI_HOT":[4,80,-14,0,14,15],"S_XTINY":[0,15,-2,0,3,0],"S_TINY":[0,24,-4,0,5,1],"S_SMALL":[0,28,-4,0,5,0],"S_MEDIUM":[0,30,-5,0,6,2],"S_LARGE":[0,35,-6,0,6,-2],"S_NR_MILD":[6,45,-8,0,8,6],"S_NR_MEDIUM":[6,50,-9,0,10,12],"S_NR_HOT":[4,70,-12,0,13,13],"S_NR_THAI_HOT":[4,80,-14,0,14,15]}],"Descent Mk2 S":[240,240,1,{"XTINY":[2,13,0,0,0,0],"TINY":[2,17,0,0,0,0],"SMALL":[2,19,0,0,0,0],"MEDIUM":[2,22,0,0,0,0],"LARGE":[2,24,0,0,0,0],"NR_MILD":[2,28,0,0,0,0],"NR_MEDIUM":[2,34,0,0,0,0],"NR_HOT":[2,46,0,0,0,0],"NR_THAI_HOT":[2,53,0,0,0,0],"S_XTINY":[2,13,0,0,0,0],"S_TINY":[2,17,0,0,0,0],"S_SMALL":[2,19,0,0,0,0],"S_MEDIUM":[2,22,0,0,0,0],"S_LARGE":[2,24,0,0,0,0],"S_NR_MILD":[2,28,0,0,0,0],"S_NR_MEDIUM":[2,34,0,0,0,0],"S_NR_HOT":[2,46,0,0,0,0],"S_NR_THAI_HOT":[2,53,0,0,0,0]}],"Edge 1030":[282,470,0,{"XTINY":[1,15,-3,0,4,-4],"TINY":[1,21,-4,0,5,-5],"SMALL":[1,24,-4,0,5,-5],"MEDIUM":[1,27,-5,0,6,-6],"LARGE":[1,40,-8,0,9,-5],"NR_MILD":[2,40,-7,0,8,-6],"NR_MEDIUM":[2,48,-9,0,9,-7],"NR_HOT":[2,60,-10,0,10,-9],"NR_THAI_HOT":[2,79,-14,0,14,-8]}],"Edge 1030 plus":[282,470,0,{"XTINY":[1,15,-3,0,4,-4],"TINY":[1,21,-4,0,5,-5],"SMALL":[1,24,-4,0,5,-5],"MEDIUM":[1,27,-5,0,6,-6],"LARGE":[1,40,-8,0,9,-5],"NR_MILD":[2,40,-7,0,8,-6],"NR_MEDIUM":[2,48,-9,0,9,-7],"NR_THAI_HOT":[2,79,-14,0,14,-8]}],"Edge 1030, Bontrager":[282,470,0,{"XTINY":[1,15,-3,0,4,-4],"TINY":[1,21,-4,0,5,-5],"SMALL":[1,24,-4,0,5,-5],"MEDIUM":[1,27,-5,0,6,-6],"LARGE":[1,40,-8,0,9,-5],"NR_MILD":[2,40,-7,0,8,-6],"NR_MEDIUM":[2,48,-9,0,9,-7],"NR_HOT":[2,60,-10,0,10,-9],"NR_THAI_HOT":[2,79,-14,0,14,-8]}],"Edge 130":[230,303,0,{"XTINY":[2,17,0,0,0,0],"TINY":[2,17,0,0,0,0],"SMALL":[2,18,0,0,0,0],"MEDIUM":[2,18,0,0,0,0],"LARGE":[2,21,0,0,0,0],"NR_MILD":[2,32,0,0,0,0],"NR_MEDIUM":[2,35,0,0,0,0],"NR_HOT":[2,51,0,0,0,0],"NR_THAI_HOT":[2,64,0,0,0,0]}],"Edge 130 plus":[230,303,0,{"XTINY":[2,17,0,0,0,0],"TINY":[2,17,0,0,0,0],"SMALL":[2,18,0,0,0,0],"MEDIUM":[2,18,0,0,0,0],"LARGE":[2,21,0,0,0,0],"NR_MILD":[2,32,0,0,0,0],"NR_MEDIUM":[2,35,0,0,0,0],"NR_HOT":[2,51,0,0,0,0],"NR_THAI_HOT":[2,64,0,0,0,0]}],"Edge 520 Plus":[200,265,0,{"XTINY":[1,12,-3,0,3,-3],"TINY":[1,17,-4,0,5,-5],"SMALL":[1,19,-4,0,5,-6],"MEDIUM":[1,22,-5,0,6,-7],"LARGE":[1,32,-8,0,9,-11],"NR_MILD":[0,24,0,0,0,0],"NR_MEDIUM":[0,28,0,0,0,0],"NR_HOT":[0,36,0,0,0,0],"NR_THAI_HOT":[2,55,-10,0,10,-9]}],"Edge 530":[246,322,0,{"XTINY":[1,11,0,0,0,0],"TINY":[1,15,0,0,0,0],"SMALL":[1,21,-4,0,5,-5],"MEDIUM":[1,24,-4,0,5,-5],"LARGE":[1,33,0,0,0,0],"NR_MILD":[2,36,-7,0,8,-6],"NR_MEDIUM":[2,40,-7,0,8,-6],"NR_HOT":[2,55,-10,0,10,-9],"NR_THAI_HOT":[2,62,-14,0,14,-20]}],"Edge 820 / Explore":[200,265,0,{"XTINY":[1,12,-3,0,3,-3],"TINY":[1,17,-4,0,5,-5],"SMALL":[1,19,-4,0,5,-6],"MEDIUM":[1,22,-5,0,6,-7],"LARGE":[1,32,-8,0,9,-11],"NR_MILD":[0,24,0,0,0,0],"NR_MEDIUM":[0,28,0,0,0,0],"NR_HOT":[0,36,0,0,0,0],"NR_THAI_HOT":[2,55,-10,0,10,-9]}],"Edge 830":[246,322,0,{"XTINY":[1,11,0,0,0,0],"TINY":[1,15,0,0,0,0],"SMALL":[1,21,-4,0,5,-5],"MEDIUM":[1,24,-4,0,5,-5],"LARGE":[1,33,0,0,0,0],"NR_MILD":[2,36,-7,0,8,-6],"NR_MEDIUM":[2,40,-7,0,8,-6],"NR_HOT":[2,55,-10,0,10,-9],"NR_THAI_HOT":[2,62,-14,0,14,-20]}],"Edge Explore":[240,400,0,{"XTINY":[1,12,-3,0,3,-3],"TINY":[1,17,-4,0,5,-5],"SMALL":[1,19,-4,0,5,-6],"MEDIUM":[1,22,-5,0,6,-7],"LARGE":[1,32,-8,0,9,-11],"NR_MILD":[2,36,-7,0,8,-6],"NR_MEDIUM":[2,40,-7,0,8,-6],"NR_HOT":[2,55,-10,0,10,-9],"NR_THAI_HOT":[2,62,-14,0,14,-20]}],"Edge Explore 2":[240,400,0,{"XTINY":[1,10,0,0,0,0],"TINY":[1,12,0,0,0,0],"SMALL":[1,14,0,0,0,0],"MEDIUM":[1,16,0,0,0,0],"LARGE":[1,26,0,0,0,0],"NR_MILD":[1,26,0,0,0,0],"NR_MEDIUM":[1,30,0,0,0,0],"NR_HOT":[1,40,0,0,0,0],"NR_THAI_HOT":[1,50,0,0,0,0]}],"Edge 1000 / Explore":[240,400,0,{"XTINY":[1,12,-3,0,3,-3],"TINY":[1,17,-4,0,5,-5],"SMALL":[1,19,-4,0,5,-6],"MEDIUM":[1,22,-5,0,6,-7],"LARGE":[1,32,-8,0,9,-11],"NR_MILD":[2,36,-7,0,8,-6],"NR_MEDIUM":[2,40,-7,0,8,-6],"NR_HOT":[2,55,-10,0,10,-9],"NR_THAI_HOT":[2,62,-14,0,14,-20]}],"Edge 520":[200,265,0,{"XTINY":[1,12,-3,0,3,-3],"TINY":[1,17,-4,0,5,-5],"SMALL":[1,19,-4,0,5,-6],"MEDIUM":[1,22,-5,0,6,-7],"LARGE":[1,32,-8,0,9,-11],"NR_MILD":[0,24,0,0,0,0],"NR_MEDIUM":[0,28,0,0,0,0],"NR_HOT":[0,36,0,0,0,0],"NR_THAI_HOT":[2,55,-10,0,10,-9]}],"Enduro":[280,280,1,{"XTINY":[0,15,-2,0,3,0],"TINY":[0,24,-4,0,5,1],"SMALL":[0,28,-4,0,5,0],"MEDIUM":[0,30,-5,0,6,2],"LARGE":[0,35,-6,0,6,-2],"NR_MILD":[6,45,-8,0,8,6],"NR_MEDIUM":[6,50,-9,0,10,12],"NR_HOT":[4,70,-12,0,13,13],"NR_THAI_HOT":[4,80,-14,0,14,15],"S_XTINY":[0,15,-2,0,3,0],"S_TINY":[0,24,-4,0,5,1],"S_SMALL":[0,28,-4,0,5,0],"S_MEDIUM":[0,30,-5,0,6,2],"S_LARGE":[0,35,-6,0,6,-2],"S_NR_MILD":[6,45,-8,0,8,6],"S_NR_MEDIUM":[6,50,-9,0,10,12],"S_NR_HOT":[4,70,-12,0,13,13],"S_NR_THAI_HOT":[4,80,-14,0,14,15]}],"epix":[205,148,0,{"XTINY":[0,14,-1,0,2,2],"TINY":[0,14,-1,0,2,2],"SMALL":[0,14,-1,0,2,2],"MEDIUM":[1,17,0,0,0,0],"LARGE":[1,20,0,0,0,0],"NR_MILD":[2,20,0,0,0,0],"NR_MEDIUM":[2,32,0,0,0,0],"NR_HOT":[2,38,0,0,0,0],"NR_THAI_HOT":[2,62,0,0,0,0]}],"epix Gen2":[416,416,1,{"XTINY":[1,24,0,0,0,0],"TINY":[1,24,0,0,0,0],"SMALL":[1,27,0,0,0,0],"MEDIUM":[1,32,0,0,0,0],"LARGE":[1,35,0,0,0,0],"NR_MILD":[2,45,0,0,0,0],"NR_MEDIUM":[2,54,0,0,0,0],"NR_HOT":[2,73,0,0,0,0],"NR_THAI_HOT":[2,84,0,0,0,0],"S_XTINY":[1,24,0,0,0,0],"S_TINY":[1,24,0,0,0,0],"S_SMALL":[1,27,0,0,0,0],"S_MEDIUM":[1,32,0,0,0,0],"S_LARGE":[1,35,0,0,0,0],"S_NR_MILD":[2,45,0,0,0,0],"S_NR_MEDIUM":[2,54,0,0,0,0],"S_NR_HOT":[2,73,0,0,0,0],"S_NR_THAI_HOT":[2,84,0,0,0,0]}],"fenix 3 / tactix Bravo / quatix 3":[218,218,1,{"XTINY":[0,12,-1,0,1,0],"TINY":[0,15,-2,0,2,2],"SMALL":[1,20,-2,0,3,0],"MEDIUM":[1,24,-4,0,5,-1],"LARGE":[0,29,-4,0,5,0],"NR_MILD":[7,26,-4,0,5,0],"NR_MEDIUM":[7,48,-7,0,8,2],"NR_HOT":[7,62,-10,0,11,4],"NR_THAI_HOT":[7,89,-15,0,16,5]}],"fenix 3 HR":[218,218,1,{"XTINY":[0,12,-1,0,1,0],"TINY":[0,15,-2,0,2,2],"SMALL":[1,20,-2,0,3,0],"MEDIUM":[1,24,-4,0,5,-1],"LARGE":[0,29,-4,0,5,0],"NR_MILD":[7,26,-4,0,5,0],"NR_MEDIUM":[7,48,-7,0,8,2],"NR_HOT":[7,62,-10,0,11,4],"NR_THAI_HOT":[7,89,-15,0,16,5]}],"fenix 5 / quatix 5":[240,240,1,{"XTINY":[1,21,-4,0,4,0],"TINY":[0,21,-3,0,3,0],"SMALL":[0,23,-4,0,5,0],"MEDIUM":[0,28,-5,0,4,0],"LARGE":[0,32,-5,0,6,-4],"NR_MILD":[2,37,-7,0,9,-6],"NR_MEDIUM":[2,51,-10,0,11,-9],"NR_HOT":[2,71,-12,0,12,-12],"NR_THAI_HOT":[2,80,-15,0,15,-14],"S_XTINY":[1,21,-4,0,4,0],"S_TINY":[0,21,-3,0,3,0],"S_SMALL":[0,23,-4,0,5,0],"S_MEDIUM":[0,28,-5,0,4,0],"S_LARGE":[0,32,-5,0,6,-4],"S_NR_MILD":[2,37,-7,0,9,-6],"S_NR_MEDIUM":[2,51,-10,0,11,-9],"S_NR_HOT":[2,71,-12,0,12,-12],"S_NR_THAI_HOT":[2,80,-15,0,15,-14]}],"fenix 5 Plus":[240,240,1,{"XTINY":[1,21,-4,0,4,0],"TINY":[0,21,-3,0,3,0],"SMALL":[0,23,-4,0,5,0],"MEDIUM":[0,28,-5,0,4,0],"LARGE":[0,32,-5,0,6,-4],"NR_MILD":[2,37,-7,0,9,-6],"NR_MEDIUM":[2,51,-10,0,11,-9],"NR_HOT":[2,71,-12,0,12,-12],"NR_THAI_HOT":[2,80,-15,0,15,-14],"S_XTINY":[1,21,-4,0,4,0],"S_TINY":[0,21,-3,0,3,0],"S_SMALL":[0,23,-4,0,5,0],"S_MEDIUM":[0,28,-5,0,4,0],"S_LARGE":[0,32,-5,0,6,-4],"S_NR_MILD":[2,37,-7,0,9,-6],"S_NR_MEDIUM":[2,51,-10,0,11,-9],"S_NR_HOT":[2,71,-12,0,12,-12],"S_NR_THAI_HOT":[2,80,-15,0,15,-14]}],"fenix 5S":[218,218,1,{"XTINY":[1,23,0,0,0,0],"TINY":[0,18,0,0,0,0],"SMALL":[0,20,0,0,0,0],"MEDIUM":[0,25,0,0,0,0],"LARGE":[0,28,-5,0,4,0],"NR_MILD":[2,24,0,0,0,0],"NR_MEDIUM":[2,32,0,0,0,0],"NR_HOT":[2,46,0,0,0,0],"NR_THAI_HOT":[2,53,0,0,0,0],"S_XTINY":[1,23,0,0,0,0],"S_TINY":[0,18,0,0,0,0],"S_SMALL":[0,20,0,0,0,0],"S_MEDIUM":[0,25,0,0,0,0],"S_LARGE":[0,28,-5,0,4,0],"S_NR_MILD":[2,24,0,0,0,0],"S_NR_MEDIUM":[2,32,0,0,0,0],"S_NR_HOT":[2,46,0,0,0,0],"S_NR_THAI_HOT":[2,53,0,0,0,0]}],"fenix 5S Plus":[240,240,1,{"XTINY":[1,21,-4,0,4,0],"TINY":[0,21,-3,0,3,0],"SMALL":[0,23,-4,0,5,0],"MEDIUM":[0,28,-5,0,4,0],"LARGE":[0,32,-5,0,6,-4],"NR_MILD":[2,37,-7,0,9,-6],"NR_MEDIUM":[2,51,-10,0,11,-9],"NR_HOT":[2,71,-12,0,12,-12],"NR_THAI_HOT":[2,80,-15,0,15,-14],"S_XTINY":[1,21,-4,0,4,0],"S_TINY":[0,21,-3,0,3,0],"S_SMALL":[0,23,-4,0,5,0],"S_MEDIUM":[0,28,-5,0,4,0],"S_LARGE":[0,32,-5,0,6,-4],"S_NR_MILD":[2,37,-7,0,9,-6],"S_NR_MEDIUM":[2,51,-10,0,11,-9],"S_NR_HOT":[2,71,-12,0,12,-12],"S_NR_THAI_HOT":[2,80,-15,0,15,-14]}],"fenix 5X / tactix Charlie":[240,240,1,{"XTINY":[1,21,-4,0,4,0],"TINY":[0,21,-3,0,3,0],"SMALL":[0,23,-4,0,5,0],"MEDIUM":[0,28,-5,0,4,0],"LARGE":[0,32,-5,0,6,-4],"NR_MILD":[2,37,-7,0,9,-6],"NR_MEDIUM":[2,51,-10,0,11,-9],"NR_HOT":[2,71,-12,0,12,-12],"NR_THAI_HOT":[2,80,-15,0,15,-14],"S_XTINY":[1,21,-4,0,4,0],"S_TINY":[0,21,-3,0,3,0],"S_SMALL":[0,23,-4,0,5,0],"S_MEDIUM":[0,28,-5,0,4,0],"S_LARGE":[0,32,-5,0,6,-4],"S_NR_MILD":[2,37,-7,0,9,-6],"S_NR_MEDIUM":[2,51,-10,0,11,-9],"S_NR_HOT":[2,71,-12,0,12,-12],"S_NR_THAI_HOT":[2,80,-15,0,15,-14]}],"fenix 5X Plus":[240,240,1,{"XTINY":[1,21,-4,0,4,0],"TINY":[0,21,-3,0,3,0],"SMALL":[0,23,-4,0,5,0],"MEDIUM":[0,28,-5,0,4,0],"LARGE":[0,32,-5,0,6,-4],"NR_MILD":[2,37,-7,0,9,-6],"NR_MEDIUM":[2,51,-10,0,11,-9],"NR_HOT":[2,71,-12,0,12,-12],"NR_THAI_HOT":[2,80,-15,0,15,-14],"S_XTINY":[1,21,-4,0,4,0],"S_TINY":[0,21,-3,0,3,0],"S_SMALL":[0,23,-4,0,5,0],"S_MEDIUM":[0,28,-5,0,4,0],"S_LARGE":[0,32,-5,0,6,-4],"S_NR_MILD":[2,37,-7,0,9,-6],"S_NR_MEDIUM":[2,51,-10,0,11,-9],"S_NR_HOT":[2,71,-12,0,12,-12],"S_NR_THAI_HOT":[2,80,-15,0,15,-14]}],"fenix 6":[260,260,1,{"XTINY":[0,15,-2,0,2,0],"TINY":[0,22,-3,0,3,1],"SMALL":[0,25,-4,0,5,0],"MEDIUM":[0,30,-4,0,5,0],"LARGE":[0,32,-5,0,6,0],"NR_MILD":[6,40,-7,0,7,7],"NR_MEDIUM":[6,46,-8,0,8,10],"NR_HOT":[4,63,-10,0,11,15],"NR_THAI_HOT":[4,70,-12,0,13,20],"S_XTINY":[0,15,-2,0,2,0],"S_TINY":[0,22,-3,0,3,1],"S_SMALL":[0,25,-4,0,5,0],"S_MEDIUM":[0,30,-4,0,5,0],"S_LARGE":[0,32,-5,0,6,0],"S_NR_MILD":[6,40,-7,0,7,7],"S_NR_MEDIUM":[6,46,-8,0,8,10],"S_NR_HOT":[4,63,-10,0,11,15],"S_NR_THAI_HOT":[4,70,-12,0,13,20]}],"fenix 6 Pro / 6 Sapphire":[260,260,1,{"XTINY":[0,15,-2,0,2,0],"TINY":[0,22,-3,0,3,1],"SMALL":[0,25,-4,0,5,0],"MEDIUM":[0,30,-4,0,5,0],"LARGE":[0,32,-5,0,6,0],"NR_MILD":[6,40,-7,0,7,7],"NR_MEDIUM":[6,46,-8,0,8,10],"NR_HOT":[4,63,-10,0,11,15],"NR_THAI_HOT":[4,70,-12,0,13,20],"S_XTINY":[0,15,-2,0,2,0],"S_TINY":[0,22,-3,0,3,1],"S_SMALL":[0,25,-4,0,5,0],"S_MEDIUM":[0,30,-4,0,5,0],"S_LARGE":[0,32,-5,0,6,0],"S_NR_MILD":[6,40,-7,0,7,7],"S_NR_MEDIUM":[6,46,-8,0,8,10],"S_NR_HOT":[4,63,-10,0,11,15],"S_NR_THAI_HOT":[4,70,-12,0,13,20]}],"fenix 6S":[240,240,1,{"XTINY":[2,13,0,0,0,0],"TINY":[2,17,0,0,0,0],"SMALL":[2,19,0,0,0,0],"MEDIUM":[2,22,0,0,0,0],"LARGE":[2,24,0,0,0,0],"NR_MILD":[2,28,0,0,0,0],"NR_MEDIUM":[2,34,0,0,0,0],"NR_HOT":[2,46,0,0,0,0],"NR_THAI_HOT":[2,53,0,0,0,0],"S_XTINY":[2,13,0,0,0,0],"S_TINY":[2,17,0,0,0,0],"S_SMALL":[2,19,0,0,0,0],"S_MEDIUM":[2,22,0,0,0,0],"S_LARGE":[2,24,0,0,0,0],"S_NR_MILD":[2,28,0,0,0,0],"S_NR_MEDIUM":[2,34,0,0,0,0],"S_NR_HOT":[2,46,0,0,0,0],"S_NR_THAI_HOT":[2,53,0,0,0,0]}],"fenix 6S Pro / 6S Sapphire":[240,240,1,{"XTINY":[2,13,0,0,0,0],"TINY":[2,17,0,0,0,0],"SMALL":[2,19,0,0,0,0],"MEDIUM":[2,22,0,0,0,0],"LARGE":[2,24,0,0,0,0],"NR_MILD":[2,28,0,0,0,0],"NR_MEDIUM":[2,34,0,0,0,0],"NR_HOT":[2,46,0,0,0,0],"NR_THAI_HOT":[2,53,0,0,0,0],"S_XTINY":[2,13,0,0,0,0],"S_TINY":[2,17,0,0,0,0],"S_SMALL":[2,19,0,0,0,0],"S_MEDIUM":[2,22,0,0,0,0],"S_LARGE":[2,24,0,0,0,0],"S_NR_MILD":[2,28,0,0,0,0],"S_NR_MEDIUM":[2,34,0,0,0,0],"S_NR_HOT":[2,46,0,0,0,0],"S_NR_THAI_HOT":[2,53,0,0,0,0]}],"fenix 6X Pro / 6X Sapphire / 6X Pro Solar":[280,280,1,{"XTINY":[0,15,-2,0,3,0],"TINY":[0,24,-4,0,5,1],"SMALL":[0,28,-4,0,5,0],"MEDIUM":[0,30,-5,0,6,2],"LARGE":[0,35,-6,0,6,-2],"NR_MILD":[6,45,-8,0,8,6],"NR_MEDIUM":[6,50,-9,0,10,12],"NR_HOT":[4,70,-12,0,13,13],"NR_THAI_HOT":[4,80,-14,0,14,15],"S_XTINY":[0,15,-2,0,3,0],"S_TINY":[0,24,-4,0,5,1],"S_SMALL":[0,28,-4,0,5,0],"S_MEDIUM":[0,30,-5,0,6,2],"S_LARGE":[0,35,-6,0,6,-2],"S_NR_MILD":[6,45,-8,0,8,6],"S_NR_MEDIUM":[6,50,-9,0,10,12],"S_NR_HOT":[4,70,-12,0,13,13],"S_NR_THAI_HOT":[4,80,-14,0,14,15]}],"fenix 7":[260,260,1,{"XTINY":[0,15,-2,0,2,0],"TINY":[0,22,-3,0,3,1],"SMALL":[0,25,-4,0,5,0],"MEDIUM":[0,30,-4,0,5,0],"LARGE":[0,32,-5,0,6,0],"NR_MILD":[6,40,-7,0,7,7],"NR_MEDIUM":[6,46,-8,0,8,10],"NR_HOT":[4,63,-10,0,11,15],"NR_THAI_HOT":[4,70,-12,0,13,20],"S_XTINY":[0,15,-2,0,2,0],"S_TINY":[0,22,-3,0,3,1],"S_SMALL":[0,25,-4,0,5,0],"S_MEDIUM":[0,30,-4,0,5,0],"S_LARGE":[0,32,-5,0,6,0],"S_NR_MILD":[6,40,-7,0,7,7],"S_NR_MEDIUM":[6,46,-8,0,8,10],"S_NR_HOT":[4,63,-10,0,11,15],"S_NR_THAI_HOT":[4,70,-12,0,13,20]}],"fenix 7S":[240,240,1,{"XTINY":[2,13,0,0,0,0],"TINY":[2,17,0,0,0,0],"SMALL":[2,19,0,0,0,0],"MEDIUM":[2,22,0,0,0,0],"LARGE":[2,24,0,0,0,0],"NR_MILD":[2,28,0,0,0,0],"NR_MEDIUM":[2,34,0,0,0,0],"NR_HOT":[2,46,0,0,0,0],"NR_THAI_HOT":[2,53,0,0,0,0],"S_XTINY":[2,13,0,0,0,0],"S_TINY":[2,17,0,0,0,0],"S_SMALL":[2,19,0,0,0,0],"S_MEDIUM":[2,22,0,0,0,0],"S_LARGE":[2,24,0,0,0,0],"S_NR_MILD":[2,28,0,0,0,0],"S_NR_MEDIUM":[2,34,0,0,0,0],"S_NR_HOT":[2,46,0,0,0,0],"S_NR_THAI_HOT":[2,53,0,0,0,0]}],"fenix 7X":[280,280,1,{"XTINY":[0,15,-2,0,3,0],"TINY":[0,24,-4,0,5,1],"SMALL":[0,28,-4,0,5,0],"MEDIUM":[0,30,-5,0,6,2],"LARGE":[0,35,-6,0,6,-2],"NR_MILD":[6,45,-8,0,8,6],"NR_MEDIUM":[6,50,-9,0,10,12],"NR_HOT":[4,70,-12,0,13,13],"NR_THAI_HOT":[4,80,-14,0,14,15],"S_XTINY":[0,15,-2,0,3,0],"S_TINY":[0,24,-4,0,5,1],"S_SMALL":[0,28,-4,0,5,0],"S_MEDIUM":[0,30,-5,0,6,2],"S_LARGE":[0,35,-6,0,6,-2],"S_NR_MILD":[6,45,-8,0,8,6],"S_NR_MEDIUM":[6,50,-9,0,10,12],"S_NR_HOT":[4,70,-12,0,13,13],"S_NR_THAI_HOT":[4,80,-14,0,14,15]}],"fenix Chronos":[218,218,1,{"XTINY":[1,23,0,0,0,0],"TINY":[0,18,0,0,0,0],"SMALL":[0,20,0,0,0,0],"MEDIUM":[0,25,0,0,0,0],"LARGE":[0,28,-5,0,4,0],"NR_MILD":[2,24,0,0,0,0],"NR_MEDIUM":[2,32,0,0,0,0],"NR_HOT":[2,46,0,0,0,0],"NR_THAI_HOT":[2,53,0,0,0,0],"S_XTINY":[1,23,0,0,0,0],"S_TINY":[0,18,0,0,0,0],"S_SMALL":[0,20,0,0,0,0],"S_MEDIUM":[0,25,0,0,0,0],"S_LARGE":[0,28,-5,0,4,0]}],"Forerunner 230":[215,180,0,{"XTINY":[0,14,-2,0,3,1],"TINY":[0,14,-2,0,3,1],"SMALL":[0,14,-2,0,3,1],"MEDIUM":[1,18,-3,0,3,1],"LARGE":[0,24,-3,0,3,1],"NR_MILD":[2,27,-5,0,6,2],"NR_MEDIUM":[2,43,-7,0,8,1],"NR_HOT":[2,57,-9,0,10,1],"NR_THAI_HOT":[2,99,-17,0,18,0]}],"Forerunner 235":[215,180,0,{"XTINY":[0,14,-2,0,3,1],"TINY":[0,14,-2,0,3,1],"SMALL":[0,14,-2,0,3,1],"MEDIUM":[1,18,-3,0,3,1],"LARGE":[0,24,-3,0,3,1],"NR_MILD":[2,27,-5,0,6,2],"NR_MEDIUM":[2,43,-7,0,8,1],"NR_HOT":[2,57,-9,0,10,1],"NR_THAI_HOT":[2,99,-17,0,18,0]}],"Forerunner 245":[240,240,1,{"XTINY":[0,14,-1,0,2,1],"TINY":[0,20,-3,0,3,0],"SMALL":[0,23,-4,0,4,0],"MEDIUM":[0,26,-3,0,4,1],"LARGE":[0,29,-4,0,4,0],"NR_MILD":[0,35,-6,0,6,0],"NR_MEDIUM":[0,44,-8,0,8,0],"NR_HOT":[6,58,-9,0,9,12],"NR_THAI_HOT":[6,68,-12,0,12,12],"S_XTINY":[0,14,-1,0,2,1],"S_TINY":[0,20,-3,0,3,0],"S_SMALL":[0,23,-4,0,4,0],"S_MEDIUM":[0,26,-3,0,4,1],"S_LARGE":[0,29,-4,0,4,0],"S_NR_MILD":[0,35,-6,0,6,0],"S_NR_MEDIUM":[0,44,-8,0,8,0],"S_NR_HOT":[6,58,-9,0,9,12],"S_NR_THAI_HOT":[6,68,-12,0,12,12]}],"Forerunner 245 Music":[240,240,1,{"XTINY":[0,14,-1,0,2,1],"TINY":[0,20,-3,0,3,0],"SMALL":[0,23,-4,0,4,0],"MEDIUM":[0,26,-3,0,4,1],"LARGE":[0,29,-4,0,4,0],"NR_MILD":[0,35,-6,0,6,0],"NR_MEDIUM":[0,44,-8,0,8,0],"NR_HOT":[6,58,-9,0,9,12],"NR_THAI_HOT":[6,68,-12,0,12,12],"S_XTINY":[0,14,-1,0,2,1],"S_TINY":[0,20,-3,0,3,0],"S_SMALL":[0,23,-4,0,4,0],"S_MEDIUM":[0,26,-3,0,4,1],"S_LARGE":[0,29,-4,0,4,0],"S_NR_MILD":[0,35,-6,0,6,0],"S_NR_MEDIUM":[0,44,-8,0,8,0],"S_NR_HOT":[6,58,-9,0,9,12],"S_NR_THAI_HOT":[6,68,-12,0,12,12]}],"Forerunner 45":[208,208,1,{"XTINY":[2,13,0,0,0,0],"TINY":[2,13,0,0,0,0],"SMALL":[2,13,0,0,0,0],"MEDIUM":[2,15,0,0,0,0],"LARGE":[2,20,0,0,0,0],"NR_MILD":[2,20,0,0,0,0],"NR_MEDIUM":[2,44,0,0,0,0],"NR_HOT":[2,50,0,0,0,0],"NR_THAI_HOT":[2,50,0,0,0,0]}],"Forerunner 55":[208,208,1,{"XTINY":[2,13,0,0,0,0],"TINY":[2,15,0,0,0,0],"SMALL":[2,17,0,0,0,0],"MEDIUM":[2,20,0,0,0,0],"LARGE":[2,20,0,0,0,0],"NR_MILD":[1,20,0,0,0,0],"NR_MEDIUM":[1,44,0,0,0,0],"NR_HOT":[1,50,0,0,0,0],"NR_THAI_HOT":[1,50,0,0,0,0]}],"Forerunner 630":[215,180,0,{"XTINY":[0,14,-2,0,3,1],"TINY":[0,14,-2,0,3,1],"SMALL":[0,14,-2,0,3,1],"MEDIUM":[1,18,-3,0,3,1],"LARGE":[0,24,-3,0,3,1],"NR_MILD":[2,27,-5,0,6,2],"NR_MEDIUM":[2,43,-7,0,8,1],"NR_HOT":[2,57,-9,0,10,1],"NR_THAI_HOT":[2,99,-17,0,18,0]}],"Forerunner 645":[240,240,1,{"XTINY":[1,21,-4,0,4,0],"TINY":[0,21,-3,0,3,0],"SMALL":[0,23,-4,0,5,0],"MEDIUM":[0,28,-5,0,4,0],"LARGE":[0,32,-5,0,6,-4],"NR_MILD":[2,37,-7,0,9,-6],"NR_MEDIUM":[2,51,-10,0,11,-9],"NR_HOT":[2,71,-12,0,12,-12],"NR_THAI_HOT":[2,80,-15,0,15,-14],"S_XTINY":[1,21,-4,0,4,0],"S_TINY":[0,21,-3,0,3,0],"S_SMALL":[0,23,-4,0,5,0],"S_MEDIUM":[0,28,-5,0,4,0],"S_LARGE":[0,32,-5,0,6,-4],"S_NR_MILD":[2,37,-7,0,9,-6],"S_NR_MEDIUM":[2,51,-10,0,11,-9],"S_NR_HOT":[2,71,-12,0,12,-12],"S_NR_THAI_HOT":[2,80,-15,0,15,-14]}],"Forerunner 645 Music":[240,240,1,{"XTINY":[1,21,-4,0,4,0],"TINY":[0,21,-3,0,3,0],"SMALL":[0,23,-4,0,5,0],"MEDIUM":[0,28,-5,0,4,0],"LARGE":[0,32,-5,0,6,-4],"NR_MILD":[2,37,-7,0,9,-6],"NR_MEDIUM":[2,51,-10,0,11,-9],"NR_HOT":[2,71,-12,0,12,-12],"NR_THAI_HOT":[2,80,-15,0,15,-14],"S_XTINY":[1,21,-4,0,4,0],"S_TINY":[0,21,-3,0,3,0],"S_SMALL":[0,23,-4,0,5,0],"S_MEDIUM":[0,28,-5,0,4,0],"S_LARGE":[0,32,-5,0,6,-4],"S_NR_MILD":[2,37,-7,0,9,-6],"S_NR_MEDIUM":[2,51,-10,0,11,-9],"S_NR_HOT":[2,71,-12,0,12,-12],"S_NR_THAI_HOT":[2,80,-15,0,15,-14]}],"Forerunner 735xt":[215,180,0,{"XTINY":[0,14,-2,0,3,1],"TINY":[0,14,-2,0,3,1],"SMALL":[0,14,-2,0,3,1],"MEDIUM":[1,18,-3,0,3,1],"LARGE":[0,24,-3,0,3,1],"NR_MILD":[2,27,-5,0,6,2],"NR_MEDIUM":[2,43,-7,0,8,1],"NR_HOT":[2,57,-9,0,10,1],"NR_THAI_HOT":[2,99,-17,0,18,0]}],"Forerunner 745":[240,240,1,{"XTINY":[0,14,-1,0,2,1],"TINY":[0,20,-3,0,3,0],"SMALL":[0,23,-4,0,4,0],"MEDIUM":[0,26,-3,0,4,1],"LARGE":[0,29,-4,0,4,0],"NR_MILD":[0,35,-6,0,6,0],"NR_MEDIUM":[0,44,-8,0,8,0],"NR_HOT":[6,58,-9,0,9,12],"NR_THAI_HOT":[6,68,-12,0,12,12],"S_XTINY":[0,14,-1,0,2,1],"S_TINY":[0,20,-3,0,3,0],"S_SMALL":[0,23,-4,0,4,0],"S_MEDIUM":[0,26,-3,0,4,1],"S_LARGE":[0,29,-4,0,4,0],"S_NR_MILD":[0,35,-6,0,6,0],"S_NR_MEDIUM":[0,44,-8,0,8,0],"S_NR_HOT":[6,58,-9,0,9,12],"S_NR_THAI_HOT":[6,68,-12,0,12,12]}],"Forerunner 920XT":[205,148,0,{"XTINY":[2,12,0,0,0,0],"TINY":[2,12,0,0,0,0],"SMALL":[2,12,0,0,0,0],"MEDIUM":[2,17,0,0,0,0],"LARGE":[2,20,0,0,0,0],"NR_MILD":[2,20,0,0,0,0],"NR_MEDIUM":[2,32,0,0,0,0],"NR_HOT":[2,38,0,0,0,0],"NR_THAI_HOT":[2,62,0,0,0,0]}],"Forerunner 935":[240,240,1,{"XTINY":[1,21,-4,0,4,0],"TINY":[0,21,-3,0,3,0],"SMALL":[0,23,-4,0,5,0],"MEDIUM":[0,28,-5,0,4,0],"LARGE":[0,32,-5,0,6,-4],"NR_MILD":[2,37,-7,0,9,-6],"NR_MEDIUM":[2,51,-10,0,11,-9],"NR_HOT":[2,71,-12,0,12,-12],"NR_THAI_HOT":[2,80,-15,0,15,-14],"S_XTINY":[1,21,-4,0,4,0],"S_TINY":[0,21,-3,0,3,0],"S_SMALL":[0,23,-4,0,5,0],"S_MEDIUM":[0,28,-5,0,4,0],"S_LARGE":[0,32,-5,0,6,-4],"S_NR_MILD":[2,37,-7,0,9,-6],"S_NR_MEDIUM":[2,51,-10,0,11,-9],"S_NR_HOT":[2,71,-12,0,12,-12],"S_NR_THAI_HOT":[2,80,-15,0,15,-14]}],"Forerunner 945":[240,240,1,{"XTINY":[0,14,-1,0,2,1],"TINY":[0,20,-3,0,3,0],"SMALL":[0,23,-4,0,4,0],"MEDIUM":[0,26,-3,0,4,1],"LARGE":[0,29,-4,0,4,0],"NR_MILD":[0,35,-6,0,6,0],"NR_MEDIUM":[0,44,-8,0,8,0],"NR_HOT":[6,58,-9,0,9,12],"NR_THAI_HOT":[6,68,-12,0,12,12],"S_XTINY":[0,14,-1,0,2,1],"S_TINY":[0,20,-3,0,3,0],"S_SMALL":[0,23,-4,0,4,0],"S_MEDIUM":[0,26,-3,0,4,1],"S_LARGE":[0,29,-4,0,4,0],"S_NR_MILD":[0,35,-6,0,6,0],"S_NR_MEDIUM":[0,44,-8,0,8,0],"S_NR_HOT":[6,58,-9,0,9,12],"S_NR_THAI_HOT":[6,68,-12,0,12,12]}],"Forerunner 945 lte":[240,240,1,{"XTINY":[0,14,-1,0,2,1],"TINY":[0,20,-3,0,3,0],"SMALL":[0,23,-4,0,4,0],"MEDIUM":[0,26,-3,0,4,1],"LARGE":[0,29,-4,0,4,0],"NR_MILD":[0,35,-6,0,6,0],"NR_MEDIUM":[0,44,-8,0,8,0],"NR_HOT":[6,58,-9,0,9,12],"NR_THAI_HOT":[6,68,-12,0,12,12],"S_XTINY":[0,14,-1,0,2,1],"S_TINY":[0,20,-3,0,3,0],"S_SMALL":[0,23,-4,0,4,0],"S_MEDIUM":[0,26,-3,0,4,1],"S_LARGE":[0,29,-4,0,4,0],"S_NR_MILD":[0,35,-6,0,6,0],"S_NR_MEDIUM":[0,44,-8,0,8,0],"S_NR_HOT":[6,58,-9,0,9,12],"S_NR_THAI_HOT":[6,68,-12,0,12,12]}],"GPSMAP 66s / 66st":[240,400,0,{"XTINY":[2,9,0,0,0,0],"TINY":[2,12,0,0,0,0],"SMALL":[2,14,0,0,0,0],"MEDIUM":[2,16,0,0,0,0],"LARGE":[2,27,0,0,0,0],"NR_MILD":[2,22,0,0,0,0],"NR_MEDIUM":[2,32,0,0,0,0],"NR_HOT":[2,45,0,0,0,0],"NR_THAI_HOT":[2,66,0,0,0,0]}],"GPSMAP 86s / 86sc / 86i / 86sci":[240,400,0,{"XTINY":[2,9,0,0,0,0],"TINY":[2,12,0,0,0,0],"SMALL":[2,14,0,0,0,0],"MEDIUM":[2,16,0,0,0,0],"LARGE":[2,27,0,0,0,0],"NR_MILD":[2,22,0,0,0,0],"NR_MEDIUM":[2,32,0,0,0,0],"NR_HOT":[2,45,0,0,0,0],"NR_THAI_HOT":[2,66,0,0,0,0]}],"Captain Marvel":[218,218,1,{"XTINY":[2,12,-3,0,3,4],"TINY":[2,20,-3,0,4,1],"SMALL":[2,22,-5,0,5,2],"MEDIUM":[2,25,-2,0,3,3],"LARGE":[2,28,-2,0,5,3],"NR_MILD":[0,35,-5,0,5,-3],"NR_MEDIUM":[2,42,-7,0,7,0],"NR_HOT":[6,50,-10,0,10,10],"NR_THAI_HOT":[6,58,-10,0,10,10],"S_XTINY":[2,12,-3,0,3,4],"S_TINY":[2,20,-3,0,4,1],"S_SMALL":[2,22,-5,0,5,2],"S_MEDIUM":[2,25,-2,0,3,3],"S_LARGE":[2,28,-2,0,5,3],"S_NR_MILD":[0,35,-5,0,5,-3],"S_NR_MEDIUM":[2,42,-7,0,7,0],"S_NR_HOT":[6,50,-10,0,10,10],"S_NR_THAI_HOT":[6,58,-10,0,10,10]}],"First Avenger":[260,260,1,{"XTINY":[2,18,-3,0,3,0],"TINY":[2,24,-4,0,4,4],"SMALL":[2,30,-5,0,5,5],"MEDIUM":[2,36,-5,0,5,5],"LARGE":[2,42,-6,0,6,7],"NR_MILD":[2,35,-6,0,6,6],"NR_MEDIUM":[2,45,-7,0,7,7],"NR_HOT":[2,50,-9,0,9,8],"NR_THAI_HOT":[2,70,0,0,0,9],"S_XTINY":[2,18,-3,0,3,0],"S_TINY":[2,24,-4,0,4,4],"S_SMALL":[2,30,-5,0,5,5],"S_MEDIUM":[2,36,-5,0,5,5],"S_LARGE":[2,42,-6,0,6,7],"S_NR_MILD":[2,35,-6,0,6,6],"S_NR_MEDIUM":[2,45,-7,0,7,7],"S_NR_HOT":[2,50,-9,0,9,8],"S_NR_THAI_HOT":[2,70,0,0,0,9]}],"MARQ Adventurer":[240,240,1,{"XTINY":[2,13,0,0,0,0],"TINY":[2,17,0,0,0,0],"SMALL":[2,19,0,0,0,0],"MEDIUM":[2,22,0,0,0,0],"LARGE":[2,24,0,0,0,0],"NR_MILD":[2,28,0,0,0,0],"NR_MEDIUM":[2,34,0,0,0,0],"NR_HOT":[2,46,0,0,0,0],"NR_THAI_HOT":[2,53,0,0,0,0],"S_XTINY":[2,13,0,0,0,0],"S_TINY":[2,17,0,0,0,0],"S_SMALL":[2,19,0,0,0,0],"S_MEDIUM":[2,22,0,0,0,0],"S_LARGE":[2,24,0,0,0,0],"S_NR_MILD":[2,28,0,0,0,0],"S_NR_MEDIUM":[2,34,0,0,0,0],"S_NR_HOT":[2,46,0,0,0,0],"S_NR_THAI_HOT":[2,53,0,0,0,0]}],"MARQ Athlete":[240,240,1,{"XTINY":[2,13,0,0,0,0],"TINY":[2,17,0,0,0,0],"SMALL":[2,19,0,0,0,0],"MEDIUM":[2,22,0,0,0,0],"LARGE":[2,24,0,0,0,0],"NR_MILD":[2,28,0,0,0,0],"NR_MEDIUM":[2,34,0,0,0,0],"NR_HOT":[2,46,0,0,0,0],"NR_THAI_HOT":[2,53,0,0,0,0],"S_XTINY":[2,13,0,0,0,0],"S_TINY":[2,17,0,0,0,0],"S_SMALL":[2,19,0,0,0,0],"S_MEDIUM":[2,22,0,0,0,0],"S_LARGE":[2,24,0,0,0,0],"S_NR_MILD":[2,28,0,0,0,0],"S_NR_MEDIUM":[2,34,0,0,0,0],"S_NR_HOT":[2,46,0,0,0,0],"S_NR_THAI_HOT":[2,53,0,0,0,0]}],"MARQ Aviator":[240,240,1,{"XTINY":[2,13,0,0,0,0],"TINY":[2,17,0,0,0,0],"SMALL":[2,19,0,0,0,0],"MEDIUM":[2,22,0,0,0,0],"LARGE":[2,24,0,0,0,0],"NR_MILD":[2,28,0,0,0,0],"NR_MEDIUM":[2,34,0,0,0,0],"NR_HOT":[2,46,0,0,0,0],"NR_THAI_HOT":[2,53,0,0,0,0],"S_XTINY":[2,13,0,0,0,0],"S_TINY":[2,17,0,0,0,0],"S_SMALL":[2,19,0,0,0,0],"S_MEDIUM":[2,22,0,0,0,0],"S_LARGE":[2,24,0,0,0,0],"S_NR_MILD":[2,28,0,0,0,0],"S_NR_MEDIUM":[2,34,0,0,0,0],"S_NR_HOT":[2,46,0,0,0,0],"S_NR_THAI_HOT":[2,53,0,0,0,0]}],"MARQ Captain":[240,240,1,{"XTINY":[2,13,0,0,0,0],"TINY":[2,17,0,0,0,0],"SMALL":[2,19,0,0,0,0],"MEDIUM":[2,22,0,0,0,0],"LARGE":[2,24,0,0,0,0],"NR_MILD":[2,28,0,0,0,0],"NR_MEDIUM":[2,34,0,0,0,0],"NR_HOT":[2,46,0,0,0,0],"NR_THAI_HOT":[2,53,0,0,0,0],"S_XTINY":[2,13,0,0,0,0],"S_TINY":[2,17,0,0,0,0],"S_SMALL":[2,19,0,0,0,0],"S_MEDIUM":[2,22,0,0,0,0],"S_LARGE":[2,24,0,0,0,0],"S_NR_MILD":[2,28,0,0,0,0],"S_NR_MEDIUM":[2,34,0,0,0,0],"S_NR_HOT":[2,46,0,0,0,0],"S_NR_THAI_HOT":[2,53,0,0,0,0]}],"MARQ Commander":[240,240,1,{"XTINY":[2,13,0,0,0,0],"TINY":[2,17,0,0,0,0],"SMALL":[2,19,0,0,0,0],"MEDIUM":[2,22,0,0,0,0],"LARGE":[2,24,0,0,0,0],"NR_MILD":[2,28,0,0,0,0],"NR_MEDIUM":[2,34,0,0,0,0],"NR_HOT":[2,46,0,0,0,0],"NR_THAI_HOT":[2,53,0,0,0,0],"S_XTINY":[2,13,0,0,0,0],"S_TINY":[2,17,0,0,0,0],"S_SMALL":[2,19,0,0,0,0],"S_MEDIUM":[2,22,0,0,0,0],"S_LARGE":[2,24,0,0,0,0],"S_NR_MILD":[2,28,0,0,0,0],"S_NR_MEDIUM":[2,34,0,0,0,0],"S_NR_HOT":[2,46,0,0,0,0],"S_NR_THAI_HOT":[2,53,0,0,0,0]}],"MARQ Driver":[240,240,1,{"XTINY":[2,13,0,0,0,0],"TINY":[2,17,0,0,0,0],"SMALL":[2,19,0,0,0,0],"MEDIUM":[2,22,0,0,0,0],"LARGE":[2,24,0,0,0,0],"NR_MILD":[2,28,0,0,0,0],"NR_MEDIUM":[2,34,0,0,0,0],"NR_HOT":[2,46,0,0,0,0],"NR_THAI_HOT":[2,53,0,0,0,0],"S_XTINY":[2,13,0,0,0,0],"S_TINY":[2,17,0,0,0,0],"S_SMALL":[2,19,0,0,0,0],"S_MEDIUM":[2,22,0,0,0,0],"S_LARGE":[2,24,0,0,0,0],"S_NR_MILD":[2,28,0,0,0,0],"S_NR_MEDIUM":[2,34,0,0,0,0],"S_NR_HOT":[2,46,0,0,0,0],"S_NR_THAI_HOT":[2,53,0,0,0,0]}],"MARQ Expedition":[240,240,1,{"XTINY":[2,13,0,0,0,0],"TINY":[2,17,0,0,0,0],"SMALL":[2,19,0,0,0,0],"MEDIUM":[2,22,0,0,0,0],"LARGE":[2,24,0,0,0,0],"NR_MILD":[2,28,0,0,0,0],"NR_MEDIUM":[2,34,0,0,0,0],"NR_HOT":[2,46,0,0,0,0],"NR_THAI_HOT":[2,53,0,0,0,0],"S_XTINY":[2,13,0,0,0,0],"S_TINY":[2,17,0,0,0,0],"S_SMALL":[2,19,0,0,0,0],"S_MEDIUM":[2,22,0,0,0,0],"S_LARGE":[2,24,0,0,0,0],"S_NR_MILD":[2,28,0,0,0,0],"S_NR_MEDIUM":[2,34,0,0,0,0],"S_NR_HOT":[2,46,0,0,0,0],"S_NR_THAI_HOT":[2,53,0,0,0,0]}],"MARQ Golfer":[240,240,1,{"XTINY":[2,13,0,0,0,0],"TINY":[2,17,0,0,0,0],"SMALL":[2,19,0,0,0,0],"MEDIUM":[2,22,0,0,0,0],"LARGE":[2,24,0,0,0,0],"NR_MILD":[2,28,0,0,0,0],"NR_MEDIUM":[2,34,0,0,0,0],"NR_HOT":[2,46,0,0,0,0],"NR_THAI_HOT":[2,53,0,0,0,0],"S_XTINY":[2,13,0,0,0,0],"S_TINY":[2,17,0,0,0,0],"S_SMALL":[2,19,0,0,0,0],"S_MEDIUM":[2,22,0,0,0,0],"S_LARGE":[2,24,0,0,0,0],"S_NR_MILD":[2,28,0,0,0,0],"S_NR_MEDIUM":[2,34,0,0,0,0],"S_NR_HOT":[2,46,0,0,0,0],"S_NR_THAI_HOT":[2,53,0,0,0,0]}],"Montana 7 Series":[480,800,0,{"XTINY":[2,9,0,0,0,0],"TINY":[2,12,0,0,0,0],"SMALL":[2,14,0,0,0,0],"MEDIUM":[2,16,0,0,0,0],"LARGE":[2,27,0,0,0,0],"NR_MILD":[2,22,0,0,0,0],"NR_MEDIUM":[2,32,0,0,0,0],"NR_HOT":[2,42,0,0,0,0],"NR_THAI_HOT":[2,66,0,0,0,0]}],"Oregon 7 Series":[240,400,0,{"XTINY":[1,12,-3,0,3,-3],"TINY":[1,17,-4,0,5,-5],"SMALL":[1,19,-4,0,5,-6],"MEDIUM":[1,22,-5,0,6,-7],"LARGE":[1,32,-8,0,9,-11],"NR_MILD":[2,36,-7,0,8,-6],"NR_MEDIUM":[2,40,-7,0,8,-6],"NR_HOT":[2,55,-10,0,10,-9],"NR_THAI_HOT":[2,62,-14,0,14,-20]}],"Rey":[218,218,1,{"XTINY":[2,12,-3,0,3,4],"TINY":[2,20,-3,0,4,1],"SMALL":[2,22,-5,0,5,2],"MEDIUM":[2,25,-2,0,3,3],"LARGE":[2,28,-2,0,5,3],"NR_MILD":[0,35,-5,0,5,-3],"NR_MEDIUM":[2,42,-7,0,7,0],"NR_HOT":[6,50,-10,0,10,10],"NR_THAI_HOT":[6,58,-10,0,10,10],"S_XTINY":[2,12,-3,0,3,4],"S_TINY":[2,20,-3,0,4,1],"S_SMALL":[2,22,-5,0,5,2],"S_MEDIUM":[2,25,-2,0,3,3],"S_LARGE":[2,28,-2,0,5,3],"S_NR_MILD":[0,35,-5,0,5,-3],"S_NR_MEDIUM":[2,42,-7,0,7,0],"S_NR_HOT":[6,50,-10,0,10,10],"S_NR_THAI_HOT":[6,58,-10,0,10,10]}],"Rino 7 Series":[240,400,0,{"XTINY":[1,12,-3,0,3,-3],"TINY":[1,17,-4,0,5,-5],"SMALL":[1,19,-4,0,5,-6],"MEDIUM":[1,22,-5,0,6,-7],"LARGE":[1,32,-8,0,9,-11],"NR_MILD":[2,36,-7,0,8,-6],"NR_MEDIUM":[2,40,-7,0,8,-6],"NR_HOT":[2,55,-10,0,10,-9],"NR_THAI_HOT":[2,62,-14,0,14,-20]}],"Venu":[390,390,1,{"XTINY":[2,10,0,0,0,0],"TINY":[2,12,0,0,0,0],"SMALL":[2,15,0,0,0,0],"MEDIUM":[2,20,0,0,0,0],"LARGE":[2,20,0,0,0,0],"NR_MILD":[2,2,0,0,0,0],"NR_MEDIUM":[2,3,0,0,0,0],"NR_HOT":[2,6,0,0,0,0],"NR_THAI_HOT":[2,7,0,0,0,0],"S_XTINY":[2,10,0,0,0,0],"S_TINY":[2,12,0,0,0,0],"S_SMALL":[2,15,0,0,0,0],"S_MEDIUM":[2,20,0,0,0,0],"S_LARGE":[2,20,0,0,0,0],"S_NR_MILD":[2,2,0,0,0,0],"S_NR_MEDIUM":[2,3,0,0,0,0],"S_NR_HOT":[2,6,0,0,0,0],"S_NR_THAI_HOT":[2,7,0,0,0,0]}],"Venu 2":[416,416,1,{"XTINY":[2,12,0,0,0,0],"TINY":[2,14,0,0,0,0],"SMALL":[2,16,0,0,0,0],"MEDIUM":[2,18,0,0,0,0],"LARGE":[2,20,0,0,0,0],"NR_MILD":[2,12,0,0,0,0],"NR_MEDIUM":[2,14,0,0,0,0],"NR_HOT":[2,16,0,0,0,0],"NR_THAI_HOT":[2,18,0,0,0,0],"S_XTINY":[2,12,0,0,0,0],"S_TINY":[2,14,0,0,0,0],"S_SMALL":[2,16,0,0,0,0],"S_MEDIUM":[2,18,0,0,0,0],"S_LARGE":[2,20,0,0,0,0],"S_NR_MILD":[2,12,0,0,0,0],"S_NR_MEDIUM":[2,14,0,0,0,0],"S_NR_HOT":[2,16,0,0,0,0],"S_NR_THAI_HOT":[2,18,0,0,0,0]}],"Venu 2 plus":[416,416,1,{"XTINY":[2,12,0,0,0,0],"TINY":[2,14,0,0,0,0],"SMALL":[2,16,0,0,0,0],"MEDIUM":[2,18,0,0,0,0],"LARGE":[2,20,0,0,0,0],"NR_MILD":[2,12,0,0,0,0],"NR_MEDIUM":[2,14,0,0,0,0],"NR_HOT":[2,16,0,0,0,0],"NR_THAI_HOT":[2,18,0,0,0,0],"S_XTINY":[2,12,0,0,0,0],"S_TINY":[2,14,0,0,0,0],"S_SMALL":[2,16,0,0,0,0],"S_MEDIUM":[2,18,0,0,0,0],"S_LARGE":[2,20,0,0,0,0],"S_NR_MILD":[2,12,0,0,0,0],"S_NR_MEDIUM":[2,14,0,0,0,0],"S_NR_HOT":[2,16,0,0,0,0],"S_NR_THAI_HOT":[2,18,0,0,0,0]}],"Venu 2S":[360,360,1,{"XTINY":[2,12,0,0,0,0],"TINY":[2,14,0,0,0,0],"SMALL":[2,16,0,0,0,0],"MEDIUM":[2,18,0,0,0,0],"LARGE":[2,20,0,0,0,0],"NR_MILD":[2,12,0,0,0,0],"NR_MEDIUM":[2,14,0,0,0,0],"NR_HOT":[2,16,0,0,0,0],"NR_THAI_HOT":[2,18,0,0,0,0],"S_XTINY":[2,12,0,0,0,0],"S_TINY":[2,14,0,0,0,0],"S_SMALL":[2,16,0,0,0,0],"S_MEDIUM":[2,18,0,0,0,0],"S_LARGE":[2,20,0,0,0,0],"S_NR_MILD":[2,12,0,0,0,0],"S_NR_MEDIUM":[2,14,0,0,0,0],"S_NR_HOT":[2,16,0,0,0,0],"S_NR_THAI_HOT":[2,18,0,0,0,0]}],"Venu Sq":[240,240,0,{"XTINY":[2,12,0,0,0,0],"TINY":[2,12,0,0,0,0],"SMALL":[2,12,0,0,0,0],"MEDIUM":[2,12,0,0,0,0],"LARGE":[2,14,0,0,0,0],"NR_MILD":[2,12,0,0,0,0],"NR_MEDIUM":[2,14,0,0,0,0],"NR_HOT":[2,16,0,0,0,0],"NR_THAI_HOT":[2,18,0,0,0,0],"S_XTINY":[2,12,0,0,0,0],"S_TINY":[2,12,0,0,0,0],"S_SMALL":[2,12,0,0,0,0],"S_MEDIUM":[2,12,0,0,0,0],"S_LARGE":[2,14,0,0,0,0],"S_NR_MILD":[2,12,0,0,0,0],"S_NR_MEDIUM":[2,14,0,0,0,0],"S_NR_HOT":[2,16,0,0,0,0],"S_NR_THAI_HOT":[2,18,0,0,0,0]}],"Venu Sq Music edition":[240,240,0,{"XTINY":[2,12,0,0,0,0],"TINY":[2,12,0,0,0,0],"SMALL":[2,12,0,0,0,0],"MEDIUM":[2,12,0,0,0,0],"LARGE":[2,14,0,0,0,0],"NR_MILD":[2,12,0,0,0,0],"NR_MEDIUM":[2,14,0,0,0,0],"NR_HOT":[2,16,0,0,0,0],"NR_THAI_HOT":[2,18,0,0,0,0],"S_XTINY":[2,12,0,0,0,0],"S_TINY":[2,12,0,0,0,0],"S_SMALL":[2,12,0,0,0,0],"S_MEDIUM":[2,12,0,0,0,0],"S_LARGE":[2,14,0,0,0,0],"S_NR_MILD":[2,12,0,0,0,0],"S_NR_MEDIUM":[2,14,0,0,0,0],"S_NR_HOT":[2,16,0,0,0,0],"S_NR_THAI_HOT":[2,18,0,0,0,0]}],"Venu Sq 2":[320,360,0,{"XTINY":[1,10,0,0,0,0],"TINY":[1,14,0,0,0,0],"SMALL":[1,16,0,0,0,0],"MEDIUM":[1,20,0,0,0,0],"LARGE":[1,30,0,0,0,0],"NR_MILD":[1,10,0,0,0,0],"NR_MEDIUM":[1,14,0,0,0,0],"NR_HOT":[1,16,0,0,0,0],"NR_THAI_HOT":[1,20,0,0,0,0],"S_XTINY":[1,10,0,0,0,0],"S_TINY":[1,14,0,0,0,0],"S_SMALL":[1,16,0,0,0,0],"S_MEDIUM":[1,20,0,0,0,0],"S_LARGE":[1,30,0,0,0,0],"S_NR_MILD":[1,10,0,0,0,0],"S_NR_MEDIUM":[1,14,0,0,0,0],"S_NR_HOT":[1,16,0,0,0,0],"S_NR_THAI_HOT":[1,20,0,0,0,0]}],"Venu Sq 2 Music edition":[320,360,0,{"XTINY":[1,10,0,0,0,0],"TINY":[1,14,0,0,0,0],"SMALL":[1,16,0,0,0,0],"MEDIUM":[1,20,0,0,0,0],"LARGE":[1,30,0,0,0,0],"NR_MILD":[1,10,0,0,0,0],"NR_MEDIUM":[1,14,0,0,0,0],"NR_HOT":[1,16,0,0,0,0],"NR_THAI_HOT":[1,20,0,0,0,0],"S_XTINY":[1,10,0,0,0,0],"S_TINY":[1,14,0,0,0,0],"S_SMALL":[1,16,0,0,0,0],"S_MEDIUM":[1,20,0,0,0,0],"S_LARGE":[1,30,0,0,0,0],"S_NR_MILD":[1,10,0,0,0,0],"S_NR_MEDIUM":[1,14,0,0,0,0],"S_NR_HOT":[1,16,0,0,0,0],"S_NR_THAI_HOT":[1,20,0,0,0,0]}],"Venu Mercedes-Benz Collection":[390,390,1,{"XTINY":[2,10,0,0,0,0],"TINY":[2,12,0,0,0,0],"SMALL":[2,15,0,0,0,0],"MEDIUM":[2,20,0,0,0,0],"LARGE":[2,20,0,0,0,0],"NR_MILD":[2,2,0,0,0,0],"NR_MEDIUM":[2,3,0,0,0,0],"NR_HOT":[2,6,0,0,0,0],"NR_THAI_HOT":[2,7,0,0,0,0],"S_XTINY":[2,10,0,0,0,0],"S_TINY":[2,12,0,0,0,0],"S_SMALL":[2,15,0,0,0,0],"S_MEDIUM":[2,20,0,0,0,0],"S_LARGE":[2,20,0,0,0,0],"S_NR_MILD":[2,2,0,0,0,0],"S_NR_MEDIUM":[2,3,0,0,0,0],"S_NR_HOT":[2,6,0,0,0,0],"S_NR_THAI_HOT":[2,7,0,0,0,0]}],"vívoactive":[205,148,0,{"XTINY":[0,14,-1,0,2,2],"TINY":[0,14,-1,0,2,2],"SMALL":[0,14,-1,0,2,2],"MEDIUM":[1,17,0,0,0,0],"LARGE":[1,20,0,0,0,0],"NR_MILD":[2,20,0,0,0,0],"NR_MEDIUM":[2,32,0,0,0,0],"NR_HOT":[2,38,0,0,0,0],"NR_THAI_HOT":[2,62,0,0,0,0]}],"vívoactive 3":[240,240,1,{"XTINY":[4,16,-3,0,3,3],"TINY":[6,21,-4,0,5,5],"SMALL":[6,21,-4,0,5,5],"MEDIUM":[6,25,-5,0,5,5],"LARGE":[6,25,-5,0,5,5],"NR_MILD":[6,29,-6,0,6,4],"NR_MEDIUM":[6,35,-7,0,7,7],"NR_HOT":[6,55,-9,0,11,9],"NR_THAI_HOT":[5,68,-13,0,14,11],"S_XTINY":[4,16,-3,0,3,3],"S_TINY":[6,21,-4,0,5,5],"S_SMALL":[6,21,-4,0,5,5],"S_MEDIUM":[6,25,-5,0,5,5],"S_LARGE":[6,25,-5,0,5,5],"S_NR_MILD":[6,29,-6,0,6,4],"S_NR_MEDIUM":[6,35,-7,0,7,7],"S_NR_HOT":[6,55,-9,0,11,9],"S_NR_THAI_HOT":[5,68,-13,0,14,11]}],"vívoactive 3 Mercedes-Benz Collection":[240,240,1,{"XTINY":[4,16,-3,0,3,3],"TINY":[6,21,-4,0,5,5],"SMALL":[6,21,-4,0,5,5],"MEDIUM":[6,25,-5,0,5,5],"LARGE":[6,25,-5,0,5,5],"NR_MILD":[6,29,-6,0,6,4],"NR_MEDIUM":[6,35,-7,0,7,7],"NR_HOT":[6,55,-9,0,11,9],"NR_THAI_HOT":[5,68,-13,0,14,11],"S_XTINY":[4,16,-3,0,3,3],"S_TINY":[6,21,-4,0,5,5],"S_SMALL":[6,21,-4,0,5,5],"S_MEDIUM":[6,25,-5,0,5,5],"S_LARGE":[6,25,-5,0,5,5],"S_NR_MILD":[6,29,-6,0,6,4],"S_NR_MEDIUM":[6,35,-7,0,7,7],"S_NR_HOT":[6,55,-9,0,11,9],"S_NR_THAI_HOT":[5,68,-13,0,14,11]}],"vívoactive 3 Music":[240,240,1,{"XTINY":[4,16,-3,0,3,3],"TINY":[6,21,-4,0,5,5],"SMALL":[6,21,-4,0,5,5],"MEDIUM":[6,25,-5,0,5,5],"LARGE":[6,25,-5,0,5,5],"NR_MILD":[6,29,-6,0,6,4],"NR_MEDIUM":[6,35,-7,0,7,7],"NR_HOT":[6,55,-9,0,11,9],"NR_THAI_HOT":[5,68,-13,0,14,11],"S_XTINY":[4,16,-3,0,3,3],"S_TINY":[6,21,-4,0,5,5],"S_SMALL":[6,21,-4,0,5,5],"S_MEDIUM":[6,25,-5,0,5,5],"S_LARGE":[6,25,-5,0,5,5],"S_NR_MILD":[6,29,-6,0,6,4],"S_NR_MEDIUM":[6,35,-7,0,7,7],"S_NR_HOT":[6,55,-9,0,11,9],"S_NR_THAI_HOT":[5,68,-13,0,14,11]}],"vívoactive 3 Music LTE":[240,240,1,{"XTINY":[4,16,-3,0,3,3],"TINY":[6,21,-4,0,5,5],"SMALL":[6,21,-4,0,5,5],"MEDIUM":[6,25,-5,0,5,5],"LARGE":[6,25,-5,0,5,5],"NR_MILD":[6,29,-6,0,6,4],"NR_MEDIUM":[6,35,-7,0,7,7],"NR_HOT":[6,55,-9,0,11,9],"NR_THAI_HOT":[5,68,-13,0,14,11],"S_XTINY":[4,16,-3,0,3,3],"S_TINY":[6,21,-4,0,5,5],"S_SMALL":[6,21,-4,0,5,5],"S_MEDIUM":[6,25,-5,0,5,5],"S_LARGE":[6,25,-5,0,5,5],"S_NR_MILD":[6,29,-6,0,6,4],"S_NR_MEDIUM":[6,35,-7,0,7,7],"S_NR_HOT":[6,55,-9,0,11,9],"S_NR_THAI_HOT":[5,68,-13,0,14,11]}],"vívoactive 4":[260,260,1,{"XTINY":[2,18,-3,0,3,0],"TINY":[2,24,-4,0,4,4],"SMALL":[2,30,-5,0,5,5],"MEDIUM":[2,36,-5,0,5,5],"LARGE":[2,42,-6,0,6,7],"NR_MILD":[2,35,-6,0,6,6],"NR_MEDIUM":[2,45,-7,0,7,7],"NR_HOT":[2,50,-9,0,9,8],"NR_THAI_HOT":[2,70,0,0,0,9],"S_XTINY":[2,18,-3,0,3,0],"S_TINY":[2,24,-4,0,4,4],"S_SMALL":[2,30,-5,0,5,5],"S_MEDIUM":[2,36,-5,0,5,5],"S_LARGE":[2,42,-6,0,6,7],"S_NR_MILD":[2,35,-6,0,6,6],"S_NR_MEDIUM":[2,45,-7,0,7,7],"S_NR_HOT":[2,50,-9,0,9,8],"S_NR_THAI_HOT":[2,70,0,0,0,9]}],"vívoactive 4S":[218,218,1,{"XTINY":[2,12,-3,0,3,4],"TINY":[2,20,-3,0,4,1],"SMALL":[2,22,-5,0,5,2],"MEDIUM":[2,25,-2,0,3,3],"LARGE":[2,28,-2,0,5,3],"NR_MILD":[0,35,-5,0,5,-3],"NR_MEDIUM":[2,42,-7,0,7,0],"NR_HOT":[6,50,-10,0,10,10],"NR_THAI_HOT":[6,58,-10,0,10,10],"S_XTINY":[2,12,-3,0,3,4],"S_TINY":[2,20,-3,0,4,1],"S_SMALL":[2,22,-5,0,5,2],"S_MEDIUM":[2,25,-2,0,3,3],"S_LARGE":[2,28,-2,0,5,3],"S_NR_MILD":[0,35,-5,0,5,-3],"S_NR_MEDIUM":[2,42,-7,0,7,0],"S_NR_HOT":[6,50,-10,0,10,10],"S_NR_THAI_HOT":[6,58,-10,0,10,10]}],"vívoactive HR":[148,205,0,{"XTINY":[0,14,-1,0,2,2],"TINY":[0,14,-1,0,2,2],"SMALL":[1,14,0,0,0,0],"MEDIUM":[1,15,0,0,0,0],"LARGE":[1,18,0,0,0,0],"NR_MILD":[2,20,0,0,0,0],"NR_MEDIUM":[2,32,0,0,0,0],"NR_HOT":[2,36,0,0,0,0],"NR_THAI_HOT":[2,48,0,0,0,0]}],"vívolife":[240,240,1,{"XTINY":[4,16,-3,0,3,3],"TINY":[6,21,-4,0,5,5],"SMALL":[6,21,-4,0,5,5],"MEDIUM":[6,25,-5,0,5,5],"LARGE":[6,25,-5,0,5,5],"NR_MILD":[6,29,-6,0,6,4],"NR_MEDIUM":[6,35,-7,0,7,7],"NR_HOT":[6,55,-9,0,11,9],"NR_THAI_HOT":[5,68,-13,0,14,11],"S_XTINY":[4,16,-3,0,3,3],"S_TINY":[6,21,-4,0,5,5],"S_SMALL":[6,21,-4,0,5,5],"S_MEDIUM":[6,25,-5,0,5,5],"S_LARGE":[6,25,-5,0,5,5],"S_NR_MILD":[6,29,-6,0,6,4],"S_NR_MEDIUM":[6,35,-7,0,7,7],"S_NR_HOT":[6,55,-9,0,11,9],"S_NR_THAI_HOT":[5,68,-13,0,14,11]}],"Instinct 2S / Solar / Dual Power":[163,156,0,{"XTINY":[1,15,0,0,0,0],"TINY":[1,15,0,0,0,0],"SMALL":[1,18,0,0,0,0],"MEDIUM":[1,20,0,0,0,0],"LARGE":[1,23,0,0,0,0],"NR_MILD":[2,20,0,0,0,0],"NR_MEDIUM":[2,32,0,0,0,0],"NR_HOT":[2,30,0,0,0,0],"NR_THAI_HOT":[2,41,0,0,0,0],"S_XTINY":[1,15,0,0,0,0],"S_TINY":[1,15,0,0,0,0],"S_SMALL":[1,18,0,0,0,0],"S_MEDIUM":[1,20,0,0,0,0],"S_LARGE":[1,23,0,0,0,0],"S_NR_MILD":[2,20,0,0,0,0],"S_NR_MEDIUM":[2,32,0,0,0,0],"S_NR_HOT":[2,30,0,0,0,0],"S_NR_THAI_HOT":[2,41,0,0,0,0]}],"D2 Air X10":[416,416,1,{"XTINY":[2,12,0,0,0,0],"TINY":[2,14,0,0,0,0],"SMALL":[2,16,0,0,0,0],"MEDIUM":[2,18,0,0,0,0],"LARGE":[2,20,0,0,0,0],"NR_MILD":[2,12,0,0,0,0],"NR_MEDIUM":[2,14,0,0,0,0],"NR_HOT":[2,16,0,0,0,0],"NR_THAI_HOT":[2,18,0,0,0,0],"S_XTINY":[2,12,0,0,0,0],"S_TINY":[2,14,0,0,0,0],"S_SMALL":[2,16,0,0,0,0],"S_MEDIUM":[2,18,0,0,0,0],"S_LARGE":[2,20,0,0,0,0],"S_NR_MILD":[2,12,0,0,0,0],"S_NR_MEDIUM":[2,14,0,0,0,0],"S_NR_HOT":[2,16,0,0,0,0],"S_NR_THAI_HOT":[2,18,0,0,0,0]}],"D2 Mach 1":[416,416,1,{"XTINY":[1,24,0,0,0,0],"TINY":[1,24,0,0,0,0],"SMALL":[1,27,0,0,0,0],"MEDIUM":[1,32,0,0,0,0],"LARGE":[1,35,0,0,0,0],"NR_MILD":[2,45,0,0,0,0],"NR_MEDIUM":[2,54,0,0,0,0],"NR_HOT":[2,73,0,0,0,0],"NR_THAI_HOT":[2,84,0,0,0,0],"S_XTINY":[1,24,0,0,0,0],"S_TINY":[1,24,0,0,0,0],"S_SMALL":[1,27,0,0,0,0],"S_MEDIUM":[1,32,0,0,0,0],"S_LARGE":[1,35,0,0,0,0],"S_NR_MILD":[2,45,0,0,0,0],"S_NR_MEDIUM":[2,54,0,0,0,0],"S_NR_HOT":[2,73,0,0,0,0],"S_NR_THAI_HOT":[2,84,0,0,0,0]}],"Descent G1 / G1 Solar":[176,176,0,{"XTINY":[1,15,0,0,0,0],"TINY":[1,15,0,0,0,0],"SMALL":[1,18,0,0,0,0],"MEDIUM":[1,20,0,0,0,0],"LARGE":[1,23,0,0,0,0],"NR_MILD":[2,20,0,0,0,0],"NR_MEDIUM":[2,32,0,0,0,0],"NR_HOT":[2,30,0,0,0,0],"NR_THAI_HOT":[2,41,0,0,0,0],"S_XTINY":[1,15,0,0,0,0],"S_TINY":[1,15,0,0,0,0],"S_SMALL":[1,18,0,0,0,0],"S_MEDIUM":[1,20,0,0,0,0],"S_LARGE":[1,23,0,0,0,0],"S_NR_MILD":[2,20,0,0,0,0],"S_NR_MEDIUM":[2,32,0,0,0,0],"S_NR_HOT":[2,30,0,0,0,0],"S_NR_THAI_HOT":[2,41,0,0,0,0]}],"Edge 1040 / 1040 Solar":[282,470,0,{"XTINY":[1,9,0,0,0,0],"TINY":[1,12,0,0,0,0],"SMALL":[1,14,0,0,0,0],"MEDIUM":[1,16,0,0,0,0],"LARGE":[1,26,0,0,0,0],"NR_MILD":[1,26,0,0,0,0],"NR_MEDIUM":[1,30,0,0,0,0],"NR_HOT":[1,40,0,0,0,0],"NR_THAI_HOT":[1,50,0,0,0,0],"S_XTINY":[1,9,0,0,0,0],"S_TINY":[1,12,0,0,0,0],"S_SMALL":[1,14,0,0,0,0],"S_MEDIUM":[1,16,0,0,0,0],"S_LARGE":[1,26,0,0,0,0],"S_NR_MILD":[1,26,0,0,0,0],"S_NR_MEDIUM":[1,30,0,0,0,0],"S_NR_HOT":[1,40,0,0,0,0],"S_NR_THAI_HOT":[1,50,0,0,0,0]}],"Forerunner 255":[260,260,1,{"XTINY":[1,13,0,0,0,0],"TINY":[1,18,0,0,0,0],"SMALL":[1,20,0,0,0,0],"MEDIUM":[1,24,0,0,0,0],"LARGE":[1,25,0,0,0,0],"NR_MILD":[1,30,0,0,0,0],"NR_MEDIUM":[1,36,0,0,0,0],"NR_HOT":[1,49,0,0,0,0],"NR_THAI_HOT":[1,57,0,0,0,0],"S_XTINY":[1,13,0,0,0,0],"S_TINY":[1,18,0,0,0,0],"S_SMALL":[1,20,0,0,0,0],"S_MEDIUM":[1,24,0,0,0,0],"S_LARGE":[1,25,0,0,0,0],"S_NR_MILD":[1,30,0,0,0,0],"S_NR_MEDIUM":[1,36,0,0,0,0],"S_NR_HOT":[1,49,0,0,0,0],"S_NR_THAI_HOT":[1,57,0,0,0,0]}],"Forerunner 255 Music":[260,260,1,{"XTINY":[1,13,0,0,0,0],"TINY":[1,18,0,0,0,0],"SMALL":[1,20,0,0,0,0],"MEDIUM":[1,24,0,0,0,0],"LARGE":[1,25,0,0,0,0],"NR_MILD":[1,30,0,0,0,0],"NR_MEDIUM":[1,36,0,0,0,0],"NR_HOT":[1,49,0,0,0,0],"NR_THAI_HOT":[1,57,0,0,0,0],"S_XTINY":[1,13,0,0,0,0],"S_TINY":[1,18,0,0,0,0],"S_SMALL":[1,20,0,0,0,0],"S_MEDIUM":[1,24,0,0,0,0],"S_LARGE":[1,25,0,0,0,0],"S_NR_MILD":[1,30,0,0,0,0],"S_NR_MEDIUM":[1,36,0,0,0,0],"S_NR_HOT":[1,49,0,0,0,0],"S_NR_THAI_HOT":[1,57,0,0,0,0]}],"Forerunner 255s":[218,218,1,{"XTINY":[1,13,0,0,0,0],"TINY":[1,15,0,0,0,0],"SMALL":[1,17,0,0,0,0],"MEDIUM":[1,20,0,0,0,0],"LARGE":[1,20,0,0,0,0],"NR_MILD":[1,25,0,0,0,0],"NR_MEDIUM":[1,32,0,0,0,0],"NR_HOT":[1,41,0,0,0,0],"NR_THAI_HOT":[1,48,0,0,0,0],"S_XTINY":[1,13,0,0,0,0],"S_TINY":[1,15,0,0,0,0],"S_SMALL":[1,17,0,0,0,0],"S_MEDIUM":[1,20,0,0,0,0],"S_LARGE":[1,20,0,0,0,0],"S_NR_MILD":[1,25,0,0,0,0],"S_NR_MEDIUM":[1,32,0,0,0,0],"S_NR_HOT":[1,41,0,0,0,0],"S_NR_THAI_HOT":[1,48,0,0,0,0]}],"Forerunner 255s Music":[218,218,1,{"XTINY":[1,13,0,0,0,0],"TINY":[1,15,0,0,0,0],"SMALL":[1,17,0,0,0,0],"MEDIUM":[1,20,0,0,0,0],"LARGE":[1,20,0,0,0,0],"NR_MILD":[1,25,0,0,0,0],"NR_MEDIUM":[1,32,0,0,0,0],"NR_HOT":[1,41,0,0,0,0],"NR_THAI_HOT":[1,48,0,0,0,0],"S_XTINY":[1,13,0,0,0,0],"S_TINY":[1,15,0,0,0,0],"S_SMALL":[1,17,0,0,0,0],"S_MEDIUM":[1,20,0,0,0,0],"S_LARGE":[1,20,0,0,0,0],"S_NR_MILD":[1,25,0,0,0,0],"S_NR_MEDIUM":[1,32,0,0,0,0],"S_NR_HOT":[1,41,0,0,0,0],"S_NR_THAI_HOT":[1,48,0,0,0,0]}],"Forerunner 955 / Solar":[260,260,1,{"XTINY":[1,13,0,0,0,0],"TINY":[1,18,0,0,0,0],"SMALL":[1,20,0,0,0,0],"MEDIUM":[1,24,0,0,0,0],"LARGE":[1,25,0,0,0,0],"NR_MILD":[1,30,0,0,0,0],"NR_MEDIUM":[1,36,0,0,0,0],"NR_HOT":[1,57,0,0,0,0],"NR_THAI_HOT":[5,68,-13,0,14,11],"S_XTINY":[1,13,0,0,0,0],"S_TINY":[6,21,-4,0,5,5],"S_SMALL":[1,20,0,0,0,0],"S_MEDIUM":[1,24,0,0,0,0],"S_LARGE":[1,25,0,0,0,0],"S_NR_MILD":[1,30,0,0,0,0],"S_NR_MEDIUM":[1,36,0,0,0,0],"S_NR_HOT":[1,49,0,0,0,0],"S_NR_THAI_HOT":[1,57,0,0,0,0]}],"Instinct 2 / Solar / Dual Power / dezl Edition":[176,176,0,{"XTINY":[1,15,0,0,0,0],"TINY":[1,15,0,0,0,0],"SMALL":[1,18,0,0,0,0],"MEDIUM":[1,20,0,0,0,0],"LARGE":[1,23,0,0,0,0],"NR_MILD":[2,20,0,0,0,0],"NR_MEDIUM":[2,32,0,0,0,0],"NR_HOT":[2,30,0,0,0,0],"NR_THAI_HOT":[2,41,0,0,0,0],"S_XTINY":[1,15,0,0,0,0],"S_TINY":[1,15,0,0,0,0],"S_SMALL":[1,18,0,0,0,0],"S_MEDIUM":[1,20,0,0,0,0],"S_LARGE":[1,23,0,0,0,0],"S_NR_MILD":[2,20,0,0,0,0],"S_NR_MEDIUM":[2,32,0,0,0,0],"S_NR_HOT":[2,30,0,0,0,0],"S_NR_THAI_HOT":[2,41,0,0,0,0]}]}/*END*/;
+
+/* ---------- Értéktípusok: [kód, név, minta, fajta(n szám, t idő, p tempó, s szöveg), bizonytalan?] ---------- */
+const VGROUPS = [
+ ['Idő',[['CT','Pontos idő / dátum',63312,'t'],['TT','Stopper (mozgási idő)',4374,'t'],['ET','Eltelt idő',4690,'t'],['PT','Aktuális szünet ideje',74,'t',1],['TI','Összes szünet ideje',316,'t',1],['LT','Köridő',1326,'t',1],['EC','Érkezés ideje (akt. sebességgel)',65360,'t'],['EV','Érkezés ideje (átlagsebességgel)',65360,'t'],['TC','Hátralévő idő (akt. sebességgel)',1925,'t'],['TV','Hátralévő idő (átlagsebességgel)',1925,'t'],['SS','Napkelte / napnyugta',67319,'t',1]]],
+ ['Sebesség',[['CS','Sebesség',32.4],['AS','Átlagsebesség',27.8],['MS','Max. sebesség',65.3],['AD','Átlagsebesség (eltelt időre)',25.1,'n',1]]],
+ ['Tempó',[['CP','Tempó',280,'p'],['AP','Átlagtempó',254,'p'],['MP','Legjobb tempó',211,'p'],['EP','Átlagtempó (eltelt időre)',264,'p',1],['CE','Kör átlagtempó',259,'p',1]]],
+ ['Távolság',[['DS','Megtett távolság',42.56],['DD','Távolság a célig',18.88],['LD','Kör távolsága',2.23,'n',1],['OM','Kilométeróra',1212.1]]],
+ ['Pulzus',[['HR','Pulzus',148],['AH','Átlagpulzus',139],['MH','Max. pulzus',176],['HP','Pulzus a maximum %-ában',84,'n',1],['HZ','Pulzuszóna száma',4],
+   ...[0,1,2,3,4,5].map(i=>['T'+i,'Idő a(z) '+i+'. pulzuszónában',300+i*60,'t']), ...[0,1,2,3,4,5].map(i=>['P'+i,'% a(z) '+i+'. pulzuszónában',[5,25,30,22,13,5][i]])]],
+ ['Pedálfordulat',[['CC','Pedálfordulat',88],['AC','Átlag pedálfordulat',82],['MC','Max. pedálfordulat',121]]],
+ ['Teljesítmény',[['CB','Teljesítmény (W)',245],['AB','Átlagteljesítmény',198],['MB','Max. teljesítmény',612],['NP','Normalizált teljesítmény (NP)',214],['NB','NP nullák nélkül',221,'n',1],['FT','FTP %',92]]],
+ ['Magasság',[['CL','Magasság',478],['TA','Össz. emelkedés',1240],['TD','Össz. lejtés',985],['GR','Meredekség %',6.5]]],
+ ['Egyéb',[['CA','Kalória',1563],['LR','Kör sorszáma',7],['TE','Training Effect',3.2],['TM','Hőmérséklet',21.5],['PR','Légnyomás (hPa)',1013],['BV','Akkumulátor %',87],['GA','GPS pontosság (0–4)',4],['GH','GPS jó jel jelző',1],['HA','Haladási irány',300],['BG','Váltófokozat (mechanikus)',7],['CN','Alkalmazás neve','HMs DIY #1','s'],['DV','Adatmező verziója','3.x','s'],['DN','Úti cél neve','Cél','s']]],
+ ['Pacer',[['PA','Pacer számítási átlagsebesség (kötelező)',12.4],['PI','Pacer aktuális előny/hátrány',42,'p'],['PX','Pacer várható előny a célban',95,'p',1],['PD','Pacer várható célidő',7505,'t'],['PP','Pacer várható tempó',330,'p'],['CD','Pacer korrigált távolság',5.0],['OI','Pacer eltolás jelző',1]]],
+ ['Irányjelzőhöz',[['SN','Észak',0,'n',1],['SC','Megadott koordináta',0,'n',1]]],
+];
+const VT = {FX:{n:'– nincs –',s:0,k:'n'}};
+for(const [,list] of VGROUPS) for(const [c,n,s,k,u] of list) VT[c]={n,s,k:k||'n',u:!!u};
+const GT = {LN:'Vonal',RC:'Téglalap (keret)',RF:'Kitöltött téglalap',RH:'Folyamatsáv, vízszintes',RV:'Folyamatsáv, függőleges',CR:'Kör (keret)',CF:'Kitöltött kör',AC:'Ív',AF:'Kitöltődő ív (műszer)',DT:'Irányjelző háromszög',GB:'Grafikon'};
+const FILL = ['RH','RV','AF'];
+const FAM = [[700,'"Roboto Condensed","Arial Narrow",sans-serif'],[400,'"Roboto Condensed","Arial Narrow",sans-serif'],[400,'"Bebas Neue","Roboto Condensed",Impact,sans-serif'],[400,'"DejaVu Sans",Verdana,sans-serif'],[700,'"DejaVu Sans",Verdana,sans-serif'],[400,'"DejaVu Sans Condensed","Roboto Condensed","Arial Narrow",sans-serif'],[700,'"DejaVu Sans Condensed","Roboto Condensed","Arial Narrow",sans-serif'],[400,'"Bebas Neue","Roboto Condensed",sans-serif'],[700,'"Bebas Neue","Roboto Condensed",sans-serif']];
+const FONT_FALLBACK = {XTINY:[1,13],TINY:[1,18],SMALL:[1,22],MEDIUM:[1,26],LARGE:[1,36],NR_MILD:[2,34],NR_MEDIUM:[2,42],NR_HOT:[2,56],NR_THAI_HOT:[2,70]};
+const FONT_NAMES = {XTINY:'Apró',TINY:'Kicsi',SMALL:'Kisebb',MEDIUM:'Közepes',LARGE:'Nagy',NR_MILD:'Szám – kicsi',NR_MEDIUM:'Szám – közepes',NR_HOT:'Szám – nagy',NR_THAI_HOT:'Szám – óriás'};
+const SWATCH = ['000000','555555','AAAAAA','FFFFFF','FF0000','AA0000','FF5500','FFAA00','FFFF00','00FF00','00AA00','00AAFF','0000FF','0000AA','AA00FF','FF00FF'];
+const PAD = 28, KEY = 'hmsdiy.v1';
+
+/* ---------- Állapot ---------- */
+let S = {device:'Edge 830',w:246,h:322,round:false,designer:null,els:[],samples:{},nid:1};
+let sel = [], night = false, snapOn = true, zoom = 2, guides = [], marquee = null, clip = [];
+let undoSt = [], redoSt = [], last = '';
+const $ = s => document.querySelector(s);
+const N = v => { const n = parseFloat(v); return isFinite(n) ? n : 0; };
+const byId = id => S.els.find(e => e.id === id);
+const clamp = (v,a,b) => Math.max(a,Math.min(b,v));
+
+function el(tag, props, ...kids){
+  const e = document.createElement(tag);
+  for(const k in props||{}){ const v = props[k];
+    if(k==='class') e.className = v; else if(k==='style') e.style.cssText = v;
+    else if(k.startsWith('on')) e.addEventListener(k.slice(2), v);
+    else if(v===true) e.setAttribute(k,''); else if(v!==false && v!=null) e.setAttribute(k, v); }
+  for(const c of kids.flat()) if(c!=null) e.append(c);
+  return e;
+}
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.hidden=false; clearTimeout(toast.t); toast.t=setTimeout(()=>t.hidden=true,2600); }
+
+/* ---------- Visszavonás, mentés a böngészőbe ---------- */
+function persist(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
+function commit(){ const now = JSON.stringify(S); if(now===last) return; undoSt.push(last); if(undoSt.length>200) undoSt.shift(); redoSt=[]; last=now; persist(); updButtons(); }
+let cTimer; function commitSoon(){ clearTimeout(cTimer); cTimer=setTimeout(commit,450); }
+function restore(json){ S = JSON.parse(json); last = json; sel = sel.filter(id=>byId(id)); persist(); syncDevice(); refresh(); }
+function undo(){ clearTimeout(cTimer); commit(); if(!undoSt.length) return; redoSt.push(last); restore(undoSt.pop()); }
+function redo(){ if(!redoSt.length) return; undoSt.push(last); restore(redoSt.pop()); }
+function updButtons(){ $('#undo').disabled=!undoSt.length; $('#redo').disabled=!redoSt.length; }
+
+/* ---------- Elemek ---------- */
+function kind(e){
+  if(e.type===0) return 'text'; if(e.type===2) return 'dyn'; if(e.type===3) return 'sep';
+  const t = e.a.eletype||'';
+  if(t==='LN') return 'line'; if(['RC','RF','RH','RV'].includes(t)) return 'rect';
+  if(t==='CR'||t==='CF') return 'circle'; if(t==='AC'||t==='AF') return 'arc';
+  if(t[0]==='D') return 'dir'; if(t[0]==='G') return 'graph'; return 'box';
+}
+const hasBox = e => ['line','rect','graph','box'].includes(kind(e));
+function mk(type, a, extra){ return Object.assign({id:S.nid++, type, a}, extra||{}); }
+function mkText(o){ return mk(0, Object.assign({color:'000000',x:'0',y:'0',fixedtext:'true',daynight:'true',eletype:'FX',text:'CÍMKE',font:'XTINY',halignment:'1',precision:'0',nr_values:'1',maxonly:'false'}, o)); }
+function mkVal(code, o){ const v=VT[code]||VT.FX; return mkText(Object.assign({fixedtext:'false',eletype:code,text:v.k==='t'?'$H:$M:$S':v.k==='p'?'$m:$S':'$V',font:'NR_MEDIUM',precision:String(v.s%1?1:0)}, o)); }
+function mkG(t, o, extra){ return mk(1, Object.assign({color:'000000',x:'0',y:'0',x2:'0',y2:'0',eletype:t,valuetype:'FX',minval:'false',maxonly:'false',daynight:'true',radius:'0',stroke:'1',nr_values:'1'}, o), extra); }
+function mkDyn(key, rows){ return mk(2, {replDC:key, invertcolor:'false'}, {dc:rows, dirty:true}); }
+function usedColors(){ const u=new Set(); for(const e of S.els){ if(e.a.color) u.add(e.a.color.toUpperCase()); if(e.type===2){ u.add((e.a.replDC||'').toUpperCase()); e.dc.forEach(r=>u.add(r.col.toUpperCase())); } } return u; }
+function uniqueKey(base){ const u=usedColors(); let n=parseInt(base,16)||0; for(let i=1;i<4096;i++){ const c=((n^i)&0xFFFFFF).toString(16).toUpperCase().padStart(6,'0'); if(!u.has(c)) return c; } return 'FEFEFA'; }
+const dcFor = color => color ? S.els.find(e=>e.type===2 && (e.a.replDC||'').toUpperCase()===color.toUpperCase()) : null;
+const dcUsers = dc => S.els.filter(e=>e.type<2 && (e.a.color||'').toUpperCase()===(dc.a.replDC||'').toUpperCase());
+function valCode(e){ return e.type===0 ? (e.a.fixedtext==='true'?'FX':e.a.eletype) : e.a.valuetype; }
+function sampleOf(e){
+  const c = valCode(e);
+  if(e.type===0 && e.a.sampletext!=null && e.a.sampletext!==''){ const n=parseFloat(String(e.a.sampletext).replace(',','.')); if(isFinite(n)) return n; }
+  if(S.samples[c]!=null) return S.samples[c];
+  const v = VT[c]; return v && typeof v.s==='number' ? v.s : 0;
+}
+function attachDyn(e){
+  const orig = e.a.color, key = uniqueKey(orig), s = sampleOf(e)||100, fill = FILL.includes(e.a.eletype);
+  const rows = fill ? [{val:Math.round(s*12.5),col:orig,hide:false,blink:false},{val:0,col:orig,hide:false,blink:false}]
+                    : [{val:Math.round(s*10),col:'FF0000',hide:false,blink:false},{val:0,col:orig,hide:false,blink:false}];
+  e.a.color = key; const d = mkDyn(key, rows); S.els.splice(S.els.indexOf(e),0,d); return d;
+}
+function dcRows(dc){ const inv=dc.a.invertcolor==='true'; return [...dc.dc].sort((p,q)=>inv?p.val-q.val:q.val-p.val); }
+function pruneDyn(){ S.els = S.els.filter(e=>e.type!==2 || !e.auto || dcUsers(e).length); }
+
+/* ---------- Szövegformázás ---------- */
+const p2 = n => String(Math.floor(n)).padStart(2,'0');
+function fmtTime(mask, sec){
+  sec = Math.max(0, Math.round(sec)); const hasH = /\$[Hh]/.test(mask);
+  const h = Math.floor(sec/3600), m = hasH ? Math.floor(sec%3600/60) : Math.floor(sec/60), s = sec%60, d = new Date();
+  if(hasH && h===0) mask = mask.replace(/\$[Hh][^$]?/, '');
+  if(hasH && h>0) mask = mask.replace(/[^$]?\$C/, '');
+  return mask.replace('$H',p2(h)).replace('$h',h).replace('$M',p2(m)).replace('$m',m).replace('$S',p2(s)).replace('$C',p2(s))
+    .replace('$a','').replace('$N',p2(d.getMonth()+1)).replace('$D',p2(d.getDate())).replace('$Y',d.getFullYear());
+}
+function textOf(e){
+  const a = e.a; if(a.fixedtext==='true') return a.text||'';
+  const v = VT[a.eletype], mask = a.eletype==='BG' ? '$V' : (a.text||'$V');
+  if(v && v.k==='s') return mask.replace('$V', a.sampletext || v.s);
+  const s = sampleOf(e);
+  let out = /\$[HhMmSCNDYa]/.test(mask) ? fmtTime(mask, s) : mask;
+  const dirs = ['N','NE','E','SE','S','SW','W','NW'];
+  return out.replace('$V', s.toFixed(clamp(N(a.precision),0,4))).replace('$T', a.eletype==='HA' ? dirs[Math.round(s/45)%8] : 'OK');
+}
+
+/* ---------- Betűk, geometria ---------- */
+const mctx = document.createElement('canvas').getContext('2d');
+function fontOf(e){
+  const name = e.a.font||'SMALL', map = (DEV[S.device]||[])[3]||{};
+  let f = map[name] || map[name.replace(/^S_/,'')];
+  if(!f){ const fb = FONT_FALLBACK[name.replace(/^S_/,'')]||[1,22]; f=[fb[0],fb[1],0,0,0,0]; }
+  const fam = FAM[f[0]]; return {css:`${fam[0]} ${f[1]}px ${fam[1]}`, size:f[1], off:[f[2],f[3],f[4]], oy:f[5]};
+}
+function textGeom(e){
+  const f = fontOf(e), al = e.a.halignment; mctx.font = f.css;
+  const w = Math.max(6, mctx.measureText(textOf(e)).width);
+  const ax = N(e.a.x) + f.off[al==='2'?0:al==='1'?1:2], y = N(e.a.y)+f.oy;
+  return {f, ax, y, w, x: al==='0' ? ax-w : al==='1' ? ax-w/2 : ax, h:f.size};
+}
+function bbox(e){
+  const a=e.a, k=kind(e), x=N(a.x), y=N(a.y), x2=N(a.x2), y2=N(a.y2), r=N(a.radius), st=Math.max(1,N(a.stroke));
+  if(k==='text'){ const g=textGeom(e); return {x:g.x,y:g.y,w:g.w,h:g.h}; }
+  if(k==='line'){ const p=st/2; return {x:Math.min(x,x2)-p,y:Math.min(y,y2)-p,w:Math.abs(x2-x)+st,h:Math.abs(y2-y)+st}; }
+  if(k==='circle'||k==='arc'){ const p=r+(a.eletype==='CF'?0:st/2); return {x:x-p,y:y-p,w:2*p,h:2*p}; }
+  if(k==='dir') return {x:x-r,y:y-y2-r,w:2*r,h:2*r};
+  if(k==='dyn'||k==='sep') return {x:0,y:0,w:0,h:0};
+  return {x:Math.min(x,x2),y:Math.min(y,y2),w:Math.abs(x2-x),h:Math.abs(y2-y)};
+}
+function hit(e, px, py){
+  const a=e.a, k=kind(e), t=3/zoom+2, st=Math.max(1,N(a.stroke)), b=bbox(e);
+  const inB = px>=b.x-t && px<=b.x+b.w+t && py>=b.y-t && py<=b.y+b.h+t;
+  if(!inB) return false;
+  if(k==='line'){ const x=N(a.x),y=N(a.y),dx=N(a.x2)-x,dy=N(a.y2)-y,L=dx*dx+dy*dy||1,u=clamp(((px-x)*dx+(py-y)*dy)/L,0,1); return Math.hypot(px-x-u*dx,py-y-u*dy)<=st/2+t; }
+  if(a.eletype==='CR'||k==='arc') return Math.abs(Math.hypot(px-N(a.x),py-N(a.y))-N(a.radius))<=st/2+t;
+  if(a.eletype==='CF') return Math.hypot(px-N(a.x),py-N(a.y))<=N(a.radius)+t;
+  if(a.eletype==='RC'){ const m=st+t; return !(px>b.x+m && px<b.x+b.w-m && py>b.y+m && py<b.y+b.h-m); }
+  return true;
+}
+const rad = d => d*Math.PI/180;
+function handles(e){
+  const a=e.a, k=kind(e), x=N(a.x), y=N(a.y), x2=N(a.x2), y2=N(a.y2), r=N(a.radius);
+  if(k==='line') return [{k:'p1',x,y},{k:'p2',x:x2,y:y2}];
+  if(k==='rect'||k==='graph'||k==='box') return [{k:'p1',x,y},{k:'p2',x:x2,y:y2},{k:'ne',x:x2,y},{k:'sw',x,y:y2}];
+  if(k==='circle') return [{k:'r',x:x+r,y}];
+  if(k==='arc'){ const m=rad((x2+y2)/2); return [{k:'s',x:x+r*Math.cos(rad(x2)),y:y+r*Math.sin(rad(x2))},{k:'e',x:x+r*Math.cos(rad(y2)),y:y+r*Math.sin(rad(y2))},{k:'r',x:x+r*Math.cos(m),y:y+r*Math.sin(m)}]; }
+  if(k==='dir') return [{k:'r',x:x+r,y:y-y2}];
+  return [];
+}
+function dragHandle(e, hk, px, py, shift){
+  const a=e.a, S_=v=>String(Math.round(v));
+  if(hk==='p1'||hk==='p2'){
+    if(shift && kind(e)==='line'){ const ox=N(hk==='p1'?a.x2:a.x), oy=N(hk==='p1'?a.y2:a.y); if(Math.abs(px-ox)>Math.abs(py-oy)) py=oy; else px=ox; }
+    if(hk==='p1'){ a.x=S_(px); a.y=S_(py); } else { a.x2=S_(px); a.y2=S_(py); }
+  } else if(hk==='ne'){ a.x2=S_(px); a.y=S_(py); }
+  else if(hk==='sw'){ a.x=S_(px); a.y2=S_(py); }
+  else if(hk==='r'){ const cy = kind(e)==='dir' ? N(a.y)-N(a.y2) : N(a.y); a.radius=S_(Math.max(1,Math.hypot(px-N(a.x),py-cy))); }
+  else { const key = hk==='s'?'x2':'y2', old=N(a[key]); let g=Math.atan2(py-N(a.y),px-N(a.x))*180/Math.PI; if(shift) g=Math.round(g/15)*15; a[key]=S_(g+360*Math.round((old-g)/360)); }
+}
+
+/* ---------- Szín feloldása (dinamikus szín, éjszakai mód) ---------- */
+function invert(c){ return (0xFFFFFF^parseInt(c,16)).toString(16).padStart(6,'0'); }
+function resolve(e){
+  const a=e.a, dc=dcFor(a.color); let col=a.color||'000000', frac=0.62, hidden=false, blink=false;
+  if(dc && dc.dc.length){
+    const v=sampleOf(e)*10, inv=dc.a.invertcolor==='true', rows=dcRows(dc), r=rows.find(r=>inv?v<=r.val:v>=r.val)||rows[rows.length-1];
+    col=r.col; hidden=r.hide; blink=r.blink; const vals=rows.map(r=>r.val), mn=Math.min(...vals), mx=Math.max(...vals); frac = mx>mn ? clamp((v-mn)/(mx-mn),0,1) : 1;
+  }
+  if(!/^[0-9a-f]{6}$/i.test(col)) col='FF00FF';
+  if(night && a.daynight==='true') col=invert(col);
+  return {col,frac,hidden,blink};
+}
+
+/* ---------- Rajzolás ---------- */
+function drawEl(c, e){
+  const a=e.a, k=kind(e); if(k==='dyn'||k==='sep') return;
+  const r=resolve(e), x=N(a.x), y=N(a.y), x2=N(a.x2), y2=N(a.y2), R=N(a.radius), st=Math.max(1,N(a.stroke)), t=a.eletype;
+  c.save(); if(r.hidden) c.globalAlpha=.22;
+  c.fillStyle=c.strokeStyle='#'+r.col; c.lineWidth=st; c.lineCap='butt';
+  const bx=Math.min(x,x2), by=Math.min(y,y2), bw=Math.abs(x2-x), bh=Math.abs(y2-y);
+  const ghost = fn => { c.save(); c.globalAlpha=.3; c.lineWidth=1/zoom; c.setLineDash([3/zoom,3/zoom]); c.beginPath(); fn(); c.stroke(); c.restore(); };
+  if(k==='text'){ const g=textGeom(e); c.font=g.f.css; c.textBaseline='top'; c.textAlign=a.halignment==='0'?'right':a.halignment==='1'?'center':'left'; c.fillText(textOf(e), g.ax, g.y); }
+  else if(k==='line'){ c.beginPath(); c.moveTo(x,y); c.lineTo(x2,y2); c.stroke(); }
+  else if(t==='RC'){ const s=Math.min(st,bw,bh); c.lineWidth=s; c.strokeRect(bx+s/2,by+s/2,Math.max(0,bw-s),Math.max(0,bh-s)); }
+  else if(t==='RF') c.fillRect(bx,by,bw,bh);
+  else if(t==='RH'){ c.fillRect(bx,by,bw*r.frac,bh); ghost(()=>c.rect(bx,by,bw,bh)); }
+  else if(t==='RV'){ c.fillRect(bx,by+bh*(1-r.frac),bw,bh*r.frac); ghost(()=>c.rect(bx,by,bw,bh)); }
+  else if(t==='CR'){ c.beginPath(); c.arc(x,y,R,0,7); c.stroke(); }
+  else if(t==='CF'){ c.beginPath(); c.arc(x,y,R,0,7); c.fill(); }
+  else if(t==='AC'){ c.beginPath(); c.arc(x,y,R,rad(x2),rad(y2),y2<x2); c.stroke(); }
+  else if(t==='AF'){ const end=x2+(y2-x2)*r.frac; if(r.frac>0){ c.beginPath(); c.arc(x,y,R,rad(x2),rad(end),y2<x2); c.stroke(); } ghost(()=>c.arc(x,y,R,rad(x2),rad(y2),y2<x2)); }
+  else if(k==='dir'){ const cy=y-y2; c.lineJoin='miter'; c.beginPath(); c.moveTo(x,cy-R); c.lineTo(x+R*.75,cy+R*.8); c.lineTo(x,cy+R*.35); c.lineTo(x-R*.75,cy+R*.8); c.closePath(); c.stroke(); }
+  else if(k==='graph'){ const n=Math.max(1,Math.floor(bw/st)); for(let i=0;i<n;i++){ const hgt=bh*(.45+.28*Math.sin(i*.37)+.17*Math.sin(i*1.31+1)); c.fillRect(bx+i*st,by+bh-hgt,st,hgt); } ghost(()=>c.rect(bx,by,bw,bh)); }
+  else { c.lineWidth=1/zoom; c.setLineDash([4/zoom,3/zoom]); c.strokeRect(bx,by,bw||R*2,bh||R*2); c.font='10px sans-serif'; c.textBaseline='top'; c.fillText(t,bx+2,by+2); }
+  c.restore();
+}
+function css(v){ return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+function draw(){
+  const cv=$('#cv'), dpr=window.devicePixelRatio||1, W=S.w*zoom+PAD*2, H=S.h*zoom+PAD*2;
+  if(cv.width!==Math.round(W*dpr)||cv.height!==Math.round(H*dpr)){ cv.width=Math.round(W*dpr); cv.height=Math.round(H*dpr); cv.style.width=W+'px'; cv.style.height=H+'px'; }
+  const c=cv.getContext('2d'); c.setTransform(dpr,0,0,dpr,0,0); c.clearRect(0,0,W,H);
+  c.translate(PAD,PAD); c.scale(zoom,zoom);
+  const shape=()=>{ c.beginPath(); if(S.round) c.ellipse(S.w/2,S.h/2,S.w/2,S.h/2,0,0,7); else c.rect(0,0,S.w,S.h); };
+  c.save(); shape(); c.shadowColor='rgba(0,0,0,.35)'; c.shadowBlur=14; c.shadowOffsetY=3; c.fillStyle=night?'#000':'#fff'; c.fill(); c.restore();
+  c.save(); shape(); c.clip();
+  for(const e of S.els) if(!e.hide) drawEl(c,e);
+  c.restore();
+  if(!S.els.length){ c.fillStyle='#888'; c.font=`${12/zoom*1.2}px sans-serif`; c.textAlign='center'; c.fillText('Adj hozzá elemet a bal oldali listából', S.w/2, S.h/2); }
+  const acc=css('--accent')||'#0a66c2', px=1/zoom;
+  c.lineWidth=px; c.strokeStyle='#d0289a';
+  for(const g of guides){ c.beginPath(); if(g.x!=null){ c.moveTo(g.x,-PAD/zoom); c.lineTo(g.x,S.h+PAD/zoom); } else { c.moveTo(-PAD/zoom,g.y); c.lineTo(S.w+PAD/zoom,g.y); } c.stroke(); }
+  c.strokeStyle=acc;
+  for(const id of sel){ const e=byId(id); if(!e||e.type>1||e.hide) continue; const b=bbox(e); c.setLineDash([4*px,3*px]); c.strokeRect(b.x-2*px,b.y-2*px,b.w+4*px,b.h+4*px); c.setLineDash([]); }
+  if(sel.length===1){ const e=byId(sel[0]); if(e&&e.type===1&&!e.hide) for(const h of handles(e)){ c.fillStyle='#fff'; c.beginPath(); if(h.k==='s'||h.k==='e'||h.k==='r') c.arc(h.x,h.y,4.5*px,0,7); else c.rect(h.x-4*px,h.y-4*px,8*px,8*px); c.fill(); c.lineWidth=1.5*px; c.stroke(); } }
+  if(marquee){ c.lineWidth=px; c.fillStyle='rgba(10,102,194,.12)'; c.fillRect(marquee.x,marquee.y,marquee.w,marquee.h); c.strokeRect(marquee.x,marquee.y,marquee.w,marquee.h); }
+}
+
+/* ---------- Egér / érintés a vásznon ---------- */
+let drag=null;
+function devPt(ev){ const r=$('#cv').getBoundingClientRect(); return {x:(ev.clientX-r.left-PAD)/zoom, y:(ev.clientY-r.top-PAD)/zoom}; }
+function pick(p){ for(let i=S.els.length-1;i>=0;i--){ const e=S.els[i]; if(e.type<2 && !e.hide && !e.lock && hit(e,p.x,p.y)) return e; } return null; }
+function onDown(ev){
+  if(ev.button) return; const p=devPt(ev), cv=$('#cv'); cv.setPointerCapture(ev.pointerId);
+  if(document.activeElement && document.activeElement.blur) document.activeElement.blur();
+  clearTimeout(cTimer); commit();
+  if(sel.length===1){ const e=byId(sel[0]); if(e&&e.type===1){ const tol=(ev.pointerType==='touch'?14:7)/zoom; const h=handles(e).find(h=>Math.hypot(h.x-p.x,h.y-p.y)<=tol); if(h){ drag={mode:'h',e,hk:h.k}; return; } } }
+  const e=pick(p);
+  if(e){
+    if(ev.shiftKey){ sel = sel.includes(e.id) ? sel.filter(i=>i!==e.id) : [...sel,e.id]; }
+    else if(!sel.includes(e.id)) sel=[e.id];
+    const items=sel.map(byId).filter(Boolean);
+    drag={mode:'m',p,items,orig:items.map(i=>({x:N(i.a.x),y:N(i.a.y),x2:N(i.a.x2),y2:N(i.a.y2)})),box:items.length?bbox(byId(e.id)||items[0]):null,moved:false};
+    refresh();
+  } else { if(!ev.shiftKey) sel=[]; drag={mode:'q',p,base:[...sel]}; refresh(); }
+}
+function snapAxis(vals, targets){ let best=null; for(const v of vals) for(const t of targets){ const d=t-v; if(Math.abs(d)<=5/zoom && (!best||Math.abs(d)<Math.abs(best.d))) best={d,t}; } return best; }
+function onMove(ev){
+  const p=devPt(ev); $('#st-pos').textContent=`x ${Math.round(p.x)}  y ${Math.round(p.y)}`;
+  if(!drag) return;
+  if(drag.mode==='h'){ dragHandle(drag.e,drag.hk,p.x,p.y,ev.shiftKey); drag.moved=true; draw(); selStatus(); return; }
+  if(drag.mode==='q'){ const x=Math.min(p.x,drag.p.x), y=Math.min(p.y,drag.p.y), w=Math.abs(p.x-drag.p.x), h=Math.abs(p.y-drag.p.y); marquee={x,y,w,h};
+    if(w+h>3){ const inside=S.els.filter(e=>{ if(e.type>1||e.hide||e.lock) return false; const b=bbox(e); return b.x<x+w&&b.x+b.w>x&&b.y<y+h&&b.y+b.h>y; }).map(e=>e.id); sel=[...new Set([...drag.base,...inside])]; }
+    draw(); return; }
+  let dx=Math.round(p.x-drag.p.x), dy=Math.round(p.y-drag.p.y); if(!drag.moved && Math.abs(dx)+Math.abs(dy)<2/zoom+1) return;
+  drag.moved=true; guides=[];
+  if(ev.shiftKey){ if(Math.abs(dx)>Math.abs(dy)) dy=0; else dx=0; }
+  if(snapOn && !ev.altKey && drag.box){
+    const b=drag.box, ids=new Set(sel), tx=[0,S.w/2,S.w], ty=[0,S.h/2,S.h];
+    for(const o of S.els){ if(o.type>1||o.hide||ids.has(o.id)) continue; const ob=bbox(o); tx.push(ob.x,ob.x+ob.w/2,ob.x+ob.w); ty.push(ob.y,ob.y+ob.h/2,ob.y+ob.h); }
+    const sx=snapAxis([b.x+dx,b.x+b.w/2+dx,b.x+b.w+dx],tx), sy=snapAxis([b.y+dy,b.y+b.h/2+dy,b.y+b.h+dy],ty);
+    if(sx){ dx=Math.round(dx+sx.d); guides.push({x:sx.t}); } if(sy){ dy=Math.round(dy+sy.d); guides.push({y:sy.t}); }
+  }
+  drag.items.forEach((e,i)=>{ const o=drag.orig[i]; e.a.x=String(o.x+dx); e.a.y=String(o.y+dy); if(hasBox(e)){ e.a.x2=String(o.x2+dx); e.a.y2=String(o.y2+dy); } });
+  draw(); selStatus();
+}
+function onUp(){ if(!drag) return; const d=drag; drag=null; guides=[]; marquee=null; if(d.moved) commit(); refresh(); }
+
+/* ---------- Kijelölés műveletei ---------- */
+const selEls = () => sel.map(byId).filter(Boolean);
+function addEls(list, select){
+  let at=S.els.length; const s=selEls(); if(s.length) at=Math.max(...s.map(e=>S.els.indexOf(e)))+1;
+  S.els.splice(at,0,...list); sel=(select||list).map(e=>e.id); commit(); refresh();
+}
+function delSel(){ if(!sel.length) return; S.els=S.els.filter(e=>!sel.includes(e.id)); sel=[]; pruneDyn(); commit(); refresh(); }
+function cloneEls(src, d){ return src.map(e=>{ const c=JSON.parse(JSON.stringify(e)); c.id=S.nid++; if(c.type<2){ c.a.x=String(N(c.a.x)+d); c.a.y=String(N(c.a.y)+d); if(hasBox(c)){ c.a.x2=String(N(c.a.x2)+d); c.a.y2=String(N(c.a.y2)+d); } } if(c.type===2){ c.a.replDC=uniqueKey(c.a.replDC); } return c; }); }
+function dupSel(){ const s=selEls(); if(s.length) addEls(cloneEls(s,8)); }
+function nudge(dx,dy,resize){ const s=selEls().filter(e=>e.type<2); if(!s.length) return; for(const e of s){ if(resize&&hasBox(e)){ e.a.x2=String(N(e.a.x2)+dx); e.a.y2=String(N(e.a.y2)+dy); } else { e.a.x=String(N(e.a.x)+dx); e.a.y=String(N(e.a.y)+dy); if(hasBox(e)){ e.a.x2=String(N(e.a.x2)+dx); e.a.y2=String(N(e.a.y2)+dy); } } } draw(); renderPanel(); commitSoon(); }
+function moveLayer(dir){ const s=selEls(); if(!s.length) return; const order=dir>0?[...s].sort((a,b)=>S.els.indexOf(b)-S.els.indexOf(a)):[...s].sort((a,b)=>S.els.indexOf(a)-S.els.indexOf(b));
+  for(const e of order){ const i=S.els.indexOf(e), j=i+dir; if(j<0||j>=S.els.length||sel.includes(S.els[j].id)) continue; S.els.splice(i,1); S.els.splice(j,0,e); } commit(); refresh(); }
+
+/* ---------- Hozzáadás paletta ---------- */
+const ICON = {text:'<path d="M3 4h10M8 4v9"/>',val:'<path d="M3 12V4l4 5 0-5M10 4h3v4h-3v4h3"/>',field:'<path d="M2 4h6M2 8h12M2 12h12"/>',line:'<path d="M2 13L14 3"/>',rect:'<rect x="2.5" y="4" width="11" height="8"/>',rectf:'<rect x="2.5" y="4" width="11" height="8" fill="currentColor"/>',circ:'<circle cx="8" cy="8" r="5.5"/>',circf:'<circle cx="8" cy="8" r="5.5" fill="currentColor"/>',arc:'<path d="M2.5 11a5.5 5.5 0 0 1 11 0"/>',gauge:'<path d="M2.5 11a5.5 5.5 0 0 1 11 0" opacity=".35"/><path d="M2.5 11a5.5 5.5 0 0 1 5.5-5.5" stroke-width="2.4"/>',bar:'<rect x="2" y="6" width="12" height="4"/><rect x="2" y="6" width="7" height="4" fill="currentColor"/>',graph:'<path d="M2 13V9M5 13V6M8 13V8M11 13V4M14 13V7" stroke-width="2"/>',dir:'<path d="M8 2l4 11-4-3-4 3z"/>',bg:'<rect x="2" y="2" width="12" height="12" fill="currentColor" opacity=".35"/><rect x="2" y="2" width="12" height="12"/>',sep:'<path d="M2 8h3M7 8h2M11 8h3"/>'};
+const ico = k => `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true">${ICON[k]}</svg>`;
+function buildPalette(){
+  const cx=()=>Math.round(S.w/2), cy=()=>Math.round(S.h/2), u=()=>Math.round(Math.min(S.w,S.h)/4);
+  const P=[
+   ['val','t0','Érték',()=>addEls([mkVal('CS',{x:String(cx()),y:String(cy()-20)})])],
+   ['text','t0','Címke',()=>addEls([mkText({x:String(cx()),y:String(cy()-8)})])],
+   ['field','t0 wide','Mező: címke + érték együtt',()=>addEls([mkText({text:'SEBESSÉG',x:String(cx()),y:String(cy()-34)}),mkVal('CS',{x:String(cx()),y:String(cy()-18)})])],
+   ['line','t1','Vonal',()=>addEls([mkG('LN',{x:'8',y:String(cy()),x2:String(S.w-8),y2:String(cy())})])],
+   ['bg','t1','Háttér',()=>{ const g=mkG('RF',{color:'FFFFFF',x2:String(S.w),y2:String(S.h)},{lock:true}); S.els.unshift(g); sel=[g.id]; commit(); refresh(); }],
+   ['rect','t1','Keret',()=>addEls([mkG('RC',{x:String(cx()-u()),y:String(cy()-u()/2),x2:String(cx()+u()),y2:String(cy()+u()/2),stroke:'2'})])],
+   ['rectf','t1','Téglalap',()=>addEls([mkG('RF',{color:'AAAAAA',x:String(cx()-u()),y:String(cy()-u()/2),x2:String(cx()+u()),y2:String(cy()+u()/2)})])],
+   ['circ','t1','Kör',()=>addEls([mkG('CR',{x:String(cx()),y:String(cy()),radius:String(u()),stroke:'2'})])],
+   ['circf','t1','Korong',()=>addEls([mkG('CF',{color:'AAAAAA',x:String(cx()),y:String(cy()),radius:String(Math.round(u()/2))})])],
+   ['arc','t1','Ív',()=>addEls([mkG('AC',{color:'AAAAAA',x:String(cx()),y:String(cy()),radius:String(u()*1.5|0),x2:'200',y2:'340',stroke:'10'})])],
+   ['gauge','t1','Műszer-ív',()=>{ const g=mkG('AF',{color:'FF5500',valuetype:'HR',x:String(cx()),y:String(cy()),radius:String(u()*1.5|0),x2:'200',y2:'340',stroke:'10'}); addEls([g]); const d=attachDyn(g); d.auto=true; d.dc[0].val=2000; d.dc[1].val=600; commit(); refresh(); }],
+   ['bar','t1','Folyamatsáv',()=>{ const g=mkG('RH',{color:'00AA00',valuetype:'BV',x:String(cx()-u()),y:String(cy()-5),x2:String(cx()+u()),y2:String(cy()+5)}); addEls([g]); const d=attachDyn(g); d.auto=true; d.dc[0].val=1000; d.dc[1].val=0; commit(); refresh(); }],
+   ['graph','t1','Grafikon',()=>addEls([mkG('GB',{color:'AA0000',valuetype:'HR',x:String(cx()-u()),y:String(cy()-u()/2|0),x2:String(cx()+u()),y2:String(cy()+u()/2|0),radius:'0',stroke:'2',maxonly:'false'})])],
+   ['dir','t1','Irányjelző',()=>addEls([mkG('DT',{x:String(cx()),y:String(cy()),radius:'12',stroke:'2'})])],
+   ['sep','t3','Elválasztó a listában',()=>addEls([mk(3,{text:'*** SZAKASZ ***'})])],
+  ];
+  const box=$('#palette');
+  for(const [i,cls,label,fn] of P){ const b=el('button',{class:cls,type:'button',onclick:fn}); b.innerHTML=ico(i)+'<span style="color:var(--ink)">'+label+'</span>'; box.append(b); }
+}
+
+/* ---------- Rétegek ---------- */
+function nameOf(e){
+  if(e.type===0) return e.a.fixedtext==='true' ? '„'+(e.a.text||'')+'”' : (VT[e.a.eletype]?VT[e.a.eletype].n:'Érték '+e.a.eletype);
+  if(e.type===1){ const v=e.a.valuetype&&e.a.valuetype!=='FX' ? ' · '+(VT[e.a.valuetype]?VT[e.a.valuetype].n:e.a.valuetype) : ''; return (GT[e.a.eletype]||'Grafika '+e.a.eletype)+v; }
+  if(e.type===2) return 'Dinamikus szín #'+e.a.replDC+' ('+dcUsers(e).length+' elem)';
+  return e.a.text||'———';
+}
+let dragId=null;
+function renderLayers(){
+  const ul=$('#layers'); ul.textContent='';
+  for(let i=S.els.length-1;i>=0;i--){ const e=S.els[i];
+    const li=el('li',{class:'t'+e.type+(sel.includes(e.id)?' sel':'')+(e.hide?' off':'')+(e.type===3?' sepr':''),draggable:'true',
+      onclick:ev=>{ if(ev.target.closest('.ic')) return; if(ev.shiftKey||ev.ctrlKey||ev.metaKey) sel=sel.includes(e.id)?sel.filter(x=>x!==e.id):[...sel,e.id]; else sel=[e.id]; refresh(); },
+      ondragstart:ev=>{ dragId=e.id; ev.dataTransfer.effectAllowed='move'; try{ev.dataTransfer.setData('text/plain',String(e.id));}catch(_){} },
+      ondragover:ev=>{ ev.preventDefault(); li.classList.add('drop'); }, ondragleave:()=>li.classList.remove('drop'),
+      ondrop:ev=>{ ev.preventDefault(); li.classList.remove('drop'); const d=byId(dragId); if(!d||d===e) return; S.els.splice(S.els.indexOf(d),1); S.els.splice(S.els.indexOf(e)+1,0,d); commit(); refresh(); }},
+      el('span',{class:'n',title:nameOf(e)},nameOf(e)));
+    if(e.type<2){
+      li.append(el('button',{class:'ic'+(e.lock?' act':''),title:e.lock?'Zárolva – a vásznon nem jelölhető ki':'Zárolás',onclick:()=>{ e.lock=!e.lock; commit(); refresh(); }},e.lock?'🔒':'🔓'),
+                el('button',{class:'ic'+(e.hide?' act':''),title:'Elrejtés a szerkesztőben (az XML-be bekerül)',onclick:()=>{ e.hide=!e.hide; commit(); refresh(); }},e.hide?'◌':'●'));
+    }
+    ul.append(li);
+  }
+  const n=S.els.filter(e=>e.type!==3).length;
+  $('#st-count').textContent=n+' elem'; $('#st-count').title='Elemszám-korlát az eszköz memóriájától függ: kis memória 30, közepes 35, nagy 500 elem.';
+}
+function selStatus(){ const s=selEls(); $('#st-sel').textContent = s.length===1&&s[0].type<2 ? `${nameOf(s[0])}: ${s[0].a.x}, ${s[0].a.y}` : s.length>1 ? s.length+' elem kijelölve' : ''; }
+
+/* ---------- Tulajdonság-panel ---------- */
+function live(){ draw(); selStatus(); commitSoon(); }
+function fld(label, input){ return el('label',{class:'f'},el('span',{},label),input); }
+function fNum(e,key,label,o){ o=o||{}; const i=el('input',{type:'number',id:'p-'+key,step:o.step||1,min:o.min,value:e.a[key]??'0',oninput:()=>{ if(i.value==='') return; e.a[key]=String(o.float?N(i.value):Math.round(N(i.value))); live(); if(o.after) o.after(); }}); return fld(label,i); }
+function fTxt(e,key,label,o){ o=o||{}; const i=el('input',{type:'text',id:'p-'+key,value:e.a[key]??'',placeholder:o.ph,oninput:()=>{ e.a[key]=i.value; live(); renderLayersSoon(); }}); return fld(label,i); }
+function fChk(e,key,label){ const i=el('input',{type:'checkbox',id:'p-'+key,onchange:()=>{ e.a[key]=String(i.checked); live(); }}); i.checked=e.a[key]==='true'; return el('label',{class:'chk'},i,label); }
+let rlT; function renderLayersSoon(){ clearTimeout(rlT); rlT=setTimeout(renderLayers,200); }
+function seg(opts, cur, fn){ return el('div',{class:'seg'},opts.map(([v,l])=>el('button',{type:'button',class:v===cur?'on':'',onclick:()=>fn(v)},l))); }
+function valueSelect(cur, fn, id){
+  const s=el('select',{id,onchange:()=>fn(s.value)}); s.append(el('option',{value:'FX'},'– nincs –'));
+  for(const [g,list] of VGROUPS){ const og=el('optgroup',{label:g}); for(const [c,n,,,u] of list) og.append(el('option',{value:c},n+(u?' (?)':'')+'  ['+c+']')); s.append(og); }
+  if(!VT[cur]) s.append(el('option',{value:cur},'Ismeretlen kód ['+cur+']'));
+  s.value=cur; return s;
+}
+function sampleField(e){
+  const code=valCode(e); if(code==='FX') return null; const v=VT[code];
+  const cur = e.type===0 && e.a.sampletext ? e.a.sampletext : (S.samples[code]??(v?v.s:0));
+  const i=el('input',{type:'text',id:'p-sample',value:cur,oninput:()=>{ if(e.type===0){ if(i.value==='') delete e.a.sampletext; else e.a.sampletext=i.value; } else { const n=parseFloat(i.value.replace(',','.')); if(isFinite(n)) S.samples[code]=n; } live(); }});
+  return fld('Mintaérték az előnézethez'+(v&&(v.k==='t'||v.k==='p')?' (másodperc)':''), i);
+}
+function colorSection(e){
+  const box=el('div',{}), dc=dcFor(e.a.color), fill=FILL.includes(e.a.eletype);
+  box.append(el('h2',{},'Szín'));
+  if(dc){ box.append(dcEditor(dc,e), el('div',{class:'dlgbar',style:'margin-top:0'}, el('button',{class:'btn sm',onclick:()=>{ const rows=[...dc.dc].sort((a,b)=>b.val-a.val); e.a.color=rows.length?rows[rows.length-1].col:'000000'; if(!dcUsers(dc).length) S.els=S.els.filter(x=>x!==dc); commit(); refresh(); }},'Vissza egyetlen fix színre'))); }
+  else {
+    const hex=el('input',{type:'text',id:'p-hex',maxlength:6,value:e.a.color,oninput:()=>{ if(/^[0-9a-f]{6}$/i.test(hex.value)){ e.a.color=hex.value.toUpperCase(); pick.value='#'+hex.value; live(); } }});
+    const pick=el('input',{type:'color',id:'p-color',value:'#'+(/^[0-9a-f]{6}$/i.test(e.a.color)?e.a.color:'000000'),oninput:()=>{ e.a.color=pick.value.slice(1).toUpperCase(); hex.value=e.a.color; live(); }});
+    box.append(el('div',{class:'colrow'},pick,hex,el('button',{class:'btn sm',title:'A szín (vagy a kitöltöttség) az élő értéktől függjön',onclick:()=>{ attachDyn(e); commit(); refresh(); }},fill?'Értékhez kötés…':'Érték szerint változzon…')),
+      el('div',{class:'sw'},SWATCH.map(c=>el('button',{type:'button',title:'#'+c,style:'background:#'+c,onclick:()=>{ e.a.color=c; commit(); refresh(); }}))));
+    if(fill) box.append(el('div',{class:'hint'},'A sáv csak akkor mozog az órán, ha értékhez van kötve: a legkisebb határnál üres, a legnagyobbnál tele.'));
+  }
+  box.append(fChk(e,'daynight','Éjszakai módban invertálódjon a szín'));
+  return box;
+}
+function dcEditor(dc, user){
+  const fill = user && FILL.includes(user.a.eletype), box=el('div',{class:'dc'});
+  const src = user ? valCode(user) : null, v = VT[src];
+  box.append(el('div',{class:'hint',style:'margin-top:0'}, user ? (src&&src!=='FX' ? el('span',{},'Forrásérték: ',el('b',{},v?v.n:src), v&&(v.k==='t'||v.k==='p')?' (másodpercben)':'') : el('span',{},el('b',{},'Nincs forrásérték. '),'Válassz „Kapcsolt értéket” fent.')) : 'Ezt a színszabályt a(z) #'+dc.a.replDC+' kulcsszínű elemek használják.'));
+  const tb=el('tbody',{}); const rows=dcRows(dc), inv=dc.a.invertcolor==='true';
+  rows.forEach((r,i)=>{
+    const vi=el('input',{type:'number',step:'0.1',value:r.val/10,'aria-label':'Határérték',oninput:()=>{ if(vi.value!==''){ r.val=Math.round(N(vi.value)*10); dc.dirty=true; live(); } },onchange:()=>renderPanel()});
+    const ci=el('input',{type:'color',value:'#'+r.col,'aria-label':'Szín',oninput:()=>{ r.col=ci.value.slice(1).toUpperCase(); live(); }});
+    const hi=el('input',{type:'checkbox',title:'Elrejtés ebben a tartományban',onchange:()=>{ r.hide=hi.checked; live(); }}); hi.checked=!!r.hide;
+    const bi=el('input',{type:'checkbox',title:'Villogás ebben a tartományban',onchange:()=>{ r.blink=bi.checked; live(); }}); bi.checked=!!r.blink;
+    tb.append(el('tr',{},el('td',{style:'color:var(--mute);font-size:11px;white-space:nowrap'}, fill ? (r.val===Math.max(...rows.map(x=>x.val))?'tele':r.val===Math.min(...rows.map(x=>x.val))?'üres':'') : (i===rows.length-1?(inv?'felette is':'alatta is'):(inv?'≤':'≥'))),el('td',{},vi),el('td',{},ci),el('td',{},hi),el('td',{},bi),
+      el('td',{},el('button',{class:'btn sm ghost',title:'Sor törlése',disabled:rows.length<2,onclick:()=>{ dc.dc.splice(dc.dc.indexOf(r),1); dc.dirty=true; commit(); refresh(); }},'✕'))));
+  });
+  box.append(el('table',{},el('thead',{},el('tr',{},el('th',{}),el('th',{},inv?'Értékig':'Értéktől'),el('th',{},'Szín'),el('th',{title:'Elrejt'},'Rejt'),el('th',{title:'Villog'},'Villog'),el('th',{}))),tb),
+    el('div',{class:'dlgbar',style:'margin-top:6px'},el('button',{class:'btn sm',onclick:()=>{ const d=[...dc.dc].sort((a,b)=>b.val-a.val), top=d[0]||{val:0,col:'FF0000'}; dc.dc.push({val:top.val+(Math.abs(top.val-(d[1]?d[1].val:0))||100),col:top.col,hide:false,blink:false}); dc.dirty=true; commit(); refresh(); }},'+ Tartomány')),
+    (()=>{ const i=el('input',{type:'checkbox',onchange:()=>{ dc.a.invertcolor=String(i.checked); dc.dirty=true; commit(); refresh(); }}); i.checked=dc.a.invertcolor==='true'; return el('label',{class:'chk'},i,'Fordított sorrend: a határ felső korlát (tempóhoz)'); })());
+  return box;
+}
+function renderPanel(){
+  const p=$('#panel'); const keep=document.activeElement&&p.contains(document.activeElement)?document.activeElement.id:null; p.textContent='';
+  const s=selEls();
+  if(!s.length){
+    p.append(el('h2',{},'Kezdéshez'),
+      el('div',{class:'hint'},'Kattints egy elemre a képernyőn vagy a rétegek között, és itt szerkesztheted. Új elemet a bal felső listából adhatsz hozzá.'),
+      el('h2',{},'Billentyűk'),
+      el('div',{class:'hint',style:'line-height:2'},el('kbd',{},'nyilak'),' mozgatás 1 px (',el('kbd',{},'Shift'),' 10 px)',el('br'),el('kbd',{},'Alt'),'+',el('kbd',{},'nyilak'),' átméretezés',el('br'),el('kbd',{},'Del'),' törlés · ',el('kbd',{},'Ctrl'),'+',el('kbd',{},'D'),' duplikálás',el('br'),el('kbd',{},'Ctrl'),'+',el('kbd',{},'C'),' / ',el('kbd',{},'V'),' másol / beilleszt',el('br'),el('kbd',{},'Ctrl'),'+',el('kbd',{},'Z'),' / ',el('kbd',{},'Y'),' visszavon / mégis',el('br'),el('kbd',{},'Shift'),'+húzás: egyenesen · ',el('kbd',{},'Alt'),'+húzás: illesztés nélkül'),
+      el('h2',{},'Eszköz'),
+      el('div',{class:'hint'},S.device+' · '+S.w+'×'+S.h+' px'+(S.round?' · kerek':''),el('br'),'A betűméretek az eszköz szerint változnak; a betűk képe közelítés.'));
+    return;
+  }
+  if(s.length>1){
+    p.append(el('h2',{},s.length+' elem kijelölve'),el('div',{class:'hint'},'Húzással vagy a nyilakkal együtt mozgathatók.'),
+      el('div',{class:'dlgbar'},el('button',{class:'btn',onclick:dupSel},'Duplikálás'),el('button',{class:'btn',onclick:delSel},'Törlés')));
+    return;
+  }
+  const e=s[0], a=e.a, k=kind(e);
+  if(k==='sep'){ p.append(el('h2',{class:'t3'},'Elválasztó'),el('div',{class:'row one'},fTxt(e,'text','Felirat a listában')),el('div',{class:'hint'},'Csak a rétegek áttekintését segíti, az órán nem jelenik meg.')); }
+  else if(k==='dyn'){ p.append(el('h2',{class:'t2'},'Dinamikus szín'),dcEditor(dc_(e),null),el('div',{class:'hint'},'Használja: ',dcUsers(e).map(nameOf).join(', ')||'egyik elem sem')); }
+  else if(k==='text'){
+    const isVal=a.fixedtext!=='true', v=VT[a.eletype];
+    p.append(el('h2',{class:'t0'},isVal?'Érték':'Címke'),
+      el('div',{class:'row one'},seg([['v','Élő érték'],['l','Fix felirat']],isVal?'v':'l',m=>{ if(m==='v'){ a.fixedtext='false'; if(a.eletype==='FX') a.eletype='CS'; if(!/\$/.test(a.text)) a.text='$V'; } else { a.fixedtext='true'; a.eletype='FX'; if(/\$/.test(a.text)) a.text='CÍMKE'; } commit(); refresh(); })));
+    if(isVal){
+      p.append(el('div',{class:'row one'},fld('Mit mutasson?',valueSelect(a.eletype,c=>{ a.eletype=c; const nv=VT[c]; if(nv){ a.text=nv.k==='t'?'$H:$M:$S':nv.k==='p'?'$m:$S':'$V'; } delete a.sampletext; commit(); refresh(); },'p-eletype'))));
+      if(v&&v.u) p.append(el('div',{class:'hint'},'A (?) jelű neveket a példafájlokból következtettem ki – a kód biztos, a megnevezés nem.'));
+      p.append(el('div',{class:'row one'},fTxt(e,'text',a.eletype==='BG'?'Váltó adatai (kerület;lánctányér;fogaskerekek)':'Formátum – a $V helyére kerül az érték')));
+      if(a.eletype!=='BG'){ const masks = v&&(v.k==='t'||v.k==='p') ? ['$H:$M:$S','$H:$M:$C','$h:$M:$S','$H:$M','$m:$S','$M:$S'] : ['$V','$V%','$V km','$V W','$T'];
+        p.append(el('div',{class:'chips'},masks.map(m=>el('button',{type:'button',onclick:()=>{ a.text=m; commit(); refresh(); }},m)))); }
+      p.append(el('div',{class:'row'},fNum(e,'precision','Tizedesjegyek',{min:0}),fNum(e,'nr_values','Átlagolás (mp)',{min:1})), el('div',{class:'row one'},sampleField(e)), fChk(e,'maxonly','Csak az eddigi maximumot mutassa'));
+    } else p.append(el('div',{class:'row one'},fTxt(e,'text','Felirat')));
+    const map=(DEV[S.device]||[])[3]||{}, names=Object.keys(map).length?Object.keys(map):Object.keys(FONT_FALLBACK); if(!names.includes(a.font)) names.push(a.font);
+    const fs=el('select',{id:'p-font',onchange:()=>{ a.font=fs.value; commit(); refresh(); }},names.map(n=>el('option',{value:n},(FONT_NAMES[n.replace(/^S_/,'')]||n)+(n.startsWith('S_')?' (rendszer)':'')+' – '+n+(map[n]?' · '+map[n][1]+' px':''))));
+    fs.value=a.font;
+    p.append(el('h2',{},'Betű és hely'),el('div',{class:'row one'},fld('Betűméret',fs)),
+      el('div',{class:'row one'},fld('Igazítás az X ponthoz',seg([['2','Balra'],['1','Középre'],['0','Jobbra']],a.halignment,v=>{ a.halignment=v; commit(); refresh(); }))),
+      el('div',{class:'row'},fNum(e,'x','X'),fNum(e,'y','Y (felső él)')), colorSection(e));
+  } else {
+    const ts=el('select',{id:'p-gtype',onchange:()=>{ const was=kind(e); a.eletype=ts.value; const now=kind(e);
+        if(was!==now){ const b=(()=>{ a.eletype=ts.value; return null; })(); if(['arc'].includes(now)){ a.radius=String(N(a.radius)||40); a.x2='200'; a.y2='340'; } else if(now==='circle'||now==='dir'){ a.radius=String(N(a.radius)||20); if(now==='dir'){ a.x2='0'; a.y2='0'; } } else if(hasBox(e)&&!['line','rect','graph','box'].includes(was)){ a.x2=String(N(a.x)+60); a.y2=String(N(a.y)+(now==='line'?0:30)); } }
+        commit(); refresh(); }}, Object.entries(GT).map(([c,n])=>el('option',{value:c},n)));
+    if(!GT[a.eletype]) ts.append(el('option',{value:a.eletype},'Ismeretlen típus ['+a.eletype+']')); ts.value=a.eletype;
+    p.append(el('h2',{class:'t1'},'Grafika'),el('div',{class:'row one'},fld('Típus',ts)));
+    if(k==='line'||k==='rect'||k==='graph'||k==='box'){
+      p.append(el('div',{class:'row four'},fNum(e,'x',k==='line'?'X1':'Bal'),fNum(e,'y',k==='line'?'Y1':'Felső'),fNum(e,'x2',k==='line'?'X2':'Jobb'),fNum(e,'y2',k==='line'?'Y2':'Alsó')));
+      if(a.eletype==='LN'||a.eletype==='RC') p.append(el('div',{class:'row'},fNum(e,'stroke','Vonalvastagság',{min:1})));
+      if(k==='graph') p.append(el('div',{class:'row'},fNum(e,'stroke','Oszlopszélesség (px/mp)',{min:1}),fNum(e,'radius','Min./max. határ (×10)')),fChk(e,'minval','A határ a minimumot adja meg'),fChk(e,'maxonly','Minimum és maximum megjelölése'));
+    } else if(k==='circle'){ p.append(el('div',{class:'row'},fNum(e,'x','Középpont X'),fNum(e,'y','Középpont Y'),fNum(e,'radius','Sugár',{min:1}),a.eletype==='CR'?fNum(e,'stroke','Vonalvastagság',{min:1}):null)); }
+    else if(k==='arc'){ p.append(el('div',{class:'row'},fNum(e,'x','Középpont X'),fNum(e,'y','Középpont Y'),fNum(e,'radius','Sugár',{min:1}),fNum(e,'stroke','Vastagság',{min:1}),fNum(e,'x2','Kezdőszög °'),fNum(e,'y2','Végszög °')),
+        el('div',{class:'hint'},'0° a 3 óra iránya, a szög az óramutató járása szerint nő (270° = fent). A kitöltődő ív a kezdőszögtől halad a végszög felé. A kör alakú fogókkal is állítható.')); }
+    else if(k==='dir'){ p.append(el('div',{class:'row'},fNum(e,'x','Középpont X'),fNum(e,'y','Középpont Y'),fNum(e,'radius','Méret (sugár)',{min:1}),fNum(e,'stroke','Vonalvastagság',{min:1}),fNum(e,'y2','Távolság a középponttól')),
+        el('div',{class:'hint'},'Ha a távolság nem 0, a jel körpályán mozog a középpont körül (iránytű-szerűen).')); }
+    p.append(el('h2',{},k==='dir'?'Mire mutasson?':'Kapcsolt érték'),
+      el('div',{class:'row one'},fld(k==='dir'?'Cél (üresen: az adatmező beállítása dönt)':FILL.includes(a.eletype)||k==='graph'?'Melyik értéket ábrázolja?':'Melyik érték vezérelje a színt?',valueSelect(a.valuetype||'FX',c=>{ a.valuetype=c; commit(); refresh(); },'p-valuetype'))));
+    if(a.valuetype&&a.valuetype!=='FX'&&k!=='dir'){ p.append(el('div',{class:'row'},sampleField(e),fNum(e,'nr_values','Átlagolás (mp)',{min:1}))); }
+    p.append(colorSection(e));
+  }
+  if(e.type<2) p.append(el('div',{class:'dlgbar'},el('button',{class:'btn sm',onclick:dupSel},'Duplikálás'),el('button',{class:'btn sm',onclick:delSel},'Törlés')));
+  if(keep){ const f=document.getElementById(keep); if(f) f.focus(); }
+}
+const dc_ = e => e;
+function refresh(){ draw(); renderLayers(); renderPanel(); selStatus(); updButtons(); }
+
+/* ---------- XML ---------- */
+const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+function toXML(){
+  const L=['<?xml version="1.0" encoding="UTF-8"?>','<DIYLayout>','    <Device name="'+esc(S.device)+'"/>'];
+  const d=S.designer||{time:new Date().toLocaleString('de-AT',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}).replace(',',''),ver:'3.2.1',ifver:'C'};
+  L.push('    <Designer '+Object.entries(d).map(([k,v])=>k+'="'+esc(v)+'"').join(' ')+'/>');
+  for(const e of S.els){
+    let at=[['type',e.type]];
+    if(e.type===2){ at.push(['replDC',e.a.replDC]); (e.dirty?dcRows(e):e.dc).forEach((r,i)=>{ const n=String(i).padStart(2,'0'); at.push(['valDC'+n,r.val],['colDC'+n,r.col],['hideDC'+n,!!r.hide],['blinkDC'+n,!!r.blink]); }); at.push(['invertcolor',e.a.invertcolor||'false']); for(const k in e.a) if(k!=='replDC'&&k!=='invertcolor') at.push([k,e.a[k]]); }
+    else for(const k in e.a) at.push([k,e.a[k]]);
+    L.push('    <LayoutElement '+at.map(([k,v])=>k+'="'+esc(v)+'"').join(' ')+'/>');
+  }
+  L.push('</DIYLayout>',''); return L.join('\r\n');
+}
+function fromXML(text){
+  const body=text.match(/<DIYLayout[\s\S]*<\/DIYLayout>/);
+  const doc=new DOMParser().parseFromString(body?body[0]:'<x/>','application/xml');
+  if(!body||doc.querySelector('parsererror')||!doc.querySelector('DIYLayout')) throw new Error('Ez nem HMs DIY elrendezés (hiányzik a <DIYLayout> elem).');
+  const ns={device:S.device,w:S.w,h:S.h,round:S.round,designer:null,els:[],samples:S.samples,nid:1};
+  const dv=doc.querySelector('Device'); if(dv){ ns.device=dv.getAttribute('name')||ns.device; const d=DEV[ns.device]; if(d){ ns.w=d[0]; ns.h=d[1]; ns.round=!!d[2]; } }
+  const dg=doc.querySelector('Designer'); if(dg){ ns.designer={}; for(const at of dg.attributes) ns.designer[at.name]=at.value; }
+  for(const n of doc.querySelectorAll('LayoutElement')){
+    const type=parseInt(n.getAttribute('type'),10)||0, a={}, rows={};
+    for(const at of n.attributes){ if(at.name==='type') continue; const m=type===2&&at.name.match(/^(val|col|hide|blink)DC(\d+)$/); if(m){ (rows[m[2]]=rows[m[2]]||{val:0,col:'000000',hide:false,blink:false})[m[1]] = m[1]==='val'?parseInt(at.value,10)||0 : m[1]==='col'?at.value.toUpperCase() : at.value==='true'; } else a[at.name]=at.value; }
+    const e={id:ns.nid++,type,a}; if(type===2) e.dc=Object.keys(rows).sort().map(k=>rows[k]);
+    if(type===1&&a.eletype==='RF'&&Math.abs(N(a.x2)-N(a.x))>=ns.w-2&&Math.abs(N(a.y2)-N(a.y))>=ns.h-2) e.lock=true;
+    ns.els.push(e);
+  }
+  return ns;
+}
+function loadText(text){ try{ const ns=fromXML(text); clearTimeout(cTimer); commit(); S=ns; sel=[]; commit(); syncDevice(); fitZoom(); refresh(); toast('Betöltve: '+S.els.length+' elem · '+S.device); return true; }catch(err){ toast(err.message); return false; } }
+function readFile(f){ const r=new FileReader(); r.onload=()=>{ let t; try{ t=new TextDecoder('utf-8',{fatal:true}).decode(r.result); }catch(e){ t=new TextDecoder('windows-1252').decode(r.result); } if(loadText(t)){ $('#fname').value=f.name; $('#dlg-open').close(); } }; r.readAsArrayBuffer(f); }
+
+/* ---------- Eszköz, nagyítás ---------- */
+function syncDevice(){ const s=$('#device'); if(![...s.options].some(o=>o.value===S.device)) s.append(el('option',{value:S.device},S.device+' (ismeretlen)')); s.value=S.device; $('#devw').value=S.w; $('#devh').value=S.h; $('#devround').checked=S.round; }
+let prevDim=null;
+function setDevice(name){ const d=DEV[name]; prevDim={w:S.w,h:S.h}; S.device=name; if(d){ S.w=d[0]; S.h=d[1]; S.round=!!d[2]; } $('#rescale').hidden=!(S.els.length&&(prevDim.w!==S.w||prevDim.h!==S.h)); commit(); syncDevice(); fitZoom(); refresh(); }
+function rescale(){ if(!prevDim) return; const fx=S.w/prevDim.w, fy=S.h/prevDim.h, fr=Math.min(fx,fy), R=v=>String(Math.round(v));
+  for(const e of S.els){ if(e.type>1) continue; const a=e.a, k=kind(e); a.x=R(N(a.x)*fx); a.y=R(N(a.y)*fy); if(hasBox(e)){ a.x2=R(N(a.x2)*fx); a.y2=R(N(a.y2)*fy); } if(k==='circle'||k==='arc'||k==='dir'){ a.radius=R(N(a.radius)*fr); if(k==='dir') a.y2=R(N(a.y2)*fr); } }
+  $('#rescale').hidden=true; commit(); refresh(); toast('Az elemek az új képernyőmérethez igazítva.'); }
+function setZoom(z){ zoom=clamp(Math.round(z*4)/4,.5,6); $('#zfit').textContent=Math.round(zoom*100)+'%'; draw(); }
+function fitZoom(){ const st=$('#stage'); const z=Math.min((st.clientWidth-PAD*2-8)/S.w,(st.clientHeight-PAD*2-8)/S.h); setZoom(clamp(Math.floor(z*4)/4,.5,4)); }
+
+/* ---------- Minta elrendezés ---------- */
+function sampleLayout(){
+  S.els=[]; S.nid=1; const w=S.w, h=S.h, sx=v=>String(Math.round(v*w/246)), sy=v=>String(Math.round(v*h/322)), add=e=>(S.els.push(e),e);
+  add(mkG('RF',{color:'FFFFFF',x2:String(w),y2:String(h)},{lock:true}));
+  add(mk(3,{text:'*** FEJLÉC ***'}));
+  add(mkVal('CT',{text:'$H:$M',font:'XTINY',halignment:'2',x:sx(6),y:sy(6)}));
+  add(mkVal('TM',{text:'$V°C',font:'XTINY',halignment:'1',precision:'0',x:sx(123),y:sy(6)}));
+  add(mkVal('BV',{text:'$V%',font:'XTINY',halignment:'0',precision:'0',x:sx(240),y:sy(6)}));
+  add(mkG('LN',{x:'0',y:sy(26),x2:String(w),y2:sy(26)}));
+  add(mk(3,{text:'*** SEBESSÉG ***'}));
+  add(mkText({text:'SEBESSÉG km/h',color:'555555',x:sx(123),y:sy(30)}));
+  const arcBg=add(mkG('AC',{color:'AAAAAA',x:sx(123),y:sy(150),radius:sx(100),x2:'205',y2:'335',stroke:'10'}));
+  const arc=add(mkG('AF',{color:'00AAFF',valuetype:'CS',x:arcBg.a.x,y:arcBg.a.y,radius:arcBg.a.radius,x2:'205',y2:'335',stroke:'10'}));
+  add(mkDyn('00AAFE',[{val:600,col:'FF0000',hide:false,blink:false},{val:400,col:'FF5500',hide:false,blink:false},{val:0,col:'00AAFF',hide:false,blink:false}])); arc.a.color='00AAFE';
+  add(mkVal('CS',{font:'NR_THAI_HOT',precision:'1',x:sx(123),y:sy(62)}));
+  add(mkVal('AS',{text:'átl. $V',font:'TINY',color:'555555',precision:'1',x:sx(123),y:sy(120)}));
+  add(mkG('LN',{x:'0',y:sy(148),x2:String(w),y2:sy(148)}));
+  add(mk(3,{text:'*** PULZUS / FORDULAT ***'}));
+  add(mkG('LN',{x:sx(123),y:sy(148),x2:sx(123),y2:String(h)}));
+  add(mkText({text:'PULZUS',color:'555555',x:sx(61),y:sy(152)}));
+  const hr=add(mkVal('HR',{font:'NR_HOT',x:sx(61),y:sy(170)}));
+  add(mkDyn('000001',[{val:1700,col:'FF0000',hide:false,blink:false},{val:1500,col:'FF5500',hide:false,blink:false},{val:1300,col:'00AA00',hide:false,blink:false},{val:0,col:'000000',hide:false,blink:false}])); hr.a.color='000001'; hr.a.daynight='false';
+  const bar=add(mkG('RH',{color:'AA0001',valuetype:'HR',x:sx(10),y:sy(222),x2:sx(113),y2:sy(228)}));
+  add(mkDyn('AA0001',[{val:1900,col:'AA0000',hide:false,blink:false},{val:600,col:'AA0000',hide:false,blink:false}]));
+  add(mkText({text:'FORDULAT',color:'555555',x:sx(185),y:sy(152)}));
+  add(mkVal('CC',{font:'NR_HOT',x:sx(185),y:sy(170)}));
+  add(mkG('LN',{x:'0',y:sy(236),x2:String(w),y2:sy(236)}));
+  add(mk(3,{text:'*** TÁV / IDŐ ***'}));
+  add(mkText({text:'TÁV km',color:'555555',x:sx(61),y:sy(240)}));
+  add(mkVal('DS',{font:'NR_MEDIUM',precision:'2',x:sx(61),y:sy(260)}));
+  add(mkText({text:'IDŐ',color:'555555',x:sx(185),y:sy(240)}));
+  add(mkVal('TT',{text:'$h:$M:$S',font:'NR_MEDIUM',x:sx(185),y:sy(260)}));
+  S.designer=null; sel=[];
+}
+
+/* ---------- Indulás, események ---------- */
+function init(){
+  const ds=$('#device'); for(const n of Object.keys(DEV).sort((a,b)=>a.localeCompare(b,'hu',{numeric:true}))) ds.append(el('option',{value:n},n+'  ('+DEV[n][0]+'×'+DEV[n][1]+')'));
+  buildPalette();
+  let loaded=false; try{ const j=localStorage.getItem(KEY); if(j){ const o=JSON.parse(j); if(o&&Array.isArray(o.els)){ S=o; loaded=true; } } }catch(e){}
+  if(!loaded){ const d=DEV[S.device]; if(d){ S.w=d[0]; S.h=d[1]; S.round=!!d[2]; } sampleLayout(); }
+  last=JSON.stringify(S); syncDevice(); fitZoom(); refresh();
+  if(document.fonts){ ['700 20px "Roboto Condensed"','400 20px "Roboto Condensed"','400 20px "Bebas Neue"'].forEach(f=>document.fonts.load(f).catch(()=>{})); document.fonts.ready.then(draw); document.fonts.addEventListener&&document.fonts.addEventListener('loadingdone',draw); }
+
+  const cv=$('#cv'); cv.addEventListener('pointerdown',onDown); cv.addEventListener('pointermove',onMove); cv.addEventListener('pointerup',onUp); cv.addEventListener('pointercancel',onUp);
+  cv.addEventListener('dblclick',()=>{ const f=document.getElementById('p-text'); if(f){ f.focus(); f.select(); } });
+  ds.onchange=()=>setDevice(ds.value);
+  const dim=()=>{ S.w=clamp(Math.round(N($('#devw').value))||S.w,50,1000); S.h=clamp(Math.round(N($('#devh').value))||S.h,50,1000); S.round=$('#devround').checked; commit(); fitZoom(); refresh(); };
+  $('#devw').onchange=dim; $('#devh').onchange=dim; $('#devround').onchange=dim; $('#rescale').onclick=rescale;
+  $('#undo').onclick=undo; $('#redo').onclick=redo; $('#zin').onclick=()=>setZoom(zoom+.5); $('#zout').onclick=()=>setZoom(zoom-.5); $('#zfit').onclick=fitZoom;
+  $('#night').onclick=()=>{ night=!night; $('#night').classList.toggle('on',night); draw(); };
+  $('#snap').onclick=()=>{ snapOn=!snapOn; $('#snap').classList.toggle('on',snapOn); };
+  $('#lup').onclick=()=>moveLayer(1); $('#ldown').onclick=()=>moveLayer(-1); $('#ldup').onclick=dupSel; $('#ldel').onclick=delSel;
+  document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>b.closest('dialog').close());
+  $('#bsave').onclick=()=>{ clearTimeout(cTimer); commit(); $('#xmlout').value=toXML(); $('#dlg-save').showModal(); };
+  $('#dl').onclick=()=>{ const blob=new Blob(['\uFEFF'+toXML()],{type:'text/xml'}), a=el('a',{href:URL.createObjectURL(blob),download:$('#fname').value||'layout.xml'}); document.body.append(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),2000); toast('Letöltés elindítva. Ha nem indul, használd a Másolás gombot.'); };
+  $('#cp').onclick=()=>{ const t=$('#xmlout'); const fb=()=>{ t.focus(); t.select(); toast('Kijelölve – Ctrl+C-vel másolható.'); }; if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(t.value).then(()=>toast('XML a vágólapon.'),fb); else fb(); };
+  $('#bopen').onclick=()=>{ $('#xmlin').value=''; $('#file').value=''; $('#dlg-open').showModal(); };
+  $('#file').onchange=ev=>{ if(ev.target.files[0]) readFile(ev.target.files[0]); };
+  $('#loadtxt').onclick=()=>{ if(loadText($('#xmlin').value)) $('#dlg-open').close(); };
+  $('#bdev').onclick=()=>$('#dlg-dev').showModal();
+  $('#bnew').onclick=()=>$('#dlg-new').showModal();
+  $('#new-sample').onclick=()=>{ commit(); sampleLayout(); commit(); refresh(); $('#dlg-new').close(); };
+  $('#new-empty').onclick=()=>{ commit(); S.els=[]; S.designer=null; sel=[]; commit(); refresh(); $('#dlg-new').close(); };
+  window.addEventListener('dragover',ev=>ev.preventDefault());
+  window.addEventListener('drop',ev=>{ if(ev.dataTransfer&&ev.dataTransfer.files&&ev.dataTransfer.files[0]){ ev.preventDefault(); readFile(ev.dataTransfer.files[0]); } });
+  window.addEventListener('resize',draw);
+  window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',draw);
+  window.addEventListener('keydown',ev=>{
+    const t=ev.target, typing=t.matches&&t.matches('input,textarea,select'), mod=ev.ctrlKey||ev.metaKey, k=ev.key.toLowerCase();
+    if(document.querySelector('dialog[open]')) return;
+    if(mod&&k==='s'){ ev.preventDefault(); $('#bsave').click(); return; }
+    if(typing) return;
+    if(mod&&k==='z'){ ev.preventDefault(); ev.shiftKey?redo():undo(); }
+    else if(mod&&k==='y'){ ev.preventDefault(); redo(); }
+    else if(mod&&k==='d'){ ev.preventDefault(); dupSel(); }
+    else if(mod&&k==='c'){ clip=JSON.parse(JSON.stringify(selEls())); if(clip.length) toast(clip.length+' elem másolva'); }
+    else if(mod&&k==='x'){ clip=JSON.parse(JSON.stringify(selEls())); delSel(); }
+    else if(mod&&k==='v'){ if(clip.length){ ev.preventDefault(); addEls(cloneEls(clip,8)); } }
+    else if(mod&&k==='a'){ ev.preventDefault(); sel=S.els.filter(e=>e.type<2&&!e.lock&&!e.hide).map(e=>e.id); refresh(); }
+    else if(k==='delete'||k==='backspace'){ ev.preventDefault(); delSel(); }
+    else if(k==='escape'){ sel=[]; refresh(); }
+    else if(k.startsWith('arrow')){ ev.preventDefault(); const s=ev.shiftKey?10:1; nudge(k==='arrowleft'?-s:k==='arrowright'?s:0, k==='arrowup'?-s:k==='arrowdown'?s:0, ev.altKey); }
+  });
+}
+init();
+</script>
+<!--/PAGE-->
+</body>
+</html>
