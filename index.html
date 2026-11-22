@@ -304,6 +304,12 @@ dialog li{margin:5px 0}
   <div id="info"></div>
   <div class="dlgbar"><span class="sp"></span><button class="btn" data-close>Close</button></div>
 </dialog>
+<dialog id="dlg-device" style="width:min(460px,calc(100vw - 32px))">
+  <h3>Change device</h3>
+  <p id="dv-text"></p>
+  <p class="hint">Scaling moves and resizes every element in proportion. Font sizes are fixed per device, so text may need adjusting afterwards. Undo brings the old layout back.</p>
+  <div class="dlgbar"><button class="btn pri" id="dv-scale" autofocus>Scale layout to the new screen</button><button class="btn" id="dv-keep">Keep positions</button><span class="sp"></span><button class="btn" data-close>Cancel</button></div>
+</dialog>
 <dialog id="dlg-value" style="width:min(460px,calc(100vw - 32px));padding-bottom:12px">
   <h3>Choose a value</h3>
   <input type="text" id="vl-q" placeholder="Search by name or code, e.g. heart, power, CS" aria-label="Search values" autocomplete="off">
@@ -997,7 +1003,7 @@ function showString(){
 function syncDevice(){ const s=$('#device'); if(![...s.options].some(o=>o.value===S.device)) s.append(el('option',{value:S.device},S.device+' (unknown)')); const d=DEV[S.device], custom=!!S.custom||!d||d[0]!==S.w||d[1]!==S.h||!!d[2]!==!!S.round; S.custom=custom;
   s.options[0].textContent='Custom size… (fonts of '+S.device+')'; s.value=custom?'__custom':S.device; $('#customdim').hidden=!custom; $('#devw').value=S.w; $('#devh').value=S.h; $('#devround').checked=S.round; }
 let prevDim=null;
-function setDevice(name){ const d=DEV[name]; prevDim={w:S.w,h:S.h}; S.device=name; S.custom=false; if(d){ S.w=d[0]; S.h=d[1]; S.round=!!d[2]; } $('#rescale').hidden=!(S.els.length&&(prevDim.w!==S.w||prevDim.h!==S.h)); commit(); syncDevice(); fitZoom(); refresh(); }
+function setDevice(name){ const d=DEV[name]; prevDim={w:S.w,h:S.h}; S.device=name; S.custom=false; if(d){ S.w=d[0]; S.h=d[1]; S.round=!!d[2]; } $('#rescale').hidden=true; commit(); syncDevice(); fitZoom(); refresh(); }
 function rescale(){ if(!prevDim) return; const fx=S.w/prevDim.w, fy=S.h/prevDim.h, fr=Math.min(fx,fy), R=v=>String(Math.round(v));
   for(const e of S.els){ if(e.type>1) continue; const a=e.a, k=kind(e); a.x=R(N(a.x)*fx); a.y=R(N(a.y)*fy); if(hasBox(e)){ a.x2=R(N(a.x2)*fx); a.y2=R(N(a.y2)*fy); } if(k==='circle'||k==='arc'||k==='dir'){ a.radius=R(N(a.radius)*fr); if(k==='dir') a.y2=R(N(a.y2)*fr); } }
   $('#rescale').hidden=true; commit(); refresh(); toast('Elements scaled to the new screen size.'); }
@@ -1078,7 +1084,15 @@ function init(){
 
   const cv=$('#cv'); cv.addEventListener('pointerdown',onDown); cv.addEventListener('pointermove',onMove); cv.addEventListener('pointerup',onUp); cv.addEventListener('pointercancel',onUp);
   cv.addEventListener('dblclick',()=>{ const f=document.getElementById('p-text'); if(f){ f.focus(); f.select(); } });
-  ds.onchange=()=>{ if(ds.value==='__custom'){ S.custom=true; commit(); syncDevice(); refresh(); $('#devw').focus(); } else setDevice(ds.value); };
+  let pendDev=null;
+  ds.onchange=()=>{ if(ds.value==='__custom'){ S.custom=true; commit(); syncDevice(); refresh(); $('#devw').focus(); return; }
+    const name=ds.value, d=DEV[name];
+    if(!d||!S.els.some(e=>e.type<2)||(d[0]===S.w&&d[1]===S.h)){ setDevice(name); return; }
+    pendDev=name; $('#dv-text').textContent='The layout was made for '+(S.custom?'a custom size':S.device)+' ('+S.w+' × '+S.h+' px). '+name+' has a '+d[0]+' × '+d[1]+' px screen.';
+    $('#dlg-device').showModal(); };
+  $('#dv-scale').onclick=()=>{ const n=pendDev; pendDev=null; $('#dlg-device').close(); setDevice(n); rescale(); };
+  $('#dv-keep').onclick=()=>{ const n=pendDev; pendDev=null; $('#dlg-device').close(); setDevice(n); };
+  $('#dlg-device').addEventListener('close',()=>{ if(pendDev){ pendDev=null; syncDevice(); } });
   const dim=()=>{ if(!S.custom) return; S.w=clamp(Math.round(N($('#devw').value))||S.w,50,1000); S.h=clamp(Math.round(N($('#devh').value))||S.h,50,1000); S.round=$('#devround').checked; commit(); fitZoom(); refresh(); };
   $('#devw').onchange=dim; $('#devh').onchange=dim; $('#devround').onchange=dim; $('#rescale').onclick=rescale;
   $('#bhelp').onclick=()=>{ renderInfo(); $('#dlg-help').showModal(); };
