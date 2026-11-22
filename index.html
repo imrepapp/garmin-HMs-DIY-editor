@@ -765,7 +765,6 @@ function buildPalette(){
    ['circ','t1','Circle',()=>addEls([mkG('CR',{x:String(cx()),y:String(cy()),radius:String(u()),stroke:'2'})])],
    ['circf','t1','Disc',()=>addEls([mkG('CF',{color:'AAAAAA',x:String(cx()),y:String(cy()),radius:String(Math.round(u()/2))})])],
    ['arc','t1','Arc',()=>addEls([mkG('AC',{color:'AAAAAA',x:String(cx()),y:String(cy()),radius:String(u()*1.5|0),x2:'200',y2:'340',stroke:'10'})])],
-   ['bg','t1','Background',()=>{ const g=mkG('RF',{color:'FFFFFF',x2:String(S.w),y2:String(S.h)},{lock:true}); S.els.unshift(g); sel=[g.id]; commit(); refresh(); }],
    'Composite|Ready-made combinations of several elements',
    ['field','t0','Label + value',()=>addEls([mkText({text:'SPEED',x:String(cx()),y:String(cy()-34)}),mkVal('CS',{x:String(cx()),y:String(cy()-18)})])],
    ['gauge','t1','Gauge + value',()=>{ const r=u()*1.5|0, o={x:String(cx()),y:String(cy()),radius:String(r),x2:'200',y2:'340',stroke:'10'};
