@@ -82,6 +82,7 @@ h2 .sp{flex:1}
 .palette{display:grid;grid-template-columns:1fr;gap:4px}
 .palette button{display:flex;gap:6px;align-items:center;text-align:left;padding:5px 6px;border:1px solid var(--line);background:var(--raise);border-radius:5px;cursor:pointer;font-size:12px;min-width:0}
 .palette button:hover{border-color:var(--accent)}
+.palette button.on{border-color:var(--accent);background:var(--accent-soft);box-shadow:0 0 0 1px var(--accent)}
 .palette svg{flex:none}
 .palette .wide{grid-column:1/-1}
 .psec{font:600 11px var(--f-ui);color:var(--mute);margin:12px 0 5px;padding-bottom:3px;border-bottom:1px solid var(--line)}
@@ -480,7 +481,7 @@ function draw(){
   c.save(); shape(); c.clip();
   for(const e of S.els) if(!e.hide) drawEl(c,e);
   c.restore();
-  if(!S.els.length){ c.fillStyle='#888'; c.font=`${12/zoom*1.2}px sans-serif`; c.textAlign='center'; c.fillText('Add an element from the Tools on the left', S.w/2, S.h/2); }
+  if(!S.els.length){ c.fillStyle='#888'; c.font=`${12/zoom*1.2}px sans-serif`; c.textAlign='center'; c.fillText('Pick a tool on the left, then click here to place it', S.w/2, S.h/2); }
   const acc=css('--accent')||'#0a66c2', px=1/zoom;
   c.lineWidth=px; c.strokeStyle='#d0289a';
   for(const g of guides){ c.beginPath(); if(g.x!=null){ c.moveTo(g.x,-PAD/zoom); c.lineTo(g.x,S.h+PAD/zoom); } else { c.moveTo(-PAD/zoom,g.y); c.lineTo(S.w+PAD/zoom,g.y); } c.stroke(); }
@@ -495,7 +496,9 @@ let drag=null;
 function devPt(ev){ const r=$('#cv').getBoundingClientRect(); return {x:(ev.clientX-r.left-PAD)/zoom, y:(ev.clientY-r.top-PAD)/zoom}; }
 function pick(p){ for(let i=S.els.length-1;i>=0;i--){ const e=S.els[i]; if(e.type<2 && !e.hide && !e.lock && hit(e,p.x,p.y)) return e; } return null; }
 function onDown(ev){
-  if(ev.button) return; const p=devPt(ev), cv=$('#cv'); cv.setPointerCapture(ev.pointerId);
+  if(ev.button) return;
+  if(tool){ const q=devPt(ev), t=tool; placeAt={x:clamp(Math.round(q.x),0,S.w),y:clamp(Math.round(q.y),0,S.h)}; disarm(); try{ t.fn(); } finally { placeAt=null; } return; }
+  const p=devPt(ev), cv=$('#cv'); cv.setPointerCapture(ev.pointerId);
   if(document.activeElement && document.activeElement.blur) document.activeElement.blur();
   clearTimeout(cTimer); commit();
   if(sel.length===1){ const e=byId(sel[0]); if(e&&e.type===1){ const tol=(ev.pointerType==='touch'?14:7)/zoom; const h=handles(e).find(h=>Math.hypot(h.x-p.x,h.y-p.y)<=tol); if(h){ drag={mode:'h',e,hk:h.k}; return; } } }
@@ -562,8 +565,12 @@ function moveLayer(dir){ const s=selEls(); if(!s.length) return; const order=dir
 /* ---------- Add palette ---------- */
 const ICON = {text:'<path d="M3 4h10M8 4v9"/>',val:'<path d="M3 12V4l4 5 0-5M10 4h3v4h-3v4h3"/>',field:'<path d="M2 4h6M2 8h12M2 12h12"/>',line:'<path d="M2 13L14 3"/>',rect:'<rect x="2.5" y="4" width="11" height="8"/>',rectf:'<rect x="2.5" y="4" width="11" height="8" fill="currentColor"/>',circ:'<circle cx="8" cy="8" r="5.5"/>',circf:'<circle cx="8" cy="8" r="5.5" fill="currentColor"/>',arc:'<path d="M2.5 11a5.5 5.5 0 0 1 11 0"/>',gauge:'<path d="M2.5 11a5.5 5.5 0 0 1 11 0" opacity=".35"/><path d="M2.5 11a5.5 5.5 0 0 1 5.5-5.5" stroke-width="2.4"/>',bar:'<rect x="2" y="6" width="12" height="4"/><rect x="2" y="6" width="7" height="4" fill="currentColor"/>',graph:'<path d="M2 13V9M5 13V6M8 13V8M11 13V4M14 13V7" stroke-width="2"/>',dir:'<path d="M8 2l4 11-4-3-4 3z"/>',bg:'<rect x="2" y="2" width="12" height="12" fill="currentColor" opacity=".35"/><rect x="2" y="2" width="12" height="12"/>',sep:'<path d="M2 8h3M7 8h2M11 8h3"/>'};
 const ico = k => `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true">${ICON[k]}</svg>`;
+/* A tool is armed by its button and placed by the next click on the screen. */
+let tool=null, placeAt=null;
+function disarm(){ if(tool){ tool.b.classList.remove('on'); tool.b.setAttribute('aria-pressed','false'); } tool=null; $('#cv').style.cursor=''; selStatus(); }
+function armTool(fn,b,label){ const same=tool&&tool.b===b; disarm(); if(same) return; tool={fn,b,label}; b.classList.add('on'); b.setAttribute('aria-pressed','true'); $('#cv').style.cursor='crosshair'; selStatus(); }
 function buildPalette(){
-  const cx=()=>Math.round(S.w/2), cy=()=>Math.round(S.h/2), u=()=>Math.round(Math.min(S.w,S.h)/4);
+  const cx=()=>placeAt?placeAt.x:Math.round(S.w/2), cy=()=>placeAt?placeAt.y:Math.round(S.h/2), u=()=>Math.round(Math.min(S.w,S.h)/4);
   const P=[
    'Data|Elements that show a live value',
    ['val','t0','Value',()=>addEls([mkVal('CS',{x:String(cx()),y:String(cy()-20)})])],
@@ -589,7 +596,7 @@ function buildPalette(){
   const box=$('#palette'); let grid=null;
   for(const it of P){
     if(typeof it==='string'){ const [name,tip]=it.split('|'); box.append(el('div',{class:'psec',title:tip},name)); grid=el('div',{class:'palette'}); box.append(grid); continue; }
-    const [i,cls,label,fn]=it, b=el('button',{class:cls,type:'button',onclick:fn}); b.innerHTML=ico(i)+'<span style="color:var(--ink)">'+label+'</span>'; grid.append(b);
+    const [i,cls,label,fn]=it, b=el('button',{class:cls,type:'button',title:'Pick, then click on the screen to place it','aria-pressed':'false',onclick:()=>armTool(fn,b,label)}); b.innerHTML=ico(i)+'<span style="color:var(--ink)">'+label+'</span>'; grid.append(b);
   }
 }
 
@@ -638,7 +645,7 @@ function renderLayers(){
   const n=S.els.filter(e=>e.type!==3).length;
   $('#st-count').textContent=n+' elements'; $('#st-count').title='The element limit depends on device memory: low 30, medium 35, high 500 elements.';
 }
-function selStatus(){ const s=selEls(); $('#st-sel').textContent = s.length===1&&s[0].type<2 ? `${nameOf(s[0])}: ${s[0].a.x}, ${s[0].a.y}` : s.length>1 ? s.length+' elements selected' : ''; }
+function selStatus(){ const s=selEls(); $('#st-sel').textContent = tool ? 'Click on the screen to place: '+tool.label+'  (Esc cancels)' : s.length===1&&s[0].type<2 ? `${nameOf(s[0])}: ${s[0].a.x}, ${s[0].a.y}` : s.length>1 ? s.length+' elements selected' : ''; }
 
 /* ---------- Property panel ---------- */
 function live(){ draw(); selStatus(); commitSoon(); }
@@ -699,7 +706,7 @@ function renderPanelBody(){
   const s=selEls();
   if(!s.length){
     p.append(el('div',{class:'empty'},'Nothing selected'),
-      el('div',{class:'hint',style:'margin-bottom:0'},'Click an element on the screen or in the layer list to edit it here. Add new elements from the Tools on the left.'));
+      el('div',{class:'hint',style:'margin-bottom:0'},'Click an element on the screen or in the layer list to edit it here. To add one, pick a tool on the left, then click on the screen where it should go.'));
     return;
   }
   if(s.length>1){
@@ -1005,7 +1012,7 @@ function init(){
     else if(mod&&k==='v'){ if(clip.length){ ev.preventDefault(); addEls(cloneEls(clip,8)); } }
     else if(mod&&k==='a'){ ev.preventDefault(); sel=S.els.filter(e=>e.type<2&&!e.lock&&!e.hide).map(e=>e.id); refresh(); }
     else if(k==='delete'||k==='backspace'){ ev.preventDefault(); askDelete(); }
-    else if(k==='escape'){ sel=[]; refresh(); }
+    else if(k==='escape'){ if(tool) disarm(); else { sel=[]; refresh(); } }
     else if(k.startsWith('arrow')){ ev.preventDefault(); const s=ev.shiftKey?10:1; nudge(k==='arrowleft'?-s:k==='arrowright'?s:0, k==='arrowup'?-s:k==='arrowdown'?s:0, ev.altKey); }
   });
 }
