@@ -103,6 +103,12 @@ h2 .sp{flex:1}
 #layers li.sepr.folded span.n{color:var(--mute)}
 #layers li.sepr.folded span.n::after{content:' …'}
 #layers li.ing{margin-left:14px}
+#layers li.rule{border-left-color:transparent;color:var(--c-dyn);padding:1px 4px 2px 20px;font-size:12px;cursor:pointer}
+#layers li.rule span.n{color:var(--mute)}
+#layers li.rule.cur span.n{color:var(--ink)}
+#layers .rl{color:var(--mute);flex:none}
+#layers .rsw{display:flex;gap:1px;flex:none;margin-right:44px}
+#layers .rsw i{width:9px;height:9px;border:1px solid var(--line);border-radius:2px}
 #layers .cnt{font:400 10px var(--f-mono);color:var(--mute);letter-spacing:0}
 #layers .ic.fold{opacity:1;font-size:11px;width:14px}
 #layers li.drop{box-shadow:0 -2px 0 var(--accent)}
@@ -800,7 +806,10 @@ function renderLayers(){
         el('button',{class:'ic'+(allH?' act':''),title:allH?'Show the whole group':'Hide the whole group in the editor',onclick:()=>{ vis.forEach(e=>e.hide=!allH); commit(); refresh(); }},allH?'◌':'●'));
       ul.append(li);
     }
-    if(!(sep&&sep.fold)) for(let i=items.length-1;i>=0;i--) if(items[i].type!==2) ul.append(row(items[i],!!sep));
+    if(!(sep&&sep.fold)) for(let i=items.length-1;i>=0;i--){ const it=items[i]; if(it.type===2) continue; ul.append(row(it,!!sep));
+      const dc=dcFor(it.a.color); if(dc){ const rows=dcRows(dc), src=VT[valCode(it)];   // the colour rule sits under its element and cannot be moved on its own
+        ul.append(el('li',{class:'rule'+(sep?' ing':'')+(sel.includes(it.id)?' cur':''),title:'Colour rule of “'+nameOf(it).replace(/^“|”$/g,'')+'”: '+rows.length+' range'+(rows.length===1?'':'s')+(src&&valCode(it)!=='FX'?', follows '+src.n:'')+'. Click to edit it in Properties.',onclick:()=>{ sel=[it.id]; refresh(); const m=document.getElementById('p-colmode'); if(m) m.scrollIntoView({block:'nearest'}); }},
+          el('span',{class:'rl','aria-hidden':'true'},'↳'),el('span',{class:'n'},'Colour by value'),el('span',{class:'rsw'},rows.slice(0,6).map(r=>el('i',{style:'background:#'+r.col}))))); } }
   }
   const cur=ul.querySelector('li.sel'); if(cur&&ul.scrollHeight>ul.clientHeight){ const r=cur.getBoundingClientRect(), u=ul.getBoundingClientRect(); if(r.top<u.top||r.bottom>u.bottom) ul.scrollTop+=r.top-u.top-u.height/2; }
   const n=S.els.filter(e=>e.type!==3).length;
