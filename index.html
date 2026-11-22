@@ -739,11 +739,12 @@ function renderPanelBody(){
       el('div',{class:'row one'},fld('Alignment at X',seg([['2','Left'],['1','Centre'],['0','Right']],a.halignment,v=>{ a.halignment=v; commit(); refresh(); }))),
       el('div',{class:'row'},fNum(e,'x','X'),fNum(e,'y','Y (top edge)')), colorSection(e));
   } else {
-    const ts=el('select',{id:'p-gtype',onchange:()=>{ const was=kind(e); a.eletype=ts.value; const now=kind(e);
-        if(was!==now){ const b=(()=>{ a.eletype=ts.value; return null; })(); if(['arc'].includes(now)){ a.radius=String(N(a.radius)||40); a.x2='200'; a.y2='340'; } else if(now==='circle'||now==='dir'){ a.radius=String(N(a.radius)||20); if(now==='dir'){ a.x2='0'; a.y2='0'; } } else if(hasBox(e)&&!['line','rect','graph','box'].includes(was)){ a.x2=String(N(a.x)+60); a.y2=String(N(a.y)+(now==='line'?0:30)); } }
-        commit(); refresh(); }}, Object.entries(GT).map(([c,n])=>el('option',{value:c},n)));
-    if(!GT[a.eletype]) ts.append(el('option',{value:a.eletype},'Unknown type ['+a.eletype+']')); ts.value=a.eletype;
-    p.append(el('h2',{class:'t1'},'Graphic'),el('div',{class:'row one'},fld('Type',ts)));
+    const t=a.eletype, setT=c=>{ a.eletype=c; commit(); refresh(); };
+    p.append(el('h2',{class:'t1'},GT[t]?GT[t].replace(/\s*[–(,].*$/,'').replace(/^Direction.*/,'Direction'):'Unknown type ['+t+']'));
+    if(t==='RH'||t==='RV') p.append(el('div',{class:'row one'},fld('Fills',seg([['RH','Left to right'],['RV','Bottom to top']],t,setT))));
+    if(t==='DT'||t==='DA') p.append(el('div',{class:'row one'},fld('Shape',seg([['DT','Triangle'],['DA','Arrow']],t,setT))));
+    if(k==='graph'&&GT[t]){ const right=t==='GR'||t==='GT', top=t==='GL'||t==='GR', code=(r,tp)=>tp?(r?'GR':'GL'):(r?'GT':'GB');
+      p.append(el('div',{class:'row'},fld('Starts at',seg([['l','Left'],['r','Right']],right?'r':'l',v=>setT(code(v==='r',top)))),fld('Baseline',seg([['b','Bottom'],['t','Top']],top?'t':'b',v=>setT(code(right,v==='t')))))); }
     if(k==='line'||k==='rect'||k==='graph'||k==='box'){
       p.append(el('div',{class:'row four'},fNum(e,'x',k==='line'?'X1':'Left'),fNum(e,'y',k==='line'?'Y1':'Top'),fNum(e,'x2',k==='line'?'X2':'Right'),fNum(e,'y2',k==='line'?'Y2':'Bottom')));
       if(a.eletype==='LN'||a.eletype==='RC') p.append(el('div',{class:'row'},fNum(e,'stroke','Stroke width',{min:1})));
