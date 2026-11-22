@@ -1221,11 +1221,12 @@ function newInfo(){ const name=$('#newdev').value||S.device, d=DEV[name]||[S.w,S
 function renderNew(){
   const box=$('#newgrid'); let n=newInfo(); const k=60/Math.max(n.w,n.h), pc=v=>(Math.round(v*k*10)/10)+'px'; box.textContent='';
   if(n.field){   // every field size once, shown in the first layout that has it, largest first
-    const uniq=[]; n.list.forEach((lay,idx)=>lay.cells.forEach((c,me)=>{ const u=uniq.find(u=>u.c[2]===c[2]&&u.c[3]===c[3]); if(u){ if(!u.in.includes(lay.name)) u.in.push(lay.name); } else uniq.push({c,idx,me,in:[lay.name]}); }));
-    uniq.sort((a,b)=>b.c[2]*b.c[3]-a.c[2]*a.c[3]); const cur=uniq.find(u=>u.c[2]===n.cell[2]&&u.c[3]===n.cell[3]); if(cur){ newPick=cur.idx; newCell=cur.me; }
+    const uniq=[]; n.list.forEach((lay,idx)=>lay.cells.forEach((c,me)=>{ const near=(a,b)=>Math.abs(a[2]-b[2])<=1&&Math.abs(a[3]-b[3])<=1, u=uniq.find(u=>near(u.c,c));   // sizes one pixel apart count as one; the smaller one is kept, because it fits both
+      if(u){ if(!u.in.includes(lay.name)) u.in.push(lay.name); const sz=c[2]+' × '+c[3]; if(!u.sz.includes(sz)) u.sz.push(sz); if(c[2]*c[3]<u.c[2]*u.c[3]){ u.c=c; u.idx=idx; u.me=me; } } else uniq.push({c,idx,me,in:[lay.name],sz:[c[2]+' × '+c[3]]}); }));
+    uniq.sort((a,b)=>b.c[2]*b.c[3]-a.c[2]*a.c[3]); const cur=uniq.find(u=>Math.abs(u.c[2]-n.cell[2])<=1&&Math.abs(u.c[3]-n.cell[3])<=1); if(cur){ newPick=cur.idx; newCell=cur.me; }
     for(const u of uniq){ const on=u===cur, lay=n.list[u.idx];
       const scr=el('span',{class:'scr',style:`width:${pc(n.w)};height:${pc(n.h)};${n.round?'border-radius:50%;':''}`}, lay.cells.map((c,me)=>el('i',{class:me===u.me?'cur':'',style:`left:${pc(c[0])};top:${pc(c[1])};width:${pc(c[2])};height:${pc(c[3])}`})));
-      box.append(el('button',{type:'button',class:'thumb'+(on?' on':''),'aria-pressed':String(on),title:'Found in: '+u.in.join(', '),onclick:()=>{ newPick=u.idx; newCell=u.me; renderNew(); }},scr,el('b',{},u.c[2]+' × '+u.c[3]),el('span',{},u.in.length===1?u.in[0]:u.in[0]+' +'+(u.in.length-1))));
+      box.append(el('button',{type:'button',class:'thumb'+(on?' on':''),'aria-pressed':String(on),title:(u.sz.length>1?'Covers '+u.sz.join(' and ')+' px. ':'')+'Found in: '+u.in.join(', '),onclick:()=>{ newPick=u.idx; newCell=u.me; renderNew(); }},scr,el('b',{},u.c[2]+' × '+u.c[3]),el('span',{},u.in.length===1?u.in[0]:u.in[0]+' +'+(u.in.length-1))));
     } }
   else n.list.forEach((lay,idx)=>{ const on=idx===newPick;
     const scr=el('span',{class:'scr',style:`width:${pc(n.w)};height:${pc(n.h)};${n.round?'border-radius:50%;':''}`}, lay.cells.map((c,me)=>el('i',Object.assign({style:`left:${pc(c[0])};top:${pc(c[1])};width:${pc(c[2])};height:${pc(c[3])}`},
