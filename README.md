@@ -12,12 +12,14 @@ browser between visits.
 
 ### Starting a layout
 
-**New layout** (menu) asks for the device and offers two modes:
+**New layout** (menu) works in two steps:
 
-- **Whole screen**: pick one of the device's data screen layouts; the dividing lines are drawn for
-  you, optionally with a sample label and value in every field.
-- **Single field**: click one field of a data screen layout; the canvas gets exactly that field's
-  size, for a DIY field that sits beside native Garmin fields.
+1. **The field**: pick the device, then the field the layout is for: the whole screen, or one of
+   the device's field sizes (each size is listed once) for a DIY field that sits beside native
+   Garmin fields.
+2. **A grid inside the field**: for the whole screen the device's own data screen layouts, for a
+   smaller field even grids (2 × 1, 3 × 1, 2 × 2, ...). The dividing lines are drawn for you,
+   optionally with a sample label and value in every cell.
 
 For 104 of the 106 devices the layouts and field rectangles are Garmin's own, taken from the
 Connect IQ device files. The two without data (Forerunner 45, vívolife) use an even split.
