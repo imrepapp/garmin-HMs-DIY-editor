@@ -1,14 +1,14 @@
 <!DOCTYPE html>
-<html lang="hu">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <!--PAGE-->
-<title>HMs DIY szerkesztő</title>
+<title>HMs DIY Editor</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600&family=Roboto+Condensed:wght@400;700&display=swap">
 <style>
-/* Elrendezés: fejléc-eszköztár, alatta három oszlop – rétegek | előnézet | tulajdonságok. Telefonon egymás alá kerülnek. */
+/* Layout: toolbar header, then three columns – layers | preview | properties. They stack on phones. */
 :root{
   --bg:#e9edf1; --panel:#f8fafb; --raise:#ffffff; --line:#cfd7df; --ink:#16212c; --mute:#5b6875;
   --accent:#0a66c2; --accent-ink:#ffffff; --accent-soft:#dbe9f8; --stage:#d5dbe2; --danger:#b3261e;
@@ -111,6 +111,7 @@ dialog h3{font:700 16px var(--f-head);letter-spacing:.04em;text-transform:upperc
 dialog textarea{height:220px;font:11px/1.35 var(--f-mono);white-space:pre;resize:vertical}
 dialog ol{padding-left:20px;margin:6px 0}
 dialog li{margin:5px 0}
+.warn{border:1px solid var(--danger);border-radius:6px;padding:8px 8px 8px 26px;color:var(--danger);font-size:12px}
 .dlgbar{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center}
 #toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:7px 14px;border-radius:6px;z-index:20;max-width:calc(100vw - 32px)}
 @media (max-width:900px){
@@ -126,44 +127,44 @@ dialog li{margin:5px 0}
 <body>
 <!--PAGE-->
 <header>
-  <div class="brand">HMs DIY szerkesztő<small>Garmin adatmező-elrendezés tervező</small></div>
+  <div class="brand">HMs DIY Editor<small>Layout designer for the Garmin data field</small></div>
   <div class="grp">
-    <label for="device">Eszköz</label>
+    <label for="device">Device</label>
     <select id="device"></select>
-    <input id="devw" type="number" min="50" max="1000" title="Szélesség (px)" aria-label="Szélesség">
+    <input id="devw" type="number" min="50" max="1000" title="Width (px)" aria-label="Width">
     <span>×</span>
-    <input id="devh" type="number" min="50" max="1000" title="Magasság (px)" aria-label="Magasság">
-    <label class="chk" style="margin:0"><input id="devround" type="checkbox"> kerek</label>
-    <button class="btn sm" id="rescale" hidden>Elemek átméretezése</button>
+    <input id="devh" type="number" min="50" max="1000" title="Height (px)" aria-label="Height">
+    <label class="chk" style="margin:0"><input id="devround" type="checkbox"> round</label>
+    <button class="btn sm" id="rescale" hidden>Scale elements to fit</button>
   </div>
   <div class="grp">
-    <button class="btn" id="undo" title="Visszavonás (Ctrl+Z)">↶</button>
-    <button class="btn" id="redo" title="Mégis (Ctrl+Y)">↷</button>
-    <button class="btn" id="zout" title="Kicsinyítés">−</button>
-    <button class="btn" id="zfit" title="Nagyítás illesztése" style="min-width:52px">100%</button>
-    <button class="btn" id="zin" title="Nagyítás">+</button>
-    <button class="btn" id="night" title="Éjszakai mód előnézete">☾ Éjszaka</button>
-    <button class="btn on" id="snap" title="Illesztés más elemekhez és a középvonalhoz">⌗ Illesztés</button>
+    <button class="btn" id="undo" title="Undo (Ctrl+Z)">↶</button>
+    <button class="btn" id="redo" title="Redo (Ctrl+Y)">↷</button>
+    <button class="btn" id="zout" title="Zoom out">−</button>
+    <button class="btn" id="zfit" title="Zoom to fit" style="min-width:52px">100%</button>
+    <button class="btn" id="zin" title="Zoom in">+</button>
+    <button class="btn" id="night" title="Preview night mode">☾ Night</button>
+    <button class="btn on" id="snap" title="Snap to other elements and the centre lines">⌗ Snap</button>
   </div>
   <div class="sp"></div>
   <div class="grp">
-    <button class="btn" id="bnew">Új</button>
-    <button class="btn" id="bopen">Megnyitás</button>
-    <button class="btn pri" id="bsave">Mentés (XML)</button>
-    <button class="btn" id="bdev">Hogyan kerül az órára?</button>
+    <button class="btn" id="bnew">New</button>
+    <button class="btn" id="bopen">Open</button>
+    <button class="btn" id="bsave">Save XML</button>
+    <button class="btn pri" id="bdev">Layout string for device</button>
   </div>
 </header>
 <main>
   <aside id="left">
-    <h2>Hozzáadás</h2>
+    <h2>Add</h2>
     <div class="palette" id="palette"></div>
-    <h2>Rétegek <span class="sp"></span>
-      <button class="btn sm ghost" id="lup" title="Előrébb">▲</button>
-      <button class="btn sm ghost" id="ldown" title="Hátrébb">▼</button>
-      <button class="btn sm ghost" id="ldup" title="Duplikálás (Ctrl+D)">⧉</button>
-      <button class="btn sm ghost" id="ldel" title="Törlés (Del)">✕</button>
+    <h2>Layers <span class="sp"></span>
+      <button class="btn sm ghost" id="lup" title="Bring forward">▲</button>
+      <button class="btn sm ghost" id="ldown" title="Send backward">▼</button>
+      <button class="btn sm ghost" id="ldup" title="Duplicate (Ctrl+D)">⧉</button>
+      <button class="btn sm ghost" id="ldel" title="Delete (Del)">✕</button>
     </h2>
-    <div class="hint">Felül van, ami legelöl látszik. Húzással átrendezhető.</div>
+    <div class="hint">The top of the list is in front. Drag to reorder.</div>
     <ul id="layers"></ul>
   </aside>
   <div id="stagewrap">
@@ -174,34 +175,36 @@ dialog li{margin:5px 0}
 </main>
 
 <dialog id="dlg-save">
-  <h3>Mentés XML-be</h3>
-  <p class="hint">Ez ugyanaz az XML formátum, amit a HMs DIY Designer használ – ott megnyitható (Load), és innen is visszatölthető.</p>
-  <div class="row"><label class="f"><span>Fájlnév</span><input type="text" id="fname" value="layout.xml"></label></div>
+  <h3>Save as XML</h3>
+  <p class="hint">This is the HMs DIY Designer XML format. It keeps separators and the device, so use it to store your work. The device itself takes the layout string.</p>
+  <div class="row"><label class="f"><span>File name</span><input type="text" id="fname" value="layout.xml"></label></div>
   <textarea id="xmlout" readonly aria-label="XML"></textarea>
-  <div class="dlgbar"><button class="btn pri" id="dl">Letöltés</button><button class="btn" id="cp">Másolás vágólapra</button><span class="sp"></span><button class="btn" data-close>Bezár</button></div>
+  <div class="dlgbar"><button class="btn pri" id="dl">Download</button><button class="btn" id="cp">Copy to clipboard</button><span class="sp"></span><button class="btn" data-close>Close</button></div>
 </dialog>
 <dialog id="dlg-open">
-  <h3>Elrendezés megnyitása</h3>
-  <p class="hint">Válassz egy HMs DIY Designer XML fájlt, húzd az ablakra, vagy illeszd be a tartalmát. A jelenlegi elrendezést felülírja (visszavonható).</p>
+  <h3>Open a layout</h3>
+  <p class="hint">Choose a HMs DIY Designer XML file, drop it on the window, or paste XML <b>or a layout string</b> here (for example one copied from Garmin Connect). This replaces the current layout; Undo brings it back.</p>
   <input type="file" id="file" accept=".xml,text/xml">
-  <textarea id="xmlin" placeholder="&lt;DIYLayout&gt; … &lt;/DIYLayout&gt;" aria-label="XML beillesztése" style="margin-top:8px"></textarea>
-  <div class="dlgbar"><button class="btn pri" id="loadtxt">Betöltés a szövegből</button><span class="sp"></span><button class="btn" data-close>Mégse</button></div>
+  <textarea id="xmlin" placeholder="&lt;DIYLayout&gt; … &lt;/DIYLayout&gt;   or   C!!iQJ…" aria-label="Paste XML or a layout string" style="margin-top:8px"></textarea>
+  <div class="dlgbar"><button class="btn pri" id="loadtxt">Load pasted text</button><span class="sp"></span><button class="btn" data-close>Cancel</button></div>
 </dialog>
 <dialog id="dlg-dev">
-  <h3>Hogyan kerül az órára?</h3>
-  <p>Az adatmező egy kódolt „layout stringet” vár a beállításaiban. Ezt a karakterláncot jelenleg csak az eredeti (windowsos) HMs DIY Designer tudja előállítani, mert a kódolás nincs dokumentálva. A lépések:</p>
+  <h3>Layout string for the device</h3>
+  <textarea id="strout" readonly aria-label="Layout string" style="height:130px;white-space:pre-wrap;word-break:break-all"></textarea>
+  <p class="hint" id="strinfo"></p>
+  <ul class="warn" id="strwarn" hidden></ul>
   <ol>
-    <li>Itt: <b>Mentés (XML)</b> → töltsd le a fájlt.</li>
-    <li>HMs DIY Designer: <b>Load</b> → nyisd meg az XML-t, majd <b>Copy to clipboard</b> (Ctrl+B).</li>
-    <li>Garmin Connect / Garmin Express: a HMs DIY adatmező beállításaiban illeszd be a <b>Default layout string</b> mezőbe.</li>
+    <li><b>Copy</b> the string with the button below.</li>
+    <li>In Garmin Connect (phone) or Garmin Express, open the settings of the <b>HMs DIY</b> data field among the device's Connect IQ data fields.</li>
+    <li>Paste it into <b>Default layout string</b>, save, then put the data field into a large enough field on an activity screen.</li>
   </ol>
-  <p class="hint">Az előnézet betűi közelítések (a Garmin nem adja ki a készülékek betűtípusait), a grafikus elemek helye pontos. Az élő értékek helyén mintaértékek látszanak.</p>
-  <div class="dlgbar"><span class="sp"></span><button class="btn" data-close>Rendben</button></div>
+  <p class="hint">The encoding is the generation "C" format of HMs DIY Designer 3.4.2. If the device shows "Incompatible string!", the data field expects another generation. An existing string can be loaded back by pasting it into the Open dialog.</p>
+  <div class="dlgbar"><button class="btn pri" id="strcp">Copy string</button><span class="sp"></span><button class="btn" data-close>Close</button></div>
 </dialog>
 <dialog id="dlg-new">
-  <h3>Új elrendezés</h3>
-  <p>Mivel induljunk? A mostani elrendezés a Visszavonással visszahozható.</p>
-  <div class="dlgbar"><button class="btn pri" id="new-sample">Minta elrendezés</button><button class="btn" id="new-empty">Üres lap</button><span class="sp"></span><button class="btn" data-close>Mégse</button></div>
+  <h3>New layout</h3>
+  <p>What should it start from? Undo brings the current layout back.</p>
+  <div class="dlgbar"><button class="btn pri" id="new-sample">Sample layout</button><button class="btn" id="new-empty">Blank</button><span class="sp"></span><button class="btn" data-close>Cancel</button></div>
 </dialog>
 <div id="toast" hidden></div>
 
@@ -209,32 +212,23 @@ dialog li{margin:5px 0}
 "use strict";
 const DEV = /*DATA*/{"Approach S60":[240,240,1,{"TINY":[6,21,-4,0,5,5],"SMALL":[6,21,-4,0,5,5],"MEDIUM":[6,25,-5,0,5,5],"LARGE":[6,25,-5,0,5,5],"NR_MILD":[6,29,-6,0,6,4],"NR_MEDIUM":[6,35,-7,0,7,7],"NR_HOT":[6,55,-9,0,11,9],"NR_THAI_HOT":[5,68,-13,0,14,11],"S_XTINY":[4,16,-3,0,3,3],"S_TINY":[6,21,-4,0,5,5],"S_SMALL":[6,21,-4,0,5,5],"S_MEDIUM":[6,25,-5,0,5,5],"S_LARGE":[6,25,-5,0,5,5],"S_NR_MILD":[6,29,-6,0,6,4],"S_NR_MEDIUM":[6,35,-7,0,7,7],"S_NR_HOT":[6,55,-9,0,11,9],"S_NR_THAI_HOT":[5,68,-13,0,14,11]}],"Approach S62":[260,260,1,{"XTINY":[2,18,-3,0,3,0],"TINY":[2,24,-4,0,4,4],"SMALL":[2,30,-5,0,5,5],"MEDIUM":[2,36,-5,0,5,5],"LARGE":[2,42,-6,0,6,7],"NR_MILD":[2,35,-6,0,6,6],"NR_MEDIUM":[2,45,-7,0,7,7],"NR_HOT":[2,50,-9,0,9,8],"NR_THAI_HOT":[2,70,0,0,0,9],"S_XTINY":[2,18,-3,0,3,0],"S_TINY":[2,24,-4,0,4,4],"S_SMALL":[2,30,-5,0,5,5],"S_MEDIUM":[2,36,-5,0,5,5],"S_LARGE":[2,42,-6,0,6,7],"S_NR_MILD":[2,35,-6,0,6,6],"S_NR_MEDIUM":[2,45,-7,0,7,7],"S_NR_HOT":[2,50,-9,0,9,8],"S_NR_THAI_HOT":[2,70,0,0,0,9]}],"Darth Vader":[260,260,1,{"XTINY":[2,18,-3,0,3,0],"TINY":[2,24,-4,0,4,4],"SMALL":[2,30,-5,0,5,5],"MEDIUM":[2,36,-5,0,5,5],"LARGE":[2,42,-6,0,6,7],"NR_MILD":[2,35,-6,0,6,6],"NR_MEDIUM":[2,45,-7,0,7,7],"NR_HOT":[2,50,-9,0,9,8],"NR_THAI_HOT":[2,70,0,0,0,9],"S_XTINY":[2,18,-3,0,3,0],"S_TINY":[2,24,-4,0,4,4],"S_SMALL":[2,30,-5,0,5,5],"S_MEDIUM":[2,36,-5,0,5,5],"S_LARGE":[2,42,-6,0,6,7],"S_NR_MILD":[2,35,-6,0,6,6],"S_NR_MEDIUM":[2,45,-7,0,7,7],"S_NR_HOT":[2,50,-9,0,9,8],"S_NR_THAI_HOT":[2,70,0,0,0,9]}],"D2 Bravo":[218,218,1,{"XTINY":[0,12,-1,0,1,0],"TINY":[0,15,-2,0,2,2],"SMALL":[1,20,-2,0,3,0],"MEDIUM":[1,24,-4,0,5,-1],"LARGE":[0,29,-4,0,5,0],"NR_MILD":[7,26,-4,0,5,0],"NR_MEDIUM":[7,48,-7,0,8,2],"NR_HOT":[7,62,-10,0,11,4],"NR_THAI_HOT":[7,89,-15,0,16,5]}],"D2 Bravo Titanium":[218,218,1,{"XTINY":[0,12,-1,0,1,0],"TINY":[0,15,-2,0,2,2],"SMALL":[1,20,-2,0,3,0],"MEDIUM":[1,24,-4,0,5,-1],"LARGE":[0,29,-4,0,5,0],"NR_MILD":[7,26,-4,0,5,0],"NR_MEDIUM":[7,48,-7,0,8,2],"NR_HOT":[7,62,-10,0,11,4],"NR_THAI_HOT":[7,89,-15,0,16,5]}],"D2 Charlie":[240,240,1,{"XTINY":[1,21,-4,0,4,0],"TINY":[0,21,-3,0,3,0],"SMALL":[0,23,-4,0,5,0],"MEDIUM":[0,28,-5,0,4,0],"LARGE":[0,32,-5,0,6,-4],"NR_MILD":[2,37,-7,0,9,-6],"NR_MEDIUM":[2,51,-10,0,11,-9],"NR_HOT":[2,71,-12,0,12,-12],"NR_THAI_HOT":[2,80,-15,0,15,-14],"S_XTINY":[1,21,-4,0,4,0],"S_TINY":[0,21,-3,0,3,0],"S_SMALL":[0,23,-4,0,5,0],"S_MEDIUM":[0,28,-5,0,4,0],"S_LARGE":[0,32,-5,0,6,-4],"S_NR_MILD":[2,37,-7,0,9,-6],"S_NR_MEDIUM":[2,51,-10,0,11,-9],"S_NR_HOT":[2,71,-12,0,12,-12],"S_NR_THAI_HOT":[2,80,-15,0,15,-14]}],"D2 Delta":[240,240,1,{"XTINY":[1,21,-4,0,4,0],"TINY":[0,21,-3,0,3,0],"SMALL":[0,23,-4,0,5,0],"MEDIUM":[0,28,-5,0,4,0],"LARGE":[0,32,-5,0,6,-4],"NR_MILD":[2,37,-7,0,9,-6],"NR_MEDIUM":[2,51,-10,0,11,-9],"NR_HOT":[2,71,-12,0,12,-12],"NR_THAI_HOT":[2,80,-15,0,15,-14],"S_XTINY":[1,21,-4,0,4,0],"S_TINY":[0,21,-3,0,3,0],"S_SMALL":[0,23,-4,0,5,0],"S_MEDIUM":[0,28,-5,0,4,0],"S_LARGE":[0,32,-5,0,6,-4],"S_NR_MILD":[2,37,-7,0,9,-6],"S_NR_MEDIUM":[2,51,-10,0,11,-9],"S_NR_HOT":[2,71,-12,0,12,-12],"S_NR_THAI_HOT":[2,80,-15,0,15,-14]}],"D2 Delta PX":[240,240,1,{"XTINY":[1,21,-4,0,4,0],"TINY":[0,21,-3,0,3,0],"SMALL":[0,23,-4,0,5,0],"MEDIUM":[0,28,-5,0,4,0],"LARGE":[0,32,-5,0,6,-4],"NR_MILD":[2,37,-7,0,9,-6],"NR_MEDIUM":[2,51,-10,0,11,-9],"NR_HOT":[2,71,-12,0,12,-12],"NR_THAI_HOT":[2,80,-15,0,15,-14],"S_XTINY":[1,21,-4,0,4,0],"S_TINY":[0,21,-3,0,3,0],"S_SMALL":[0,23,-4,0,5,0],"S_MEDIUM":[0,28,-5,0,4,0],"S_LARGE":[0,32,-5,0,6,-4],"S_NR_MILD":[2,37,-7,0,9,-6],"S_NR_MEDIUM":[2,51,-10,0,11,-9],"S_NR_HOT":[2,71,-12,0,12,-12],"S_NR_THAI_HOT":[2,80,-15,0,15,-14]}],"D2 Delta S":[240,240,1,{"XTINY":[1,21,-4,0,4,0],"TINY":[0,21,-3,0,3,0],"SMALL":[0,23,-4,0,5,0],"MEDIUM":[0,28,-5,0,4,0],"LARGE":[0,32,-5,0,6,-4],"NR_MILD":[2,37,-7,0,9,-6],"NR_MEDIUM":[2,51,-10,0,11,-9],"NR_HOT":[2,71,-12,0,12,-12],"NR_THAI_HOT":[2,80,-15,0,15,-14],"S_XTINY":[1,21,-4,0,4,0],"S_TINY":[0,21,-3,0,3,0],"S_SMALL":[0,23,-4,0,5,0],"S_MEDIUM":[0,28,-5,0,4,0],"S_LARGE":[0,32,-5,0,6,-4],"S_NR_MILD":[2,37,-7,0,9,-6],"S_NR_MEDIUM":[2,51,-10,0,11,-9],"S_NR_HOT":[2,71,-12,0,12,-12],"S_NR_THAI_HOT":[2,80,-15,0,15,-14]}],"D2 Air":[390,390,1,{"XTINY":[2,10,0,0,0,0],"TINY":[2,12,0,0,0,0],"SMALL":[2,15,0,0,0,0],"MEDIUM":[2,20,0,0,0,0],"LARGE":[2,20,0,0,0,0],"NR_MILD":[2,2,0,0,0,0],"NR_MEDIUM":[2,3,0,0,0,0],"NR_HOT":[2,6,0,0,0,0],"NR_THAI_HOT":[2,7,0,0,0,0],"S_XTINY":[2,10,0,0,0,0],"S_TINY":[2,12,0,0,0,0],"S_SMALL":[2,15,0,0,0,0],"S_MEDIUM":[2,20,0,0,0,0],"S_LARGE":[2,20,0,0,0,0],"S_NR_MILD":[2,2,0,0,0,0],"S_NR_MEDIUM":[2,3,0,0,0,0],"S_NR_HOT":[2,6,0,0,0,0],"S_NR_THAI_HOT":[2,7,0,0,0,0]}],"Descent Mk1":[240,240,1,{"XTINY":[1,21,-4,0,4,0],"TINY":[0,21,-3,0,3,0],"SMALL":[0,23,-4,0,5,0],"MEDIUM":[0,28,-5,0,4,0],"LARGE":[0,32,-5,0,6,-4],"NR_MILD":[2,37,-7,0,9,-6],"NR_MEDIUM":[2,51,-10,0,11,-9],"NR_HOT":[2,71,-12,0,12,-12],"NR_THAI_HOT":[2,80,-15,0,15,-14],"S_XTINY":[1,21,-4,0,4,0],"S_TINY":[0,21,-3,0,3,0],"S_SMALL":[0,23,-4,0,5,0],"S_MEDIUM":[0,28,-5,0,4,0],"S_LARGE":[0,32,-5,0,6,-4],"S_NR_MILD":[2,37,-7,0,9,-6],"S_NR_MEDIUM":[2,51,-10,0,11,-9],"S_NR_HOT":[2,71,-12,0,12,-12],"S_NR_THAI_HOT":[2,80,-15,0,15,-14]}],"Descent Mk2 / Descent Mk2i":[280,280,1,{"XTINY":[0,15,-2,0,3,0],"TINY":[0,24,-4,0,5,1],"SMALL":[0,28,-4,0,5,0],"MEDIUM":[0,30,-5,0,6,2],"LARGE":[0,35,-6,0,6,-2],"NR_MILD":[6,45,-8,0,8,6],"NR_MEDIUM":[6,50,-9,0,10,12],"NR_HOT":[4,70,-12,0,13,13],"NR_THAI_HOT":[4,80,-14,0,14,15],"S_XTINY":[0,15,-2,0,3,0],"S_TINY":[0,24,-4,0,5,1],"S_SMALL":[0,28,-4,0,5,0],"S_MEDIUM":[0,30,-5,0,6,2],"S_LARGE":[0,35,-6,0,6,-2],"S_NR_MILD":[6,45,-8,0,8,6],"S_NR_MEDIUM":[6,50,-9,0,10,12],"S_NR_HOT":[4,70,-12,0,13,13],"S_NR_THAI_HOT":[4,80,-14,0,14,15]}],"Descent Mk2 S":[240,240,1,{"XTINY":[2,13,0,0,0,0],"TINY":[2,17,0,0,0,0],"SMALL":[2,19,0,0,0,0],"MEDIUM":[2,22,0,0,0,0],"LARGE":[2,24,0,0,0,0],"NR_MILD":[2,28,0,0,0,0],"NR_MEDIUM":[2,34,0,0,0,0],"NR_HOT":[2,46,0,0,0,0],"NR_THAI_HOT":[2,53,0,0,0,0],"S_XTINY":[2,13,0,0,0,0],"S_TINY":[2,17,0,0,0,0],"S_SMALL":[2,19,0,0,0,0],"S_MEDIUM":[2,22,0,0,0,0],"S_LARGE":[2,24,0,0,0,0],"S_NR_MILD":[2,28,0,0,0,0],"S_NR_MEDIUM":[2,34,0,0,0,0],"S_NR_HOT":[2,46,0,0,0,0],"S_NR_THAI_HOT":[2,53,0,0,0,0]}],"Edge 1030":[282,470,0,{"XTINY":[1,15,-3,0,4,-4],"TINY":[1,21,-4,0,5,-5],"SMALL":[1,24,-4,0,5,-5],"MEDIUM":[1,27,-5,0,6,-6],"LARGE":[1,40,-8,0,9,-5],"NR_MILD":[2,40,-7,0,8,-6],"NR_MEDIUM":[2,48,-9,0,9,-7],"NR_HOT":[2,60,-10,0,10,-9],"NR_THAI_HOT":[2,79,-14,0,14,-8]}],"Edge 1030 plus":[282,470,0,{"XTINY":[1,15,-3,0,4,-4],"TINY":[1,21,-4,0,5,-5],"SMALL":[1,24,-4,0,5,-5],"MEDIUM":[1,27,-5,0,6,-6],"LARGE":[1,40,-8,0,9,-5],"NR_MILD":[2,40,-7,0,8,-6],"NR_MEDIUM":[2,48,-9,0,9,-7],"NR_THAI_HOT":[2,79,-14,0,14,-8]}],"Edge 1030, Bontrager":[282,470,0,{"XTINY":[1,15,-3,0,4,-4],"TINY":[1,21,-4,0,5,-5],"SMALL":[1,24,-4,0,5,-5],"MEDIUM":[1,27,-5,0,6,-6],"LARGE":[1,40,-8,0,9,-5],"NR_MILD":[2,40,-7,0,8,-6],"NR_MEDIUM":[2,48,-9,0,9,-7],"NR_HOT":[2,60,-10,0,10,-9],"NR_THAI_HOT":[2,79,-14,0,14,-8]}],"Edge 130":[230,303,0,{"XTINY":[2,17,0,0,0,0],"TINY":[2,17,0,0,0,0],"SMALL":[2,18,0,0,0,0],"MEDIUM":[2,18,0,0,0,0],"LARGE":[2,21,0,0,0,0],"NR_MILD":[2,32,0,0,0,0],"NR_MEDIUM":[2,35,0,0,0,0],"NR_HOT":[2,51,0,0,0,0],"NR_THAI_HOT":[2,64,0,0,0,0]}],"Edge 130 plus":[230,303,0,{"XTINY":[2,17,0,0,0,0],"TINY":[2,17,0,0,0,0],"SMALL":[2,18,0,0,0,0],"MEDIUM":[2,18,0,0,0,0],"LARGE":[2,21,0,0,0,0],"NR_MILD":[2,32,0,0,0,0],"NR_MEDIUM":[2,35,0,0,0,0],"NR_HOT":[2,51,0,0,0,0],"NR_THAI_HOT":[2,64,0,0,0,0]}],"Edge 520 Plus":[200,265,0,{"XTINY":[1,12,-3,0,3,-3],"TINY":[1,17,-4,0,5,-5],"SMALL":[1,19,-4,0,5,-6],"MEDIUM":[1,22,-5,0,6,-7],"LARGE":[1,32,-8,0,9,-11],"NR_MILD":[0,24,0,0,0,0],"NR_MEDIUM":[0,28,0,0,0,0],"NR_HOT":[0,36,0,0,0,0],"NR_THAI_HOT":[2,55,-10,0,10,-9]}],"Edge 530":[246,322,0,{"XTINY":[1,11,0,0,0,0],"TINY":[1,15,0,0,0,0],"SMALL":[1,21,-4,0,5,-5],"MEDIUM":[1,24,-4,0,5,-5],"LARGE":[1,33,0,0,0,0],"NR_MILD":[2,36,-7,0,8,-6],"NR_MEDIUM":[2,40,-7,0,8,-6],"NR_HOT":[2,55,-10,0,10,-9],"NR_THAI_HOT":[2,62,-14,0,14,-20]}],"Edge 820 / Explore":[200,265,0,{"XTINY":[1,12,-3,0,3,-3],"TINY":[1,17,-4,0,5,-5],"SMALL":[1,19,-4,0,5,-6],"MEDIUM":[1,22,-5,0,6,-7],"LARGE":[1,32,-8,0,9,-11],"NR_MILD":[0,24,0,0,0,0],"NR_MEDIUM":[0,28,0,0,0,0],"NR_HOT":[0,36,0,0,0,0],"NR_THAI_HOT":[2,55,-10,0,10,-9]}],"Edge 830":[246,322,0,{"XTINY":[1,11,0,0,0,0],"TINY":[1,15,0,0,0,0],"SMALL":[1,21,-4,0,5,-5],"MEDIUM":[1,24,-4,0,5,-5],"LARGE":[1,33,0,0,0,0],"NR_MILD":[2,36,-7,0,8,-6],"NR_MEDIUM":[2,40,-7,0,8,-6],"NR_HOT":[2,55,-10,0,10,-9],"NR_THAI_HOT":[2,62,-14,0,14,-20]}],"Edge Explore":[240,400,0,{"XTINY":[1,12,-3,0,3,-3],"TINY":[1,17,-4,0,5,-5],"SMALL":[1,19,-4,0,5,-6],"MEDIUM":[1,22,-5,0,6,-7],"LARGE":[1,32,-8,0,9,-11],"NR_MILD":[2,36,-7,0,8,-6],"NR_MEDIUM":[2,40,-7,0,8,-6],"NR_HOT":[2,55,-10,0,10,-9],"NR_THAI_HOT":[2,62,-14,0,14,-20]}],"Edge Explore 2":[240,400,0,{"XTINY":[1,10,0,0,0,0],"TINY":[1,12,0,0,0,0],"SMALL":[1,14,0,0,0,0],"MEDIUM":[1,16,0,0,0,0],"LARGE":[1,26,0,0,0,0],"NR_MILD":[1,26,0,0,0,0],"NR_MEDIUM":[1,30,0,0,0,0],"NR_HOT":[1,40,0,0,0,0],"NR_THAI_HOT":[1,50,0,0,0,0]}],"Edge 1000 / Explore":[240,400,0,{"XTINY":[1,12,-3,0,3,-3],"TINY":[1,17,-4,0,5,-5],"SMALL":[1,19,-4,0,5,-6],"MEDIUM":[1,22,-5,0,6,-7],"LARGE":[1,32,-8,0,9,-11],"NR_MILD":[2,36,-7,0,8,-6],"NR_MEDIUM":[2,40,-7,0,8,-6],"NR_HOT":[2,55,-10,0,10,-9],"NR_THAI_HOT":[2,62,-14,0,14,-20]}],"Edge 520":[200,265,0,{"XTINY":[1,12,-3,0,3,-3],"TINY":[1,17,-4,0,5,-5],"SMALL":[1,19,-4,0,5,-6],"MEDIUM":[1,22,-5,0,6,-7],"LARGE":[1,32,-8,0,9,-11],"NR_MILD":[0,24,0,0,0,0],"NR_MEDIUM":[0,28,0,0,0,0],"NR_HOT":[0,36,0,0,0,0],"NR_THAI_HOT":[2,55,-10,0,10,-9]}],"Enduro":[280,280,1,{"XTINY":[0,15,-2,0,3,0],"TINY":[0,24,-4,0,5,1],"SMALL":[0,28,-4,0,5,0],"MEDIUM":[0,30,-5,0,6,2],"LARGE":[0,35,-6,0,6,-2],"NR_MILD":[6,45,-8,0,8,6],"NR_MEDIUM":[6,50,-9,0,10,12],"NR_HOT":[4,70,-12,0,13,13],"NR_THAI_HOT":[4,80,-14,0,14,15],"S_XTINY":[0,15,-2,0,3,0],"S_TINY":[0,24,-4,0,5,1],"S_SMALL":[0,28,-4,0,5,0],"S_MEDIUM":[0,30,-5,0,6,2],"S_LARGE":[0,35,-6,0,6,-2],"S_NR_MILD":[6,45,-8,0,8,6],"S_NR_MEDIUM":[6,50,-9,0,10,12],"S_NR_HOT":[4,70,-12,0,13,13],"S_NR_THAI_HOT":[4,80,-14,0,14,15]}],"epix":[205,148,0,{"XTINY":[0,14,-1,0,2,2],"TINY":[0,14,-1,0,2,2],"SMALL":[0,14,-1,0,2,2],"MEDIUM":[1,17,0,0,0,0],"LARGE":[1,20,0,0,0,0],"NR_MILD":[2,20,0,0,0,0],"NR_MEDIUM":[2,32,0,0,0,0],"NR_HOT":[2,38,0,0,0,0],"NR_THAI_HOT":[2,62,0,0,0,0]}],"epix Gen2":[416,416,1,{"XTINY":[1,24,0,0,0,0],"TINY":[1,24,0,0,0,0],"SMALL":[1,27,0,0,0,0],"MEDIUM":[1,32,0,0,0,0],"LARGE":[1,35,0,0,0,0],"NR_MILD":[2,45,0,0,0,0],"NR_MEDIUM":[2,54,0,0,0,0],"NR_HOT":[2,73,0,0,0,0],"NR_THAI_HOT":[2,84,0,0,0,0],"S_XTINY":[1,24,0,0,0,0],"S_TINY":[1,24,0,0,0,0],"S_SMALL":[1,27,0,0,0,0],"S_MEDIUM":[1,32,0,0,0,0],"S_LARGE":[1,35,0,0,0,0],"S_NR_MILD":[2,45,0,0,0,0],"S_NR_MEDIUM":[2,54,0,0,0,0],"S_NR_HOT":[2,73,0,0,0,0],"S_NR_THAI_HOT":[2,84,0,0,0,0]}],"fenix 3 / tactix Bravo / quatix 3":[218,218,1,{"XTINY":[0,12,-1,0,1,0],"TINY":[0,15,-2,0,2,2],"SMALL":[1,20,-2,0,3,0],"MEDIUM":[1,24,-4,0,5,-1],"LARGE":[0,29,-4,0,5,0],"NR_MILD":[7,26,-4,0,5,0],"NR_MEDIUM":[7,48,-7,0,8,2],"NR_HOT":[7,62,-10,0,11,4],"NR_THAI_HOT":[7,89,-15,0,16,5]}],"fenix 3 HR":[218,218,1,{"XTINY":[0,12,-1,0,1,0],"TINY":[0,15,-2,0,2,2],"SMALL":[1,20,-2,0,3,0],"MEDIUM":[1,24,-4,0,5,-1],"LARGE":[0,29,-4,0,5,0],"NR_MILD":[7,26,-4,0,5,0],"NR_MEDIUM":[7,48,-7,0,8,2],"NR_HOT":[7,62,-10,0,11,4],"NR_THAI_HOT":[7,89,-15,0,16,5]}],"fenix 5 / quatix 5":[240,240,1,{"XTINY":[1,21,-4,0,4,0],"TINY":[0,21,-3,0,3,0],"SMALL":[0,23,-4,0,5,0],"MEDIUM":[0,28,-5,0,4,0],"LARGE":[0,32,-5,0,6,-4],"NR_MILD":[2,37,-7,0,9,-6],"NR_MEDIUM":[2,51,-10,0,11,-9],"NR_HOT":[2,71,-12,0,12,-12],"NR_THAI_HOT":[2,80,-15,0,15,-14],"S_XTINY":[1,21,-4,0,4,0],"S_TINY":[0,21,-3,0,3,0],"S_SMALL":[0,23,-4,0,5,0],"S_MEDIUM":[0,28,-5,0,4,0],"S_LARGE":[0,32,-5,0,6,-4],"S_NR_MILD":[2,37,-7,0,9,-6],"S_NR_MEDIUM":[2,51,-10,0,11,-9],"S_NR_HOT":[2,71,-12,0,12,-12],"S_NR_THAI_HOT":[2,80,-15,0,15,-14]}],"fenix 5 Plus":[240,240,1,{"XTINY":[1,21,-4,0,4,0],"TINY":[0,21,-3,0,3,0],"SMALL":[0,23,-4,0,5,0],"MEDIUM":[0,28,-5,0,4,0],"LARGE":[0,32,-5,0,6,-4],"NR_MILD":[2,37,-7,0,9,-6],"NR_MEDIUM":[2,51,-10,0,11,-9],"NR_HOT":[2,71,-12,0,12,-12],"NR_THAI_HOT":[2,80,-15,0,15,-14],"S_XTINY":[1,21,-4,0,4,0],"S_TINY":[0,21,-3,0,3,0],"S_SMALL":[0,23,-4,0,5,0],"S_MEDIUM":[0,28,-5,0,4,0],"S_LARGE":[0,32,-5,0,6,-4],"S_NR_MILD":[2,37,-7,0,9,-6],"S_NR_MEDIUM":[2,51,-10,0,11,-9],"S_NR_HOT":[2,71,-12,0,12,-12],"S_NR_THAI_HOT":[2,80,-15,0,15,-14]}],"fenix 5S":[218,218,1,{"XTINY":[1,23,0,0,0,0],"TINY":[0,18,0,0,0,0],"SMALL":[0,20,0,0,0,0],"MEDIUM":[0,25,0,0,0,0],"LARGE":[0,28,-5,0,4,0],"NR_MILD":[2,24,0,0,0,0],"NR_MEDIUM":[2,32,0,0,0,0],"NR_HOT":[2,46,0,0,0,0],"NR_THAI_HOT":[2,53,0,0,0,0],"S_XTINY":[1,23,0,0,0,0],"S_TINY":[0,18,0,0,0,0],"S_SMALL":[0,20,0,0,0,0],"S_MEDIUM":[0,25,0,0,0,0],"S_LARGE":[0,28,-5,0,4,0],"S_NR_MILD":[2,24,0,0,0,0],"S_NR_MEDIUM":[2,32,0,0,0,0],"S_NR_HOT":[2,46,0,0,0,0],"S_NR_THAI_HOT":[2,53,0,0,0,0]}],"fenix 5S Plus":[240,240,1,{"XTINY":[1,21,-4,0,4,0],"TINY":[0,21,-3,0,3,0],"SMALL":[0,23,-4,0,5,0],"MEDIUM":[0,28,-5,0,4,0],"LARGE":[0,32,-5,0,6,-4],"NR_MILD":[2,37,-7,0,9,-6],"NR_MEDIUM":[2,51,-10,0,11,-9],"NR_HOT":[2,71,-12,0,12,-12],"NR_THAI_HOT":[2,80,-15,0,15,-14],"S_XTINY":[1,21,-4,0,4,0],"S_TINY":[0,21,-3,0,3,0],"S_SMALL":[0,23,-4,0,5,0],"S_MEDIUM":[0,28,-5,0,4,0],"S_LARGE":[0,32,-5,0,6,-4],"S_NR_MILD":[2,37,-7,0,9,-6],"S_NR_MEDIUM":[2,51,-10,0,11,-9],"S_NR_HOT":[2,71,-12,0,12,-12],"S_NR_THAI_HOT":[2,80,-15,0,15,-14]}],"fenix 5X / tactix Charlie":[240,240,1,{"XTINY":[1,21,-4,0,4,0],"TINY":[0,21,-3,0,3,0],"SMALL":[0,23,-4,0,5,0],"MEDIUM":[0,28,-5,0,4,0],"LARGE":[0,32,-5,0,6,-4],"NR_MILD":[2,37,-7,0,9,-6],"NR_MEDIUM":[2,51,-10,0,11,-9],"NR_HOT":[2,71,-12,0,12,-12],"NR_THAI_HOT":[2,80,-15,0,15,-14],"S_XTINY":[1,21,-4,0,4,0],"S_TINY":[0,21,-3,0,3,0],"S_SMALL":[0,23,-4,0,5,0],"S_MEDIUM":[0,28,-5,0,4,0],"S_LARGE":[0,32,-5,0,6,-4],"S_NR_MILD":[2,37,-7,0,9,-6],"S_NR_MEDIUM":[2,51,-10,0,11,-9],"S_NR_HOT":[2,71,-12,0,12,-12],"S_NR_THAI_HOT":[2,80,-15,0,15,-14]}],"fenix 5X Plus":[240,240,1,{"XTINY":[1,21,-4,0,4,0],"TINY":[0,21,-3,0,3,0],"SMALL":[0,23,-4,0,5,0],"MEDIUM":[0,28,-5,0,4,0],"LARGE":[0,32,-5,0,6,-4],"NR_MILD":[2,37,-7,0,9,-6],"NR_MEDIUM":[2,51,-10,0,11,-9],"NR_HOT":[2,71,-12,0,12,-12],"NR_THAI_HOT":[2,80,-15,0,15,-14],"S_XTINY":[1,21,-4,0,4,0],"S_TINY":[0,21,-3,0,3,0],"S_SMALL":[0,23,-4,0,5,0],"S_MEDIUM":[0,28,-5,0,4,0],"S_LARGE":[0,32,-5,0,6,-4],"S_NR_MILD":[2,37,-7,0,9,-6],"S_NR_MEDIUM":[2,51,-10,0,11,-9],"S_NR_HOT":[2,71,-12,0,12,-12],"S_NR_THAI_HOT":[2,80,-15,0,15,-14]}],"fenix 6":[260,260,1,{"XTINY":[0,15,-2,0,2,0],"TINY":[0,22,-3,0,3,1],"SMALL":[0,25,-4,0,5,0],"MEDIUM":[0,30,-4,0,5,0],"LARGE":[0,32,-5,0,6,0],"NR_MILD":[6,40,-7,0,7,7],"NR_MEDIUM":[6,46,-8,0,8,10],"NR_HOT":[4,63,-10,0,11,15],"NR_THAI_HOT":[4,70,-12,0,13,20],"S_XTINY":[0,15,-2,0,2,0],"S_TINY":[0,22,-3,0,3,1],"S_SMALL":[0,25,-4,0,5,0],"S_MEDIUM":[0,30,-4,0,5,0],"S_LARGE":[0,32,-5,0,6,0],"S_NR_MILD":[6,40,-7,0,7,7],"S_NR_MEDIUM":[6,46,-8,0,8,10],"S_NR_HOT":[4,63,-10,0,11,15],"S_NR_THAI_HOT":[4,70,-12,0,13,20]}],"fenix 6 Pro / 6 Sapphire":[260,260,1,{"XTINY":[0,15,-2,0,2,0],"TINY":[0,22,-3,0,3,1],"SMALL":[0,25,-4,0,5,0],"MEDIUM":[0,30,-4,0,5,0],"LARGE":[0,32,-5,0,6,0],"NR_MILD":[6,40,-7,0,7,7],"NR_MEDIUM":[6,46,-8,0,8,10],"NR_HOT":[4,63,-10,0,11,15],"NR_THAI_HOT":[4,70,-12,0,13,20],"S_XTINY":[0,15,-2,0,2,0],"S_TINY":[0,22,-3,0,3,1],"S_SMALL":[0,25,-4,0,5,0],"S_MEDIUM":[0,30,-4,0,5,0],"S_LARGE":[0,32,-5,0,6,0],"S_NR_MILD":[6,40,-7,0,7,7],"S_NR_MEDIUM":[6,46,-8,0,8,10],"S_NR_HOT":[4,63,-10,0,11,15],"S_NR_THAI_HOT":[4,70,-12,0,13,20]}],"fenix 6S":[240,240,1,{"XTINY":[2,13,0,0,0,0],"TINY":[2,17,0,0,0,0],"SMALL":[2,19,0,0,0,0],"MEDIUM":[2,22,0,0,0,0],"LARGE":[2,24,0,0,0,0],"NR_MILD":[2,28,0,0,0,0],"NR_MEDIUM":[2,34,0,0,0,0],"NR_HOT":[2,46,0,0,0,0],"NR_THAI_HOT":[2,53,0,0,0,0],"S_XTINY":[2,13,0,0,0,0],"S_TINY":[2,17,0,0,0,0],"S_SMALL":[2,19,0,0,0,0],"S_MEDIUM":[2,22,0,0,0,0],"S_LARGE":[2,24,0,0,0,0],"S_NR_MILD":[2,28,0,0,0,0],"S_NR_MEDIUM":[2,34,0,0,0,0],"S_NR_HOT":[2,46,0,0,0,0],"S_NR_THAI_HOT":[2,53,0,0,0,0]}],"fenix 6S Pro / 6S Sapphire":[240,240,1,{"XTINY":[2,13,0,0,0,0],"TINY":[2,17,0,0,0,0],"SMALL":[2,19,0,0,0,0],"MEDIUM":[2,22,0,0,0,0],"LARGE":[2,24,0,0,0,0],"NR_MILD":[2,28,0,0,0,0],"NR_MEDIUM":[2,34,0,0,0,0],"NR_HOT":[2,46,0,0,0,0],"NR_THAI_HOT":[2,53,0,0,0,0],"S_XTINY":[2,13,0,0,0,0],"S_TINY":[2,17,0,0,0,0],"S_SMALL":[2,19,0,0,0,0],"S_MEDIUM":[2,22,0,0,0,0],"S_LARGE":[2,24,0,0,0,0],"S_NR_MILD":[2,28,0,0,0,0],"S_NR_MEDIUM":[2,34,0,0,0,0],"S_NR_HOT":[2,46,0,0,0,0],"S_NR_THAI_HOT":[2,53,0,0,0,0]}],"fenix 6X Pro / 6X Sapphire / 6X Pro Solar":[280,280,1,{"XTINY":[0,15,-2,0,3,0],"TINY":[0,24,-4,0,5,1],"SMALL":[0,28,-4,0,5,0],"MEDIUM":[0,30,-5,0,6,2],"LARGE":[0,35,-6,0,6,-2],"NR_MILD":[6,45,-8,0,8,6],"NR_MEDIUM":[6,50,-9,0,10,12],"NR_HOT":[4,70,-12,0,13,13],"NR_THAI_HOT":[4,80,-14,0,14,15],"S_XTINY":[0,15,-2,0,3,0],"S_TINY":[0,24,-4,0,5,1],"S_SMALL":[0,28,-4,0,5,0],"S_MEDIUM":[0,30,-5,0,6,2],"S_LARGE":[0,35,-6,0,6,-2],"S_NR_MILD":[6,45,-8,0,8,6],"S_NR_MEDIUM":[6,50,-9,0,10,12],"S_NR_HOT":[4,70,-12,0,13,13],"S_NR_THAI_HOT":[4,80,-14,0,14,15]}],"fenix 7":[260,260,1,{"XTINY":[0,15,-2,0,2,0],"TINY":[0,22,-3,0,3,1],"SMALL":[0,25,-4,0,5,0],"MEDIUM":[0,30,-4,0,5,0],"LARGE":[0,32,-5,0,6,0],"NR_MILD":[6,40,-7,0,7,7],"NR_MEDIUM":[6,46,-8,0,8,10],"NR_HOT":[4,63,-10,0,11,15],"NR_THAI_HOT":[4,70,-12,0,13,20],"S_XTINY":[0,15,-2,0,2,0],"S_TINY":[0,22,-3,0,3,1],"S_SMALL":[0,25,-4,0,5,0],"S_MEDIUM":[0,30,-4,0,5,0],"S_LARGE":[0,32,-5,0,6,0],"S_NR_MILD":[6,40,-7,0,7,7],"S_NR_MEDIUM":[6,46,-8,0,8,10],"S_NR_HOT":[4,63,-10,0,11,15],"S_NR_THAI_HOT":[4,70,-12,0,13,20]}],"fenix 7S":[240,240,1,{"XTINY":[2,13,0,0,0,0],"TINY":[2,17,0,0,0,0],"SMALL":[2,19,0,0,0,0],"MEDIUM":[2,22,0,0,0,0],"LARGE":[2,24,0,0,0,0],"NR_MILD":[2,28,0,0,0,0],"NR_MEDIUM":[2,34,0,0,0,0],"NR_HOT":[2,46,0,0,0,0],"NR_THAI_HOT":[2,53,0,0,0,0],"S_XTINY":[2,13,0,0,0,0],"S_TINY":[2,17,0,0,0,0],"S_SMALL":[2,19,0,0,0,0],"S_MEDIUM":[2,22,0,0,0,0],"S_LARGE":[2,24,0,0,0,0],"S_NR_MILD":[2,28,0,0,0,0],"S_NR_MEDIUM":[2,34,0,0,0,0],"S_NR_HOT":[2,46,0,0,0,0],"S_NR_THAI_HOT":[2,53,0,0,0,0]}],"fenix 7X":[280,280,1,{"XTINY":[0,15,-2,0,3,0],"TINY":[0,24,-4,0,5,1],"SMALL":[0,28,-4,0,5,0],"MEDIUM":[0,30,-5,0,6,2],"LARGE":[0,35,-6,0,6,-2],"NR_MILD":[6,45,-8,0,8,6],"NR_MEDIUM":[6,50,-9,0,10,12],"NR_HOT":[4,70,-12,0,13,13],"NR_THAI_HOT":[4,80,-14,0,14,15],"S_XTINY":[0,15,-2,0,3,0],"S_TINY":[0,24,-4,0,5,1],"S_SMALL":[0,28,-4,0,5,0],"S_MEDIUM":[0,30,-5,0,6,2],"S_LARGE":[0,35,-6,0,6,-2],"S_NR_MILD":[6,45,-8,0,8,6],"S_NR_MEDIUM":[6,50,-9,0,10,12],"S_NR_HOT":[4,70,-12,0,13,13],"S_NR_THAI_HOT":[4,80,-14,0,14,15]}],"fenix Chronos":[218,218,1,{"XTINY":[1,23,0,0,0,0],"TINY":[0,18,0,0,0,0],"SMALL":[0,20,0,0,0,0],"MEDIUM":[0,25,0,0,0,0],"LARGE":[0,28,-5,0,4,0],"NR_MILD":[2,24,0,0,0,0],"NR_MEDIUM":[2,32,0,0,0,0],"NR_HOT":[2,46,0,0,0,0],"NR_THAI_HOT":[2,53,0,0,0,0],"S_XTINY":[1,23,0,0,0,0],"S_TINY":[0,18,0,0,0,0],"S_SMALL":[0,20,0,0,0,0],"S_MEDIUM":[0,25,0,0,0,0],"S_LARGE":[0,28,-5,0,4,0]}],"Forerunner 230":[215,180,0,{"XTINY":[0,14,-2,0,3,1],"TINY":[0,14,-2,0,3,1],"SMALL":[0,14,-2,0,3,1],"MEDIUM":[1,18,-3,0,3,1],"LARGE":[0,24,-3,0,3,1],"NR_MILD":[2,27,-5,0,6,2],"NR_MEDIUM":[2,43,-7,0,8,1],"NR_HOT":[2,57,-9,0,10,1],"NR_THAI_HOT":[2,99,-17,0,18,0]}],"Forerunner 235":[215,180,0,{"XTINY":[0,14,-2,0,3,1],"TINY":[0,14,-2,0,3,1],"SMALL":[0,14,-2,0,3,1],"MEDIUM":[1,18,-3,0,3,1],"LARGE":[0,24,-3,0,3,1],"NR_MILD":[2,27,-5,0,6,2],"NR_MEDIUM":[2,43,-7,0,8,1],"NR_HOT":[2,57,-9,0,10,1],"NR_THAI_HOT":[2,99,-17,0,18,0]}],"Forerunner 245":[240,240,1,{"XTINY":[0,14,-1,0,2,1],"TINY":[0,20,-3,0,3,0],"SMALL":[0,23,-4,0,4,0],"MEDIUM":[0,26,-3,0,4,1],"LARGE":[0,29,-4,0,4,0],"NR_MILD":[0,35,-6,0,6,0],"NR_MEDIUM":[0,44,-8,0,8,0],"NR_HOT":[6,58,-9,0,9,12],"NR_THAI_HOT":[6,68,-12,0,12,12],"S_XTINY":[0,14,-1,0,2,1],"S_TINY":[0,20,-3,0,3,0],"S_SMALL":[0,23,-4,0,4,0],"S_MEDIUM":[0,26,-3,0,4,1],"S_LARGE":[0,29,-4,0,4,0],"S_NR_MILD":[0,35,-6,0,6,0],"S_NR_MEDIUM":[0,44,-8,0,8,0],"S_NR_HOT":[6,58,-9,0,9,12],"S_NR_THAI_HOT":[6,68,-12,0,12,12]}],"Forerunner 245 Music":[240,240,1,{"XTINY":[0,14,-1,0,2,1],"TINY":[0,20,-3,0,3,0],"SMALL":[0,23,-4,0,4,0],"MEDIUM":[0,26,-3,0,4,1],"LARGE":[0,29,-4,0,4,0],"NR_MILD":[0,35,-6,0,6,0],"NR_MEDIUM":[0,44,-8,0,8,0],"NR_HOT":[6,58,-9,0,9,12],"NR_THAI_HOT":[6,68,-12,0,12,12],"S_XTINY":[0,14,-1,0,2,1],"S_TINY":[0,20,-3,0,3,0],"S_SMALL":[0,23,-4,0,4,0],"S_MEDIUM":[0,26,-3,0,4,1],"S_LARGE":[0,29,-4,0,4,0],"S_NR_MILD":[0,35,-6,0,6,0],"S_NR_MEDIUM":[0,44,-8,0,8,0],"S_NR_HOT":[6,58,-9,0,9,12],"S_NR_THAI_HOT":[6,68,-12,0,12,12]}],"Forerunner 45":[208,208,1,{"XTINY":[2,13,0,0,0,0],"TINY":[2,13,0,0,0,0],"SMALL":[2,13,0,0,0,0],"MEDIUM":[2,15,0,0,0,0],"LARGE":[2,20,0,0,0,0],"NR_MILD":[2,20,0,0,0,0],"NR_MEDIUM":[2,44,0,0,0,0],"NR_HOT":[2,50,0,0,0,0],"NR_THAI_HOT":[2,50,0,0,0,0]}],"Forerunner 55":[208,208,1,{"XTINY":[2,13,0,0,0,0],"TINY":[2,15,0,0,0,0],"SMALL":[2,17,0,0,0,0],"MEDIUM":[2,20,0,0,0,0],"LARGE":[2,20,0,0,0,0],"NR_MILD":[1,20,0,0,0,0],"NR_MEDIUM":[1,44,0,0,0,0],"NR_HOT":[1,50,0,0,0,0],"NR_THAI_HOT":[1,50,0,0,0,0]}],"Forerunner 630":[215,180,0,{"XTINY":[0,14,-2,0,3,1],"TINY":[0,14,-2,0,3,1],"SMALL":[0,14,-2,0,3,1],"MEDIUM":[1,18,-3,0,3,1],"LARGE":[0,24,-3,0,3,1],"NR_MILD":[2,27,-5,0,6,2],"NR_MEDIUM":[2,43,-7,0,8,1],"NR_HOT":[2,57,-9,0,10,1],"NR_THAI_HOT":[2,99,-17,0,18,0]}],"Forerunner 645":[240,240,1,{"XTINY":[1,21,-4,0,4,0],"TINY":[0,21,-3,0,3,0],"SMALL":[0,23,-4,0,5,0],"MEDIUM":[0,28,-5,0,4,0],"LARGE":[0,32,-5,0,6,-4],"NR_MILD":[2,37,-7,0,9,-6],"NR_MEDIUM":[2,51,-10,0,11,-9],"NR_HOT":[2,71,-12,0,12,-12],"NR_THAI_HOT":[2,80,-15,0,15,-14],"S_XTINY":[1,21,-4,0,4,0],"S_TINY":[0,21,-3,0,3,0],"S_SMALL":[0,23,-4,0,5,0],"S_MEDIUM":[0,28,-5,0,4,0],"S_LARGE":[0,32,-5,0,6,-4],"S_NR_MILD":[2,37,-7,0,9,-6],"S_NR_MEDIUM":[2,51,-10,0,11,-9],"S_NR_HOT":[2,71,-12,0,12,-12],"S_NR_THAI_HOT":[2,80,-15,0,15,-14]}],"Forerunner 645 Music":[240,240,1,{"XTINY":[1,21,-4,0,4,0],"TINY":[0,21,-3,0,3,0],"SMALL":[0,23,-4,0,5,0],"MEDIUM":[0,28,-5,0,4,0],"LARGE":[0,32,-5,0,6,-4],"NR_MILD":[2,37,-7,0,9,-6],"NR_MEDIUM":[2,51,-10,0,11,-9],"NR_HOT":[2,71,-12,0,12,-12],"NR_THAI_HOT":[2,80,-15,0,15,-14],"S_XTINY":[1,21,-4,0,4,0],"S_TINY":[0,21,-3,0,3,0],"S_SMALL":[0,23,-4,0,5,0],"S_MEDIUM":[0,28,-5,0,4,0],"S_LARGE":[0,32,-5,0,6,-4],"S_NR_MILD":[2,37,-7,0,9,-6],"S_NR_MEDIUM":[2,51,-10,0,11,-9],"S_NR_HOT":[2,71,-12,0,12,-12],"S_NR_THAI_HOT":[2,80,-15,0,15,-14]}],"Forerunner 735xt":[215,180,0,{"XTINY":[0,14,-2,0,3,1],"TINY":[0,14,-2,0,3,1],"SMALL":[0,14,-2,0,3,1],"MEDIUM":[1,18,-3,0,3,1],"LARGE":[0,24,-3,0,3,1],"NR_MILD":[2,27,-5,0,6,2],"NR_MEDIUM":[2,43,-7,0,8,1],"NR_HOT":[2,57,-9,0,10,1],"NR_THAI_HOT":[2,99,-17,0,18,0]}],"Forerunner 745":[240,240,1,{"XTINY":[0,14,-1,0,2,1],"TINY":[0,20,-3,0,3,0],"SMALL":[0,23,-4,0,4,0],"MEDIUM":[0,26,-3,0,4,1],"LARGE":[0,29,-4,0,4,0],"NR_MILD":[0,35,-6,0,6,0],"NR_MEDIUM":[0,44,-8,0,8,0],"NR_HOT":[6,58,-9,0,9,12],"NR_THAI_HOT":[6,68,-12,0,12,12],"S_XTINY":[0,14,-1,0,2,1],"S_TINY":[0,20,-3,0,3,0],"S_SMALL":[0,23,-4,0,4,0],"S_MEDIUM":[0,26,-3,0,4,1],"S_LARGE":[0,29,-4,0,4,0],"S_NR_MILD":[0,35,-6,0,6,0],"S_NR_MEDIUM":[0,44,-8,0,8,0],"S_NR_HOT":[6,58,-9,0,9,12],"S_NR_THAI_HOT":[6,68,-12,0,12,12]}],"Forerunner 920XT":[205,148,0,{"XTINY":[2,12,0,0,0,0],"TINY":[2,12,0,0,0,0],"SMALL":[2,12,0,0,0,0],"MEDIUM":[2,17,0,0,0,0],"LARGE":[2,20,0,0,0,0],"NR_MILD":[2,20,0,0,0,0],"NR_MEDIUM":[2,32,0,0,0,0],"NR_HOT":[2,38,0,0,0,0],"NR_THAI_HOT":[2,62,0,0,0,0]}],"Forerunner 935":[240,240,1,{"XTINY":[1,21,-4,0,4,0],"TINY":[0,21,-3,0,3,0],"SMALL":[0,23,-4,0,5,0],"MEDIUM":[0,28,-5,0,4,0],"LARGE":[0,32,-5,0,6,-4],"NR_MILD":[2,37,-7,0,9,-6],"NR_MEDIUM":[2,51,-10,0,11,-9],"NR_HOT":[2,71,-12,0,12,-12],"NR_THAI_HOT":[2,80,-15,0,15,-14],"S_XTINY":[1,21,-4,0,4,0],"S_TINY":[0,21,-3,0,3,0],"S_SMALL":[0,23,-4,0,5,0],"S_MEDIUM":[0,28,-5,0,4,0],"S_LARGE":[0,32,-5,0,6,-4],"S_NR_MILD":[2,37,-7,0,9,-6],"S_NR_MEDIUM":[2,51,-10,0,11,-9],"S_NR_HOT":[2,71,-12,0,12,-12],"S_NR_THAI_HOT":[2,80,-15,0,15,-14]}],"Forerunner 945":[240,240,1,{"XTINY":[0,14,-1,0,2,1],"TINY":[0,20,-3,0,3,0],"SMALL":[0,23,-4,0,4,0],"MEDIUM":[0,26,-3,0,4,1],"LARGE":[0,29,-4,0,4,0],"NR_MILD":[0,35,-6,0,6,0],"NR_MEDIUM":[0,44,-8,0,8,0],"NR_HOT":[6,58,-9,0,9,12],"NR_THAI_HOT":[6,68,-12,0,12,12],"S_XTINY":[0,14,-1,0,2,1],"S_TINY":[0,20,-3,0,3,0],"S_SMALL":[0,23,-4,0,4,0],"S_MEDIUM":[0,26,-3,0,4,1],"S_LARGE":[0,29,-4,0,4,0],"S_NR_MILD":[0,35,-6,0,6,0],"S_NR_MEDIUM":[0,44,-8,0,8,0],"S_NR_HOT":[6,58,-9,0,9,12],"S_NR_THAI_HOT":[6,68,-12,0,12,12]}],"Forerunner 945 lte":[240,240,1,{"XTINY":[0,14,-1,0,2,1],"TINY":[0,20,-3,0,3,0],"SMALL":[0,23,-4,0,4,0],"MEDIUM":[0,26,-3,0,4,1],"LARGE":[0,29,-4,0,4,0],"NR_MILD":[0,35,-6,0,6,0],"NR_MEDIUM":[0,44,-8,0,8,0],"NR_HOT":[6,58,-9,0,9,12],"NR_THAI_HOT":[6,68,-12,0,12,12],"S_XTINY":[0,14,-1,0,2,1],"S_TINY":[0,20,-3,0,3,0],"S_SMALL":[0,23,-4,0,4,0],"S_MEDIUM":[0,26,-3,0,4,1],"S_LARGE":[0,29,-4,0,4,0],"S_NR_MILD":[0,35,-6,0,6,0],"S_NR_MEDIUM":[0,44,-8,0,8,0],"S_NR_HOT":[6,58,-9,0,9,12],"S_NR_THAI_HOT":[6,68,-12,0,12,12]}],"GPSMAP 66s / 66st":[240,400,0,{"XTINY":[2,9,0,0,0,0],"TINY":[2,12,0,0,0,0],"SMALL":[2,14,0,0,0,0],"MEDIUM":[2,16,0,0,0,0],"LARGE":[2,27,0,0,0,0],"NR_MILD":[2,22,0,0,0,0],"NR_MEDIUM":[2,32,0,0,0,0],"NR_HOT":[2,45,0,0,0,0],"NR_THAI_HOT":[2,66,0,0,0,0]}],"GPSMAP 86s / 86sc / 86i / 86sci":[240,400,0,{"XTINY":[2,9,0,0,0,0],"TINY":[2,12,0,0,0,0],"SMALL":[2,14,0,0,0,0],"MEDIUM":[2,16,0,0,0,0],"LARGE":[2,27,0,0,0,0],"NR_MILD":[2,22,0,0,0,0],"NR_MEDIUM":[2,32,0,0,0,0],"NR_HOT":[2,45,0,0,0,0],"NR_THAI_HOT":[2,66,0,0,0,0]}],"Captain Marvel":[218,218,1,{"XTINY":[2,12,-3,0,3,4],"TINY":[2,20,-3,0,4,1],"SMALL":[2,22,-5,0,5,2],"MEDIUM":[2,25,-2,0,3,3],"LARGE":[2,28,-2,0,5,3],"NR_MILD":[0,35,-5,0,5,-3],"NR_MEDIUM":[2,42,-7,0,7,0],"NR_HOT":[6,50,-10,0,10,10],"NR_THAI_HOT":[6,58,-10,0,10,10],"S_XTINY":[2,12,-3,0,3,4],"S_TINY":[2,20,-3,0,4,1],"S_SMALL":[2,22,-5,0,5,2],"S_MEDIUM":[2,25,-2,0,3,3],"S_LARGE":[2,28,-2,0,5,3],"S_NR_MILD":[0,35,-5,0,5,-3],"S_NR_MEDIUM":[2,42,-7,0,7,0],"S_NR_HOT":[6,50,-10,0,10,10],"S_NR_THAI_HOT":[6,58,-10,0,10,10]}],"First Avenger":[260,260,1,{"XTINY":[2,18,-3,0,3,0],"TINY":[2,24,-4,0,4,4],"SMALL":[2,30,-5,0,5,5],"MEDIUM":[2,36,-5,0,5,5],"LARGE":[2,42,-6,0,6,7],"NR_MILD":[2,35,-6,0,6,6],"NR_MEDIUM":[2,45,-7,0,7,7],"NR_HOT":[2,50,-9,0,9,8],"NR_THAI_HOT":[2,70,0,0,0,9],"S_XTINY":[2,18,-3,0,3,0],"S_TINY":[2,24,-4,0,4,4],"S_SMALL":[2,30,-5,0,5,5],"S_MEDIUM":[2,36,-5,0,5,5],"S_LARGE":[2,42,-6,0,6,7],"S_NR_MILD":[2,35,-6,0,6,6],"S_NR_MEDIUM":[2,45,-7,0,7,7],"S_NR_HOT":[2,50,-9,0,9,8],"S_NR_THAI_HOT":[2,70,0,0,0,9]}],"MARQ Adventurer":[240,240,1,{"XTINY":[2,13,0,0,0,0],"TINY":[2,17,0,0,0,0],"SMALL":[2,19,0,0,0,0],"MEDIUM":[2,22,0,0,0,0],"LARGE":[2,24,0,0,0,0],"NR_MILD":[2,28,0,0,0,0],"NR_MEDIUM":[2,34,0,0,0,0],"NR_HOT":[2,46,0,0,0,0],"NR_THAI_HOT":[2,53,0,0,0,0],"S_XTINY":[2,13,0,0,0,0],"S_TINY":[2,17,0,0,0,0],"S_SMALL":[2,19,0,0,0,0],"S_MEDIUM":[2,22,0,0,0,0],"S_LARGE":[2,24,0,0,0,0],"S_NR_MILD":[2,28,0,0,0,0],"S_NR_MEDIUM":[2,34,0,0,0,0],"S_NR_HOT":[2,46,0,0,0,0],"S_NR_THAI_HOT":[2,53,0,0,0,0]}],"MARQ Athlete":[240,240,1,{"XTINY":[2,13,0,0,0,0],"TINY":[2,17,0,0,0,0],"SMALL":[2,19,0,0,0,0],"MEDIUM":[2,22,0,0,0,0],"LARGE":[2,24,0,0,0,0],"NR_MILD":[2,28,0,0,0,0],"NR_MEDIUM":[2,34,0,0,0,0],"NR_HOT":[2,46,0,0,0,0],"NR_THAI_HOT":[2,53,0,0,0,0],"S_XTINY":[2,13,0,0,0,0],"S_TINY":[2,17,0,0,0,0],"S_SMALL":[2,19,0,0,0,0],"S_MEDIUM":[2,22,0,0,0,0],"S_LARGE":[2,24,0,0,0,0],"S_NR_MILD":[2,28,0,0,0,0],"S_NR_MEDIUM":[2,34,0,0,0,0],"S_NR_HOT":[2,46,0,0,0,0],"S_NR_THAI_HOT":[2,53,0,0,0,0]}],"MARQ Aviator":[240,240,1,{"XTINY":[2,13,0,0,0,0],"TINY":[2,17,0,0,0,0],"SMALL":[2,19,0,0,0,0],"MEDIUM":[2,22,0,0,0,0],"LARGE":[2,24,0,0,0,0],"NR_MILD":[2,28,0,0,0,0],"NR_MEDIUM":[2,34,0,0,0,0],"NR_HOT":[2,46,0,0,0,0],"NR_THAI_HOT":[2,53,0,0,0,0],"S_XTINY":[2,13,0,0,0,0],"S_TINY":[2,17,0,0,0,0],"S_SMALL":[2,19,0,0,0,0],"S_MEDIUM":[2,22,0,0,0,0],"S_LARGE":[2,24,0,0,0,0],"S_NR_MILD":[2,28,0,0,0,0],"S_NR_MEDIUM":[2,34,0,0,0,0],"S_NR_HOT":[2,46,0,0,0,0],"S_NR_THAI_HOT":[2,53,0,0,0,0]}],"MARQ Captain":[240,240,1,{"XTINY":[2,13,0,0,0,0],"TINY":[2,17,0,0,0,0],"SMALL":[2,19,0,0,0,0],"MEDIUM":[2,22,0,0,0,0],"LARGE":[2,24,0,0,0,0],"NR_MILD":[2,28,0,0,0,0],"NR_MEDIUM":[2,34,0,0,0,0],"NR_HOT":[2,46,0,0,0,0],"NR_THAI_HOT":[2,53,0,0,0,0],"S_XTINY":[2,13,0,0,0,0],"S_TINY":[2,17,0,0,0,0],"S_SMALL":[2,19,0,0,0,0],"S_MEDIUM":[2,22,0,0,0,0],"S_LARGE":[2,24,0,0,0,0],"S_NR_MILD":[2,28,0,0,0,0],"S_NR_MEDIUM":[2,34,0,0,0,0],"S_NR_HOT":[2,46,0,0,0,0],"S_NR_THAI_HOT":[2,53,0,0,0,0]}],"MARQ Commander":[240,240,1,{"XTINY":[2,13,0,0,0,0],"TINY":[2,17,0,0,0,0],"SMALL":[2,19,0,0,0,0],"MEDIUM":[2,22,0,0,0,0],"LARGE":[2,24,0,0,0,0],"NR_MILD":[2,28,0,0,0,0],"NR_MEDIUM":[2,34,0,0,0,0],"NR_HOT":[2,46,0,0,0,0],"NR_THAI_HOT":[2,53,0,0,0,0],"S_XTINY":[2,13,0,0,0,0],"S_TINY":[2,17,0,0,0,0],"S_SMALL":[2,19,0,0,0,0],"S_MEDIUM":[2,22,0,0,0,0],"S_LARGE":[2,24,0,0,0,0],"S_NR_MILD":[2,28,0,0,0,0],"S_NR_MEDIUM":[2,34,0,0,0,0],"S_NR_HOT":[2,46,0,0,0,0],"S_NR_THAI_HOT":[2,53,0,0,0,0]}],"MARQ Driver":[240,240,1,{"XTINY":[2,13,0,0,0,0],"TINY":[2,17,0,0,0,0],"SMALL":[2,19,0,0,0,0],"MEDIUM":[2,22,0,0,0,0],"LARGE":[2,24,0,0,0,0],"NR_MILD":[2,28,0,0,0,0],"NR_MEDIUM":[2,34,0,0,0,0],"NR_HOT":[2,46,0,0,0,0],"NR_THAI_HOT":[2,53,0,0,0,0],"S_XTINY":[2,13,0,0,0,0],"S_TINY":[2,17,0,0,0,0],"S_SMALL":[2,19,0,0,0,0],"S_MEDIUM":[2,22,0,0,0,0],"S_LARGE":[2,24,0,0,0,0],"S_NR_MILD":[2,28,0,0,0,0],"S_NR_MEDIUM":[2,34,0,0,0,0],"S_NR_HOT":[2,46,0,0,0,0],"S_NR_THAI_HOT":[2,53,0,0,0,0]}],"MARQ Expedition":[240,240,1,{"XTINY":[2,13,0,0,0,0],"TINY":[2,17,0,0,0,0],"SMALL":[2,19,0,0,0,0],"MEDIUM":[2,22,0,0,0,0],"LARGE":[2,24,0,0,0,0],"NR_MILD":[2,28,0,0,0,0],"NR_MEDIUM":[2,34,0,0,0,0],"NR_HOT":[2,46,0,0,0,0],"NR_THAI_HOT":[2,53,0,0,0,0],"S_XTINY":[2,13,0,0,0,0],"S_TINY":[2,17,0,0,0,0],"S_SMALL":[2,19,0,0,0,0],"S_MEDIUM":[2,22,0,0,0,0],"S_LARGE":[2,24,0,0,0,0],"S_NR_MILD":[2,28,0,0,0,0],"S_NR_MEDIUM":[2,34,0,0,0,0],"S_NR_HOT":[2,46,0,0,0,0],"S_NR_THAI_HOT":[2,53,0,0,0,0]}],"MARQ Golfer":[240,240,1,{"XTINY":[2,13,0,0,0,0],"TINY":[2,17,0,0,0,0],"SMALL":[2,19,0,0,0,0],"MEDIUM":[2,22,0,0,0,0],"LARGE":[2,24,0,0,0,0],"NR_MILD":[2,28,0,0,0,0],"NR_MEDIUM":[2,34,0,0,0,0],"NR_HOT":[2,46,0,0,0,0],"NR_THAI_HOT":[2,53,0,0,0,0],"S_XTINY":[2,13,0,0,0,0],"S_TINY":[2,17,0,0,0,0],"S_SMALL":[2,19,0,0,0,0],"S_MEDIUM":[2,22,0,0,0,0],"S_LARGE":[2,24,0,0,0,0],"S_NR_MILD":[2,28,0,0,0,0],"S_NR_MEDIUM":[2,34,0,0,0,0],"S_NR_HOT":[2,46,0,0,0,0],"S_NR_THAI_HOT":[2,53,0,0,0,0]}],"Montana 7 Series":[480,800,0,{"XTINY":[2,9,0,0,0,0],"TINY":[2,12,0,0,0,0],"SMALL":[2,14,0,0,0,0],"MEDIUM":[2,16,0,0,0,0],"LARGE":[2,27,0,0,0,0],"NR_MILD":[2,22,0,0,0,0],"NR_MEDIUM":[2,32,0,0,0,0],"NR_HOT":[2,42,0,0,0,0],"NR_THAI_HOT":[2,66,0,0,0,0]}],"Oregon 7 Series":[240,400,0,{"XTINY":[1,12,-3,0,3,-3],"TINY":[1,17,-4,0,5,-5],"SMALL":[1,19,-4,0,5,-6],"MEDIUM":[1,22,-5,0,6,-7],"LARGE":[1,32,-8,0,9,-11],"NR_MILD":[2,36,-7,0,8,-6],"NR_MEDIUM":[2,40,-7,0,8,-6],"NR_HOT":[2,55,-10,0,10,-9],"NR_THAI_HOT":[2,62,-14,0,14,-20]}],"Rey":[218,218,1,{"XTINY":[2,12,-3,0,3,4],"TINY":[2,20,-3,0,4,1],"SMALL":[2,22,-5,0,5,2],"MEDIUM":[2,25,-2,0,3,3],"LARGE":[2,28,-2,0,5,3],"NR_MILD":[0,35,-5,0,5,-3],"NR_MEDIUM":[2,42,-7,0,7,0],"NR_HOT":[6,50,-10,0,10,10],"NR_THAI_HOT":[6,58,-10,0,10,10],"S_XTINY":[2,12,-3,0,3,4],"S_TINY":[2,20,-3,0,4,1],"S_SMALL":[2,22,-5,0,5,2],"S_MEDIUM":[2,25,-2,0,3,3],"S_LARGE":[2,28,-2,0,5,3],"S_NR_MILD":[0,35,-5,0,5,-3],"S_NR_MEDIUM":[2,42,-7,0,7,0],"S_NR_HOT":[6,50,-10,0,10,10],"S_NR_THAI_HOT":[6,58,-10,0,10,10]}],"Rino 7 Series":[240,400,0,{"XTINY":[1,12,-3,0,3,-3],"TINY":[1,17,-4,0,5,-5],"SMALL":[1,19,-4,0,5,-6],"MEDIUM":[1,22,-5,0,6,-7],"LARGE":[1,32,-8,0,9,-11],"NR_MILD":[2,36,-7,0,8,-6],"NR_MEDIUM":[2,40,-7,0,8,-6],"NR_HOT":[2,55,-10,0,10,-9],"NR_THAI_HOT":[2,62,-14,0,14,-20]}],"Venu":[390,390,1,{"XTINY":[2,10,0,0,0,0],"TINY":[2,12,0,0,0,0],"SMALL":[2,15,0,0,0,0],"MEDIUM":[2,20,0,0,0,0],"LARGE":[2,20,0,0,0,0],"NR_MILD":[2,2,0,0,0,0],"NR_MEDIUM":[2,3,0,0,0,0],"NR_HOT":[2,6,0,0,0,0],"NR_THAI_HOT":[2,7,0,0,0,0],"S_XTINY":[2,10,0,0,0,0],"S_TINY":[2,12,0,0,0,0],"S_SMALL":[2,15,0,0,0,0],"S_MEDIUM":[2,20,0,0,0,0],"S_LARGE":[2,20,0,0,0,0],"S_NR_MILD":[2,2,0,0,0,0],"S_NR_MEDIUM":[2,3,0,0,0,0],"S_NR_HOT":[2,6,0,0,0,0],"S_NR_THAI_HOT":[2,7,0,0,0,0]}],"Venu 2":[416,416,1,{"XTINY":[2,12,0,0,0,0],"TINY":[2,14,0,0,0,0],"SMALL":[2,16,0,0,0,0],"MEDIUM":[2,18,0,0,0,0],"LARGE":[2,20,0,0,0,0],"NR_MILD":[2,12,0,0,0,0],"NR_MEDIUM":[2,14,0,0,0,0],"NR_HOT":[2,16,0,0,0,0],"NR_THAI_HOT":[2,18,0,0,0,0],"S_XTINY":[2,12,0,0,0,0],"S_TINY":[2,14,0,0,0,0],"S_SMALL":[2,16,0,0,0,0],"S_MEDIUM":[2,18,0,0,0,0],"S_LARGE":[2,20,0,0,0,0],"S_NR_MILD":[2,12,0,0,0,0],"S_NR_MEDIUM":[2,14,0,0,0,0],"S_NR_HOT":[2,16,0,0,0,0],"S_NR_THAI_HOT":[2,18,0,0,0,0]}],"Venu 2 plus":[416,416,1,{"XTINY":[2,12,0,0,0,0],"TINY":[2,14,0,0,0,0],"SMALL":[2,16,0,0,0,0],"MEDIUM":[2,18,0,0,0,0],"LARGE":[2,20,0,0,0,0],"NR_MILD":[2,12,0,0,0,0],"NR_MEDIUM":[2,14,0,0,0,0],"NR_HOT":[2,16,0,0,0,0],"NR_THAI_HOT":[2,18,0,0,0,0],"S_XTINY":[2,12,0,0,0,0],"S_TINY":[2,14,0,0,0,0],"S_SMALL":[2,16,0,0,0,0],"S_MEDIUM":[2,18,0,0,0,0],"S_LARGE":[2,20,0,0,0,0],"S_NR_MILD":[2,12,0,0,0,0],"S_NR_MEDIUM":[2,14,0,0,0,0],"S_NR_HOT":[2,16,0,0,0,0],"S_NR_THAI_HOT":[2,18,0,0,0,0]}],"Venu 2S":[360,360,1,{"XTINY":[2,12,0,0,0,0],"TINY":[2,14,0,0,0,0],"SMALL":[2,16,0,0,0,0],"MEDIUM":[2,18,0,0,0,0],"LARGE":[2,20,0,0,0,0],"NR_MILD":[2,12,0,0,0,0],"NR_MEDIUM":[2,14,0,0,0,0],"NR_HOT":[2,16,0,0,0,0],"NR_THAI_HOT":[2,18,0,0,0,0],"S_XTINY":[2,12,0,0,0,0],"S_TINY":[2,14,0,0,0,0],"S_SMALL":[2,16,0,0,0,0],"S_MEDIUM":[2,18,0,0,0,0],"S_LARGE":[2,20,0,0,0,0],"S_NR_MILD":[2,12,0,0,0,0],"S_NR_MEDIUM":[2,14,0,0,0,0],"S_NR_HOT":[2,16,0,0,0,0],"S_NR_THAI_HOT":[2,18,0,0,0,0]}],"Venu Sq":[240,240,0,{"XTINY":[2,12,0,0,0,0],"TINY":[2,12,0,0,0,0],"SMALL":[2,12,0,0,0,0],"MEDIUM":[2,12,0,0,0,0],"LARGE":[2,14,0,0,0,0],"NR_MILD":[2,12,0,0,0,0],"NR_MEDIUM":[2,14,0,0,0,0],"NR_HOT":[2,16,0,0,0,0],"NR_THAI_HOT":[2,18,0,0,0,0],"S_XTINY":[2,12,0,0,0,0],"S_TINY":[2,12,0,0,0,0],"S_SMALL":[2,12,0,0,0,0],"S_MEDIUM":[2,12,0,0,0,0],"S_LARGE":[2,14,0,0,0,0],"S_NR_MILD":[2,12,0,0,0,0],"S_NR_MEDIUM":[2,14,0,0,0,0],"S_NR_HOT":[2,16,0,0,0,0],"S_NR_THAI_HOT":[2,18,0,0,0,0]}],"Venu Sq Music edition":[240,240,0,{"XTINY":[2,12,0,0,0,0],"TINY":[2,12,0,0,0,0],"SMALL":[2,12,0,0,0,0],"MEDIUM":[2,12,0,0,0,0],"LARGE":[2,14,0,0,0,0],"NR_MILD":[2,12,0,0,0,0],"NR_MEDIUM":[2,14,0,0,0,0],"NR_HOT":[2,16,0,0,0,0],"NR_THAI_HOT":[2,18,0,0,0,0],"S_XTINY":[2,12,0,0,0,0],"S_TINY":[2,12,0,0,0,0],"S_SMALL":[2,12,0,0,0,0],"S_MEDIUM":[2,12,0,0,0,0],"S_LARGE":[2,14,0,0,0,0],"S_NR_MILD":[2,12,0,0,0,0],"S_NR_MEDIUM":[2,14,0,0,0,0],"S_NR_HOT":[2,16,0,0,0,0],"S_NR_THAI_HOT":[2,18,0,0,0,0]}],"Venu Sq 2":[320,360,0,{"XTINY":[1,10,0,0,0,0],"TINY":[1,14,0,0,0,0],"SMALL":[1,16,0,0,0,0],"MEDIUM":[1,20,0,0,0,0],"LARGE":[1,30,0,0,0,0],"NR_MILD":[1,10,0,0,0,0],"NR_MEDIUM":[1,14,0,0,0,0],"NR_HOT":[1,16,0,0,0,0],"NR_THAI_HOT":[1,20,0,0,0,0],"S_XTINY":[1,10,0,0,0,0],"S_TINY":[1,14,0,0,0,0],"S_SMALL":[1,16,0,0,0,0],"S_MEDIUM":[1,20,0,0,0,0],"S_LARGE":[1,30,0,0,0,0],"S_NR_MILD":[1,10,0,0,0,0],"S_NR_MEDIUM":[1,14,0,0,0,0],"S_NR_HOT":[1,16,0,0,0,0],"S_NR_THAI_HOT":[1,20,0,0,0,0]}],"Venu Sq 2 Music edition":[320,360,0,{"XTINY":[1,10,0,0,0,0],"TINY":[1,14,0,0,0,0],"SMALL":[1,16,0,0,0,0],"MEDIUM":[1,20,0,0,0,0],"LARGE":[1,30,0,0,0,0],"NR_MILD":[1,10,0,0,0,0],"NR_MEDIUM":[1,14,0,0,0,0],"NR_HOT":[1,16,0,0,0,0],"NR_THAI_HOT":[1,20,0,0,0,0],"S_XTINY":[1,10,0,0,0,0],"S_TINY":[1,14,0,0,0,0],"S_SMALL":[1,16,0,0,0,0],"S_MEDIUM":[1,20,0,0,0,0],"S_LARGE":[1,30,0,0,0,0],"S_NR_MILD":[1,10,0,0,0,0],"S_NR_MEDIUM":[1,14,0,0,0,0],"S_NR_HOT":[1,16,0,0,0,0],"S_NR_THAI_HOT":[1,20,0,0,0,0]}],"Venu Mercedes-Benz Collection":[390,390,1,{"XTINY":[2,10,0,0,0,0],"TINY":[2,12,0,0,0,0],"SMALL":[2,15,0,0,0,0],"MEDIUM":[2,20,0,0,0,0],"LARGE":[2,20,0,0,0,0],"NR_MILD":[2,2,0,0,0,0],"NR_MEDIUM":[2,3,0,0,0,0],"NR_HOT":[2,6,0,0,0,0],"NR_THAI_HOT":[2,7,0,0,0,0],"S_XTINY":[2,10,0,0,0,0],"S_TINY":[2,12,0,0,0,0],"S_SMALL":[2,15,0,0,0,0],"S_MEDIUM":[2,20,0,0,0,0],"S_LARGE":[2,20,0,0,0,0],"S_NR_MILD":[2,2,0,0,0,0],"S_NR_MEDIUM":[2,3,0,0,0,0],"S_NR_HOT":[2,6,0,0,0,0],"S_NR_THAI_HOT":[2,7,0,0,0,0]}],"vívoactive":[205,148,0,{"XTINY":[0,14,-1,0,2,2],"TINY":[0,14,-1,0,2,2],"SMALL":[0,14,-1,0,2,2],"MEDIUM":[1,17,0,0,0,0],"LARGE":[1,20,0,0,0,0],"NR_MILD":[2,20,0,0,0,0],"NR_MEDIUM":[2,32,0,0,0,0],"NR_HOT":[2,38,0,0,0,0],"NR_THAI_HOT":[2,62,0,0,0,0]}],"vívoactive 3":[240,240,1,{"XTINY":[4,16,-3,0,3,3],"TINY":[6,21,-4,0,5,5],"SMALL":[6,21,-4,0,5,5],"MEDIUM":[6,25,-5,0,5,5],"LARGE":[6,25,-5,0,5,5],"NR_MILD":[6,29,-6,0,6,4],"NR_MEDIUM":[6,35,-7,0,7,7],"NR_HOT":[6,55,-9,0,11,9],"NR_THAI_HOT":[5,68,-13,0,14,11],"S_XTINY":[4,16,-3,0,3,3],"S_TINY":[6,21,-4,0,5,5],"S_SMALL":[6,21,-4,0,5,5],"S_MEDIUM":[6,25,-5,0,5,5],"S_LARGE":[6,25,-5,0,5,5],"S_NR_MILD":[6,29,-6,0,6,4],"S_NR_MEDIUM":[6,35,-7,0,7,7],"S_NR_HOT":[6,55,-9,0,11,9],"S_NR_THAI_HOT":[5,68,-13,0,14,11]}],"vívoactive 3 Mercedes-Benz Collection":[240,240,1,{"XTINY":[4,16,-3,0,3,3],"TINY":[6,21,-4,0,5,5],"SMALL":[6,21,-4,0,5,5],"MEDIUM":[6,25,-5,0,5,5],"LARGE":[6,25,-5,0,5,5],"NR_MILD":[6,29,-6,0,6,4],"NR_MEDIUM":[6,35,-7,0,7,7],"NR_HOT":[6,55,-9,0,11,9],"NR_THAI_HOT":[5,68,-13,0,14,11],"S_XTINY":[4,16,-3,0,3,3],"S_TINY":[6,21,-4,0,5,5],"S_SMALL":[6,21,-4,0,5,5],"S_MEDIUM":[6,25,-5,0,5,5],"S_LARGE":[6,25,-5,0,5,5],"S_NR_MILD":[6,29,-6,0,6,4],"S_NR_MEDIUM":[6,35,-7,0,7,7],"S_NR_HOT":[6,55,-9,0,11,9],"S_NR_THAI_HOT":[5,68,-13,0,14,11]}],"vívoactive 3 Music":[240,240,1,{"XTINY":[4,16,-3,0,3,3],"TINY":[6,21,-4,0,5,5],"SMALL":[6,21,-4,0,5,5],"MEDIUM":[6,25,-5,0,5,5],"LARGE":[6,25,-5,0,5,5],"NR_MILD":[6,29,-6,0,6,4],"NR_MEDIUM":[6,35,-7,0,7,7],"NR_HOT":[6,55,-9,0,11,9],"NR_THAI_HOT":[5,68,-13,0,14,11],"S_XTINY":[4,16,-3,0,3,3],"S_TINY":[6,21,-4,0,5,5],"S_SMALL":[6,21,-4,0,5,5],"S_MEDIUM":[6,25,-5,0,5,5],"S_LARGE":[6,25,-5,0,5,5],"S_NR_MILD":[6,29,-6,0,6,4],"S_NR_MEDIUM":[6,35,-7,0,7,7],"S_NR_HOT":[6,55,-9,0,11,9],"S_NR_THAI_HOT":[5,68,-13,0,14,11]}],"vívoactive 3 Music LTE":[240,240,1,{"XTINY":[4,16,-3,0,3,3],"TINY":[6,21,-4,0,5,5],"SMALL":[6,21,-4,0,5,5],"MEDIUM":[6,25,-5,0,5,5],"LARGE":[6,25,-5,0,5,5],"NR_MILD":[6,29,-6,0,6,4],"NR_MEDIUM":[6,35,-7,0,7,7],"NR_HOT":[6,55,-9,0,11,9],"NR_THAI_HOT":[5,68,-13,0,14,11],"S_XTINY":[4,16,-3,0,3,3],"S_TINY":[6,21,-4,0,5,5],"S_SMALL":[6,21,-4,0,5,5],"S_MEDIUM":[6,25,-5,0,5,5],"S_LARGE":[6,25,-5,0,5,5],"S_NR_MILD":[6,29,-6,0,6,4],"S_NR_MEDIUM":[6,35,-7,0,7,7],"S_NR_HOT":[6,55,-9,0,11,9],"S_NR_THAI_HOT":[5,68,-13,0,14,11]}],"vívoactive 4":[260,260,1,{"XTINY":[2,18,-3,0,3,0],"TINY":[2,24,-4,0,4,4],"SMALL":[2,30,-5,0,5,5],"MEDIUM":[2,36,-5,0,5,5],"LARGE":[2,42,-6,0,6,7],"NR_MILD":[2,35,-6,0,6,6],"NR_MEDIUM":[2,45,-7,0,7,7],"NR_HOT":[2,50,-9,0,9,8],"NR_THAI_HOT":[2,70,0,0,0,9],"S_XTINY":[2,18,-3,0,3,0],"S_TINY":[2,24,-4,0,4,4],"S_SMALL":[2,30,-5,0,5,5],"S_MEDIUM":[2,36,-5,0,5,5],"S_LARGE":[2,42,-6,0,6,7],"S_NR_MILD":[2,35,-6,0,6,6],"S_NR_MEDIUM":[2,45,-7,0,7,7],"S_NR_HOT":[2,50,-9,0,9,8],"S_NR_THAI_HOT":[2,70,0,0,0,9]}],"vívoactive 4S":[218,218,1,{"XTINY":[2,12,-3,0,3,4],"TINY":[2,20,-3,0,4,1],"SMALL":[2,22,-5,0,5,2],"MEDIUM":[2,25,-2,0,3,3],"LARGE":[2,28,-2,0,5,3],"NR_MILD":[0,35,-5,0,5,-3],"NR_MEDIUM":[2,42,-7,0,7,0],"NR_HOT":[6,50,-10,0,10,10],"NR_THAI_HOT":[6,58,-10,0,10,10],"S_XTINY":[2,12,-3,0,3,4],"S_TINY":[2,20,-3,0,4,1],"S_SMALL":[2,22,-5,0,5,2],"S_MEDIUM":[2,25,-2,0,3,3],"S_LARGE":[2,28,-2,0,5,3],"S_NR_MILD":[0,35,-5,0,5,-3],"S_NR_MEDIUM":[2,42,-7,0,7,0],"S_NR_HOT":[6,50,-10,0,10,10],"S_NR_THAI_HOT":[6,58,-10,0,10,10]}],"vívoactive HR":[148,205,0,{"XTINY":[0,14,-1,0,2,2],"TINY":[0,14,-1,0,2,2],"SMALL":[1,14,0,0,0,0],"MEDIUM":[1,15,0,0,0,0],"LARGE":[1,18,0,0,0,0],"NR_MILD":[2,20,0,0,0,0],"NR_MEDIUM":[2,32,0,0,0,0],"NR_HOT":[2,36,0,0,0,0],"NR_THAI_HOT":[2,48,0,0,0,0]}],"vívolife":[240,240,1,{"XTINY":[4,16,-3,0,3,3],"TINY":[6,21,-4,0,5,5],"SMALL":[6,21,-4,0,5,5],"MEDIUM":[6,25,-5,0,5,5],"LARGE":[6,25,-5,0,5,5],"NR_MILD":[6,29,-6,0,6,4],"NR_MEDIUM":[6,35,-7,0,7,7],"NR_HOT":[6,55,-9,0,11,9],"NR_THAI_HOT":[5,68,-13,0,14,11],"S_XTINY":[4,16,-3,0,3,3],"S_TINY":[6,21,-4,0,5,5],"S_SMALL":[6,21,-4,0,5,5],"S_MEDIUM":[6,25,-5,0,5,5],"S_LARGE":[6,25,-5,0,5,5],"S_NR_MILD":[6,29,-6,0,6,4],"S_NR_MEDIUM":[6,35,-7,0,7,7],"S_NR_HOT":[6,55,-9,0,11,9],"S_NR_THAI_HOT":[5,68,-13,0,14,11]}],"Instinct 2S / Solar / Dual Power":[163,156,0,{"XTINY":[1,15,0,0,0,0],"TINY":[1,15,0,0,0,0],"SMALL":[1,18,0,0,0,0],"MEDIUM":[1,20,0,0,0,0],"LARGE":[1,23,0,0,0,0],"NR_MILD":[2,20,0,0,0,0],"NR_MEDIUM":[2,32,0,0,0,0],"NR_HOT":[2,30,0,0,0,0],"NR_THAI_HOT":[2,41,0,0,0,0],"S_XTINY":[1,15,0,0,0,0],"S_TINY":[1,15,0,0,0,0],"S_SMALL":[1,18,0,0,0,0],"S_MEDIUM":[1,20,0,0,0,0],"S_LARGE":[1,23,0,0,0,0],"S_NR_MILD":[2,20,0,0,0,0],"S_NR_MEDIUM":[2,32,0,0,0,0],"S_NR_HOT":[2,30,0,0,0,0],"S_NR_THAI_HOT":[2,41,0,0,0,0]}],"D2 Air X10":[416,416,1,{"XTINY":[2,12,0,0,0,0],"TINY":[2,14,0,0,0,0],"SMALL":[2,16,0,0,0,0],"MEDIUM":[2,18,0,0,0,0],"LARGE":[2,20,0,0,0,0],"NR_MILD":[2,12,0,0,0,0],"NR_MEDIUM":[2,14,0,0,0,0],"NR_HOT":[2,16,0,0,0,0],"NR_THAI_HOT":[2,18,0,0,0,0],"S_XTINY":[2,12,0,0,0,0],"S_TINY":[2,14,0,0,0,0],"S_SMALL":[2,16,0,0,0,0],"S_MEDIUM":[2,18,0,0,0,0],"S_LARGE":[2,20,0,0,0,0],"S_NR_MILD":[2,12,0,0,0,0],"S_NR_MEDIUM":[2,14,0,0,0,0],"S_NR_HOT":[2,16,0,0,0,0],"S_NR_THAI_HOT":[2,18,0,0,0,0]}],"D2 Mach 1":[416,416,1,{"XTINY":[1,24,0,0,0,0],"TINY":[1,24,0,0,0,0],"SMALL":[1,27,0,0,0,0],"MEDIUM":[1,32,0,0,0,0],"LARGE":[1,35,0,0,0,0],"NR_MILD":[2,45,0,0,0,0],"NR_MEDIUM":[2,54,0,0,0,0],"NR_HOT":[2,73,0,0,0,0],"NR_THAI_HOT":[2,84,0,0,0,0],"S_XTINY":[1,24,0,0,0,0],"S_TINY":[1,24,0,0,0,0],"S_SMALL":[1,27,0,0,0,0],"S_MEDIUM":[1,32,0,0,0,0],"S_LARGE":[1,35,0,0,0,0],"S_NR_MILD":[2,45,0,0,0,0],"S_NR_MEDIUM":[2,54,0,0,0,0],"S_NR_HOT":[2,73,0,0,0,0],"S_NR_THAI_HOT":[2,84,0,0,0,0]}],"Descent G1 / G1 Solar":[176,176,0,{"XTINY":[1,15,0,0,0,0],"TINY":[1,15,0,0,0,0],"SMALL":[1,18,0,0,0,0],"MEDIUM":[1,20,0,0,0,0],"LARGE":[1,23,0,0,0,0],"NR_MILD":[2,20,0,0,0,0],"NR_MEDIUM":[2,32,0,0,0,0],"NR_HOT":[2,30,0,0,0,0],"NR_THAI_HOT":[2,41,0,0,0,0],"S_XTINY":[1,15,0,0,0,0],"S_TINY":[1,15,0,0,0,0],"S_SMALL":[1,18,0,0,0,0],"S_MEDIUM":[1,20,0,0,0,0],"S_LARGE":[1,23,0,0,0,0],"S_NR_MILD":[2,20,0,0,0,0],"S_NR_MEDIUM":[2,32,0,0,0,0],"S_NR_HOT":[2,30,0,0,0,0],"S_NR_THAI_HOT":[2,41,0,0,0,0]}],"Edge 1040 / 1040 Solar":[282,470,0,{"XTINY":[1,9,0,0,0,0],"TINY":[1,12,0,0,0,0],"SMALL":[1,14,0,0,0,0],"MEDIUM":[1,16,0,0,0,0],"LARGE":[1,26,0,0,0,0],"NR_MILD":[1,26,0,0,0,0],"NR_MEDIUM":[1,30,0,0,0,0],"NR_HOT":[1,40,0,0,0,0],"NR_THAI_HOT":[1,50,0,0,0,0],"S_XTINY":[1,9,0,0,0,0],"S_TINY":[1,12,0,0,0,0],"S_SMALL":[1,14,0,0,0,0],"S_MEDIUM":[1,16,0,0,0,0],"S_LARGE":[1,26,0,0,0,0],"S_NR_MILD":[1,26,0,0,0,0],"S_NR_MEDIUM":[1,30,0,0,0,0],"S_NR_HOT":[1,40,0,0,0,0],"S_NR_THAI_HOT":[1,50,0,0,0,0]}],"Forerunner 255":[260,260,1,{"XTINY":[1,13,0,0,0,0],"TINY":[1,18,0,0,0,0],"SMALL":[1,20,0,0,0,0],"MEDIUM":[1,24,0,0,0,0],"LARGE":[1,25,0,0,0,0],"NR_MILD":[1,30,0,0,0,0],"NR_MEDIUM":[1,36,0,0,0,0],"NR_HOT":[1,49,0,0,0,0],"NR_THAI_HOT":[1,57,0,0,0,0],"S_XTINY":[1,13,0,0,0,0],"S_TINY":[1,18,0,0,0,0],"S_SMALL":[1,20,0,0,0,0],"S_MEDIUM":[1,24,0,0,0,0],"S_LARGE":[1,25,0,0,0,0],"S_NR_MILD":[1,30,0,0,0,0],"S_NR_MEDIUM":[1,36,0,0,0,0],"S_NR_HOT":[1,49,0,0,0,0],"S_NR_THAI_HOT":[1,57,0,0,0,0]}],"Forerunner 255 Music":[260,260,1,{"XTINY":[1,13,0,0,0,0],"TINY":[1,18,0,0,0,0],"SMALL":[1,20,0,0,0,0],"MEDIUM":[1,24,0,0,0,0],"LARGE":[1,25,0,0,0,0],"NR_MILD":[1,30,0,0,0,0],"NR_MEDIUM":[1,36,0,0,0,0],"NR_HOT":[1,49,0,0,0,0],"NR_THAI_HOT":[1,57,0,0,0,0],"S_XTINY":[1,13,0,0,0,0],"S_TINY":[1,18,0,0,0,0],"S_SMALL":[1,20,0,0,0,0],"S_MEDIUM":[1,24,0,0,0,0],"S_LARGE":[1,25,0,0,0,0],"S_NR_MILD":[1,30,0,0,0,0],"S_NR_MEDIUM":[1,36,0,0,0,0],"S_NR_HOT":[1,49,0,0,0,0],"S_NR_THAI_HOT":[1,57,0,0,0,0]}],"Forerunner 255s":[218,218,1,{"XTINY":[1,13,0,0,0,0],"TINY":[1,15,0,0,0,0],"SMALL":[1,17,0,0,0,0],"MEDIUM":[1,20,0,0,0,0],"LARGE":[1,20,0,0,0,0],"NR_MILD":[1,25,0,0,0,0],"NR_MEDIUM":[1,32,0,0,0,0],"NR_HOT":[1,41,0,0,0,0],"NR_THAI_HOT":[1,48,0,0,0,0],"S_XTINY":[1,13,0,0,0,0],"S_TINY":[1,15,0,0,0,0],"S_SMALL":[1,17,0,0,0,0],"S_MEDIUM":[1,20,0,0,0,0],"S_LARGE":[1,20,0,0,0,0],"S_NR_MILD":[1,25,0,0,0,0],"S_NR_MEDIUM":[1,32,0,0,0,0],"S_NR_HOT":[1,41,0,0,0,0],"S_NR_THAI_HOT":[1,48,0,0,0,0]}],"Forerunner 255s Music":[218,218,1,{"XTINY":[1,13,0,0,0,0],"TINY":[1,15,0,0,0,0],"SMALL":[1,17,0,0,0,0],"MEDIUM":[1,20,0,0,0,0],"LARGE":[1,20,0,0,0,0],"NR_MILD":[1,25,0,0,0,0],"NR_MEDIUM":[1,32,0,0,0,0],"NR_HOT":[1,41,0,0,0,0],"NR_THAI_HOT":[1,48,0,0,0,0],"S_XTINY":[1,13,0,0,0,0],"S_TINY":[1,15,0,0,0,0],"S_SMALL":[1,17,0,0,0,0],"S_MEDIUM":[1,20,0,0,0,0],"S_LARGE":[1,20,0,0,0,0],"S_NR_MILD":[1,25,0,0,0,0],"S_NR_MEDIUM":[1,32,0,0,0,0],"S_NR_HOT":[1,41,0,0,0,0],"S_NR_THAI_HOT":[1,48,0,0,0,0]}],"Forerunner 955 / Solar":[260,260,1,{"XTINY":[1,13,0,0,0,0],"TINY":[1,18,0,0,0,0],"SMALL":[1,20,0,0,0,0],"MEDIUM":[1,24,0,0,0,0],"LARGE":[1,25,0,0,0,0],"NR_MILD":[1,30,0,0,0,0],"NR_MEDIUM":[1,36,0,0,0,0],"NR_HOT":[1,57,0,0,0,0],"NR_THAI_HOT":[5,68,-13,0,14,11],"S_XTINY":[1,13,0,0,0,0],"S_TINY":[6,21,-4,0,5,5],"S_SMALL":[1,20,0,0,0,0],"S_MEDIUM":[1,24,0,0,0,0],"S_LARGE":[1,25,0,0,0,0],"S_NR_MILD":[1,30,0,0,0,0],"S_NR_MEDIUM":[1,36,0,0,0,0],"S_NR_HOT":[1,49,0,0,0,0],"S_NR_THAI_HOT":[1,57,0,0,0,0]}],"Instinct 2 / Solar / Dual Power / dezl Edition":[176,176,0,{"XTINY":[1,15,0,0,0,0],"TINY":[1,15,0,0,0,0],"SMALL":[1,18,0,0,0,0],"MEDIUM":[1,20,0,0,0,0],"LARGE":[1,23,0,0,0,0],"NR_MILD":[2,20,0,0,0,0],"NR_MEDIUM":[2,32,0,0,0,0],"NR_HOT":[2,30,0,0,0,0],"NR_THAI_HOT":[2,41,0,0,0,0],"S_XTINY":[1,15,0,0,0,0],"S_TINY":[1,15,0,0,0,0],"S_SMALL":[1,18,0,0,0,0],"S_MEDIUM":[1,20,0,0,0,0],"S_LARGE":[1,23,0,0,0,0],"S_NR_MILD":[2,20,0,0,0,0],"S_NR_MEDIUM":[2,32,0,0,0,0],"S_NR_HOT":[2,30,0,0,0,0],"S_NR_THAI_HOT":[2,41,0,0,0,0]}]}/*END*/;
 
-/* ---------- Értéktípusok: [kód, név, minta, fajta(n szám, t idő, p tempó, s szöveg), bizonytalan?] ---------- */
-const VGROUPS = [
- ['Idő',[['CT','Pontos idő / dátum',63312,'t'],['TT','Stopper (mozgási idő)',4374,'t'],['ET','Eltelt idő',4690,'t'],['PT','Aktuális szünet ideje',74,'t',1],['TI','Összes szünet ideje',316,'t',1],['LT','Köridő',1326,'t',1],['EC','Érkezés ideje (akt. sebességgel)',65360,'t'],['EV','Érkezés ideje (átlagsebességgel)',65360,'t'],['TC','Hátralévő idő (akt. sebességgel)',1925,'t'],['TV','Hátralévő idő (átlagsebességgel)',1925,'t'],['SS','Napkelte / napnyugta',67319,'t',1]]],
- ['Sebesség',[['CS','Sebesség',32.4],['AS','Átlagsebesség',27.8],['MS','Max. sebesség',65.3],['AD','Átlagsebesség (eltelt időre)',25.1,'n',1]]],
- ['Tempó',[['CP','Tempó',280,'p'],['AP','Átlagtempó',254,'p'],['MP','Legjobb tempó',211,'p'],['EP','Átlagtempó (eltelt időre)',264,'p',1],['CE','Kör átlagtempó',259,'p',1]]],
- ['Távolság',[['DS','Megtett távolság',42.56],['DD','Távolság a célig',18.88],['LD','Kör távolsága',2.23,'n',1],['OM','Kilométeróra',1212.1]]],
- ['Pulzus',[['HR','Pulzus',148],['AH','Átlagpulzus',139],['MH','Max. pulzus',176],['HP','Pulzus a maximum %-ában',84,'n',1],['HZ','Pulzuszóna száma',4],
-   ...[0,1,2,3,4,5].map(i=>['T'+i,'Idő a(z) '+i+'. pulzuszónában',300+i*60,'t']), ...[0,1,2,3,4,5].map(i=>['P'+i,'% a(z) '+i+'. pulzuszónában',[5,25,30,22,13,5][i]])]],
- ['Pedálfordulat',[['CC','Pedálfordulat',88],['AC','Átlag pedálfordulat',82],['MC','Max. pedálfordulat',121]]],
- ['Teljesítmény',[['CB','Teljesítmény (W)',245],['AB','Átlagteljesítmény',198],['MB','Max. teljesítmény',612],['NP','Normalizált teljesítmény (NP)',214],['NB','NP nullák nélkül',221,'n',1],['FT','FTP %',92]]],
- ['Magasság',[['CL','Magasság',478],['TA','Össz. emelkedés',1240],['TD','Össz. lejtés',985],['GR','Meredekség %',6.5]]],
- ['Egyéb',[['CA','Kalória',1563],['LR','Kör sorszáma',7],['TE','Training Effect',3.2],['TM','Hőmérséklet',21.5],['PR','Légnyomás (hPa)',1013],['BV','Akkumulátor %',87],['GA','GPS pontosság (0–4)',4],['GH','GPS jó jel jelző',1],['HA','Haladási irány',300],['BG','Váltófokozat (mechanikus)',7],['CN','Alkalmazás neve','HMs DIY #1','s'],['DV','Adatmező verziója','3.x','s'],['DN','Úti cél neve','Cél','s']]],
- ['Pacer',[['PA','Pacer számítási átlagsebesség (kötelező)',12.4],['PI','Pacer aktuális előny/hátrány',42,'p'],['PX','Pacer várható előny a célban',95,'p',1],['PD','Pacer várható célidő',7505,'t'],['PP','Pacer várható tempó',330,'p'],['CD','Pacer korrigált távolság',5.0],['OI','Pacer eltolás jelző',1]]],
- ['Irányjelzőhöz',[['SN','Észak',0,'n',1],['SC','Megadott koordináta',0,'n',1]]],
-];
-const VT = {FX:{n:'– nincs –',s:0,k:'n'}};
-for(const [,list] of VGROUPS) for(const [c,n,s,k,u] of list) VT[c]={n,s,k:k||'n',u:!!u};
-const GT = {LN:'Vonal',RC:'Téglalap (keret)',RF:'Kitöltött téglalap',RH:'Folyamatsáv, vízszintes',RV:'Folyamatsáv, függőleges',CR:'Kör (keret)',CF:'Kitöltött kör',AC:'Ív',AF:'Kitöltődő ív (műszer)',DT:'Irányjelző háromszög',GB:'Grafikon'};
+/* ---------- Value types from the HMs DIY Designer 3.4.2 table: [group, [[code, internal id, name, default format, sample, memory class]]] ---------- */
+const VDATA = /*TYPES*/[["",[["FX",0,"-- None --","","",30]]],["Navigation names",[["ND",1,"Name of destination","Mordor","Mordor",35],["NN",2,"Name of next point","Eribor","Eribor",35]]],["Time",[["CT",10,"Current date/time","$D.$N.$Y $H:$M:$S","63312",30],["TT",11,"Timer time","$H:$M:$S","4374",30],["PT",12,"Current pause time","$H:$M:$S","374",500],["ET",13,"Elapsed time","$H:$M:$S","3356",35],["LL",14,"Last lap time","$H:$M:$S","326",35],["LT",15,"Current lap time","$H:$M:$S","1326",35],["EC",16,"ETA (curr. sp)","$H:$M:$S","3337",35],["EV",17,"ETA (avg. sp)","$H:$M:$S","2334",35],["TC",18,"Time to dest (curr. sp)","$M:$S","925",35],["TV",19,"Time to dest (avg. sp)","$M:$S","825",35],["PC",20,"ETA next p. (curr. sp)","$H:$M:$S","3563",35],["PV",21,"ETA next p. (avg. sp)","$H:$M:$S","2382",35],["NC",22,"Time to next p. (curr. sp)","$M:$S","425",35],["NV",23,"Time to next p. (avg. sp)","$M:$S","267",35],["TI",26,"Total pause time","$H:$M:$S","374",35]]],["Pace",[["CP",30,"Current pace","$M:$S","280",30],["AP",31,"Average pace","$M:$S","254",30],["MP",32,"Maximum pace","$M:$S","211",30],["LP",33,"Last lap avg. pace","$M:$S","280",35],["CE",34,"Current lap avg. pace","$M:$S","260",35],["EP",35,"Average pace (elapsed)","$M:$S","234",35]]],["Distance",[["DS",50,"Elapsed Distance","$V","12.56",30],["DD",51,"Distance to destination","$V","25.56",35],["DN",52,"Distance to next point","$V","28.34",35],["DC",57,"Distance to coordinate","$V","8.34",500],["LD",53,"Current lap distance","$V","2.23",35],["LI",54,"Last lap distance","$V","1.21",35],["OM",56,"Odometer","$V","1121.21",35]]],["Speed",[["CS",60,"Current speed","$V","45.34",30],["AS",61,"Average speed","$V","34.76",30],["MS",62,"Maximum speed","$V","65.34",30],["LS",63,"Last lap avg. speed","$V","34.2",35],["CV",64,"Current lap avg. speed","$V","32.2",35],["AD",65,"Average speed (elapsed)","$V","14.36",35],["DE",67,"Difference Avg-Curr speed","$V","4.36",35]]],["Cadence",[["CC",70,"Current cadence","$V","167.34",35],["AC",71,"Average cadence","$V","188.45",35],["MC",72,"Maximum cadence","$V","210.55",35]]],["Steps, active minutes",[["SG",232,"Steps goal","$V","10000",35],["ST",233,"Steps today","$V","4536",35],["SL",234,"Steps remaining to goal","$V","5464",35],["SY",235,"Steps in activity","$V","1464",35],["SA",236,"Active minutes day moderate","$V","164",500],["SM",237,"Active minutes day total","$V","264",500],["SV",238,"Active minutes day vigorous","$V","64",500],["SW",239,"Active minutes week moderate","$V","1865",500],["SI",240,"Active minutes week total","$V","1065",500],["SU",241,"Active minutes week vigorous","$V","1165",500],["SO",242,"Active minutes week goal","$V","2124",500]]],["Power",[["CB",75,"Current bike power","$V","455.34",35],["AB",76,"Average bike power","$V","347.23",35],["MB",77,"Maximum bike power","$V","633.13",35],["FT",78,"% FTP","$V","78.13",500],["WA",79,"Watt per kg/pound","$V","5.13",500],["WI",108,"Variability index","$V","2.23",500],["IF",109,"Intensity factor","$V","3.62",500],["NB",80,"Norm b. pow.","$V","425.34",500],["NP",81,"Norm b. pow. without zeros","$V","415.34",500],["LB",82,"Last Lap NP","$V","325.34",500],["LA",83,"Last Lap NP without zeros","$V","315.34",500],["ZB",84,"Curr Lap NP","$V","225.34",500],["ZA",85,"Curr Lap NP without zeros","$V","215.34",500],["LC",86,"Last Lap avg power","$V","217.34",500],["ZZ",88,"Curr Lap avg power","$V","245.34",500],["ZD",87,"Curr Lap avg power without zeros","$V","245.34",500],["TS",148,"TSS","$V","55",500]]],["Power zones",[["PZ",149,"Power zone number","$V","4",500],["H0",150,"Time in power zone 0","$M:$S","326",500],["H1",151,"Time in power zone 1","$M:$S","425",500],["H2",152,"Time in power zone 2","$M:$S","528",500],["H3",153,"Time in power zone 3","$M:$S","219",500],["H4",154,"Time in power zone 4","$M:$S","126",500],["H5",155,"Time in power zone 5","$M:$S","621",500],["H6",156,"Time in power zone 6","$M:$S","121",500],["S0",157,"% in power zone 0","$V","25",500],["S1",158,"% in power zone 1","$V","15",500],["S2",159,"% in power zone 2","$V","20",500],["S3",160,"% in power zone 3","$V","17",500],["S4",161,"% in power zone 4","$V","3",500],["S5",162,"% in power zone 5","$V","19",500],["S6",163,"% in power zone 6","$V","1",500]]],["Gears",[["U0",164,"Front derailleur index","$V","1",500],["U1",165,"Front derailleur max","$V","10",500],["U2",166,"Front derailleur size","$V","5",500],["U3",167,"Rear derailleur index","$V","1",500],["U4",168,"Rear derailleur max","$V","10",500],["U5",169,"Rear derailleur size","$V","5",500]]],["ANT+ sensors",[["A0",170,"ANT BikeCad status","$T","1",500],["A1",171,"ANT BikeCad battery","$T","3",500],["A2",172,"ANT BikeCad cadence","$V","111",500],["B0",173,"ANT BikeSpeedCad status","$T","1",500],["B1",174,"ANT BikeSpeedCad battery","$T","3",500],["B2",175,"ANT BikeSpeedCad cadence","$V","112",500],["B3",176,"ANT BikeSpeedCad speed","$V","25.4",500],["B4",177,"ANT BikeSpeedCad distance","$V","125.3",500],["C0",178,"ANT BikeSpeed status","$T","1",500],["C1",179,"ANT BikeSpeed battery","$T","3",500],["C2",180,"ANT BikeSpeed speed","$V","22.7",500],["C3",181,"ANT BikeSpeed distance","$V","125.3",500],["D0",182,"ANT Shift status","$T","1",500],["D1",183,"ANT Shift battery","$T","4",500],["D2",184,"ANT Shift front gearIndex","$V","2",500],["D3",185,"ANT Shift front gearMax","$V","6",500],["D4",186,"ANT Shift front gearSize","$V","7",500],["D5",187,"ANT Shift rear gearIndex","$V","2",500],["D6",188,"ANT Shift rear gearMax","$V","6",500],["D7",189,"ANT Shift rear gearSize","$V","7",500],["E0",190,"ANT BPower status","$T","1",500],["E1",191,"ANT BPower battery","$T","4",500],["E2",192,"ANT BPower Calc cadence","$V","117",500],["E3",193,"ANT BPower Calc power","$V","217",500],["E4",194,"ANT BPower Calc wheel dist","$V","217",500],["E5",195,"ANT BPower Calc wheel speed","$V","14.5",500],["E6",196,"ANT BPower Pedal power left %","$V","54.5",500],["E7",197,"ANT BPower Pedal power right %","$V","45.5",500],["E8",198,"ANT BPower LoC pedal smooth","$V","10.5",500],["E9",199,"ANT BPower L torq effectivn","$V","15.5",500],["F0",200,"ANT BPower R pedal smooth","$V","25.5",500],["F1",201,"ANT BPower R torq effectivn","$V","15.5",500],["G0",202,"ANT FitEqu status","$T","1",500],["G1",203,"ANT FitEqu battery","$T","4",500],["G2",204,"ANT FitEqu distance","$V","11.7",500],["G3",205,"ANT FitEqu heartrate","$V","157",500],["G4",206,"ANT FitEqu speed","$V","11.5",500],["I0",207,"ANT RunDyn status","$T","1",500],["I1",208,"ANT RunDyn battery","$T","4",500],["I2",209,"ANT RunDyn cadence","$V","117",500],["I3",210,"ANT RunDyn ground cont balnce","$V","11.7",500],["I4",211,"ANT RunDyn ground cont time","$V","117",500],["I5",212,"ANT RunDyn stance time","$V","21.7",500],["I6",213,"ANT RunDyn step count","$V","117",500],["I7",214,"ANT RunDyn step length","$V","127",500],["I8",215,"ANT RunDyn vert oscillation","$V","1317",500],["I9",216,"ANT RunDyn vert ratio","$V","51.7",500],["J0",217,"ANT RunDyn walking flag","$V","1",500],["J1",218,"ANT BikeRadar status","$T","1",500],["J2",219,"ANT BikeRadar battery","$T","4",500],["K0",220,"ANT LightNet status","$T","1",500],["K1",221,"ANT LightNet battery","$T","4",500],["K2",222,"ANT LightNet Headlight mode","$T","4",500],["K3",223,"ANT LightNet Taillight mode","$T","4",500],["K4",224,"ANT LightNet Sig. left mode","$T","4",500],["K5",225,"ANT LightNet Sig. right mode","$T","4",500],["K6",226,"ANT LightNet Sig. config mode","$T","4",500],["K7",227,"ANT LightNet Other mode","$T","4",500]]],["Altitude, gradient",[["CL",90,"Current altitude","$V","478.22",30],["TA",91,"Total ascent","$V","423.66",30],["TD",92,"Total descent","$V","457.21",30],["TN",48,"Total season ascent","$V","5457.21",500],["TR",49,"Current lap ascent","$V","54.33",500],["AI",58,"Altitude difference from start","$V","137.44",35],["VM",99,"VAM total avg","$V","678.22",500],["VC",107,"VAM current avg","$V","374.12",500],["MA",93,"Minimum altitude","$V","143.22",500],["ML",94,"Maximum altitude","$V","2678.22",500],["GR",95,"Gradient","$V","6.69",30],["GM",96,"Minimum gradient","$V","-3.62",500],["GT",97,"Maximum gradient","$V","16.39",500],["GG",98,"Average gradient","$V","8.49",500]]],["Heart rate",[["HR",100,"Curr. heartrate","$V","183.55",30],["HP",101,"Curr. heartrate %HFmax","$V","84.12",30],["AH",102,"Average heartrate","$V","154.49",30],["MH",103,"Maximum heartrate","$V","204.79",30],["HZ",104,"Heartrate zone number","$V","4",30],["CY",105,"Last lap avg HR","$V","154.39",500],["CW",106,"Current lap avg HR","$V","103.59",500]]],["Heart rate zones",[["T0",130,"Time in HR zone 0","$M:$S","326",35],["T1",131,"Time in HR zone 1","$M:$S","425",35],["T2",132,"Time in HR zone 2","$M:$S","528",35],["T3",133,"Time in HR zone 3","$M:$S","219",35],["T4",134,"Time in HR zone 4","$M:$S","126",35],["T5",135,"Time in HR zone 5","$M:$S","621",35],["P0",136,"% in HR zone 0","$V","15",35],["P1",137,"% in HR zone 1","$V","25",35],["P2",138,"% in HR zone 2","$V","10",35],["P3",139,"% in HR zone 3","$V","18",35],["P4",140,"% in HR zone 4","$V","13",35],["P5",141,"% in HR zone 5","$V","19",35]]],["Other",[["CA",110,"Calories spent","$V","1563.77",35],["LR",111,"Lap number","$V","17",35],["PR",112,"Pressure","$V","1077.33",35],["BV",113,"Battery value","$V","87",30],["GA",114,"GPS accuracy","$V","3",30],["GH",115,"GPS high acc indicator","$V","1",30],["LO",8,"Current longitude","47.3542342","47.3542342",500],["LU",9,"Current latitude","15.1343542","15.1343542",500],["HA",124,"Current heading","$T","122",500],["DI",126,"Track (direction of travel)","$T","124",500],["TE",116,"Training effect","$V","4.2",35],["BG",117,"Bike curr gear","220;30;10;12;14;16;18;21;24;28;32;36;42;50","5",500],["TM",120,"Temperature","$V","18.4",30]]],["Pacer",[["PA",66,"Pacer calc average speed","$V","12.45",35],["PE",25,"Pacer curr. ahead time","$m:$S","1323",35],["PI",28,"Pacer target ahead time","$m:$S","1423",35],["PD",29,"Pacer predicted time","$H:$M:$S","4567",35],["PX",36,"Pacer predicted pace","$M:$S","255",35],["PP",37,"Pacer total average pace","$M:$S","280",35],["CD",55,"Pacer corrected distance","$V","2.33",35],["OI",119,"Pacer offset indicator","","0",35]]],["System",[["XX",121,"Free memory","$V byte","566",30],["DV",3,"Datafield version","2.x.x","2.x.x",35],["CN",4,"App name","HMs DIY #1","HMs DIY #1",35],["PO",122,"Phone connected","$V","1",35],["NO",125,"Notification count","$V","1",30]]],["Direction targets",[["SC",5,"Start coordinates","33.14820,22.41759","33.14820,22.41759",500],["SN",6,"North","90.0,0.0","90.0,0.0",500],["SE",7,"Setting coordinates","11.14820,33.41759","11.14820,33.41759",500]]],["Sun, wind",[["SR",230,"Sunrise","$H:$M","24567",500],["SS",231,"Sunset","$H:$M","74567",500],["WB",244,"Windbearing","$V","55",500],["WS",245,"Windspeed","$V","4.5",500]]]]/*ENDTYPES*/;
+const VT = {}, VID = {}, VGROUPS = [];
+for(const [g,list] of VDATA){ const codes=[]; for(const [c,id,n,mask,smp,mem] of list){ const num=parseFloat(smp), k=/\$[HhMmS]/.test(mask)?'t':/^-?[\d.]+$/.test(smp)?'n':'s';
+  VT[c]={id,n,mask:mask||'$V',s:k==='s'?smp:num,k,mem}; VID[id]=c; if(c!=='FX') codes.push(c); } if(codes.length) VGROUPS.push([g,codes]); }
+Object.assign(VT.FX,{n:'– none –',s:0,k:'n'});
+const GT = {LN:'Line',RC:'Rectangle (outline)',RF:'Filled rectangle',RH:'Progress bar, horizontal',RV:'Progress bar, vertical',CR:'Circle (outline)',CF:'Filled circle',AC:'Arc',AF:'Filling arc (gauge)',DA:'Direction arrow',DT:'Direction triangle',GB:'Graph – left/bottom',GT:'Graph – right/bottom',GL:'Graph – left/top',GR:'Graph – right/top'};
+const GID = {LN:0,CR:1,CF:2,RC:3,RF:4,RH:5,RV:6,AC:7,AF:8,DA:9,DT:10,GL:11,GR:12,GB:13,GT:14};
+const FONTS = 'XTINY TINY SMALL MEDIUM LARGE NR_MILD NR_MEDIUM NR_HOT NR_THAI_HOT S_XTINY S_TINY S_SMALL S_MEDIUM S_LARGE S_NR_MILD S_NR_MEDIUM S_NR_HOT S_NR_THAI_HOT'.split(' ');
 const FILL = ['RH','RV','AF'];
 const FAM = [[700,'"Roboto Condensed","Arial Narrow",sans-serif'],[400,'"Roboto Condensed","Arial Narrow",sans-serif'],[400,'"Bebas Neue","Roboto Condensed",Impact,sans-serif'],[400,'"DejaVu Sans",Verdana,sans-serif'],[700,'"DejaVu Sans",Verdana,sans-serif'],[400,'"DejaVu Sans Condensed","Roboto Condensed","Arial Narrow",sans-serif'],[700,'"DejaVu Sans Condensed","Roboto Condensed","Arial Narrow",sans-serif'],[400,'"Bebas Neue","Roboto Condensed",sans-serif'],[700,'"Bebas Neue","Roboto Condensed",sans-serif']];
 const FONT_FALLBACK = {XTINY:[1,13],TINY:[1,18],SMALL:[1,22],MEDIUM:[1,26],LARGE:[1,36],NR_MILD:[2,34],NR_MEDIUM:[2,42],NR_HOT:[2,56],NR_THAI_HOT:[2,70]};
-const FONT_NAMES = {XTINY:'Apró',TINY:'Kicsi',SMALL:'Kisebb',MEDIUM:'Közepes',LARGE:'Nagy',NR_MILD:'Szám – kicsi',NR_MEDIUM:'Szám – közepes',NR_HOT:'Szám – nagy',NR_THAI_HOT:'Szám – óriás'};
+const FONT_NAMES = {XTINY:'Extra tiny',TINY:'Tiny',SMALL:'Small',MEDIUM:'Medium',LARGE:'Large',NR_MILD:'Number – mild',NR_MEDIUM:'Number – medium',NR_HOT:'Number – hot',NR_THAI_HOT:'Number – thai hot'};
 const SWATCH = ['000000','555555','AAAAAA','FFFFFF','FF0000','AA0000','FF5500','FFAA00','FFFF00','00FF00','00AA00','00AAFF','0000FF','0000AA','AA00FF','FF00FF'];
 const PAD = 28, KEY = 'hmsdiy.v1';
 
-/* ---------- Állapot ---------- */
+/* ---------- State ---------- */
 let S = {device:'Edge 830',w:246,h:322,round:false,designer:null,els:[],samples:{},nid:1};
 let sel = [], night = false, snapOn = true, zoom = 2, guides = [], marquee = null, clip = [];
 let undoSt = [], redoSt = [], last = '';
@@ -254,7 +248,7 @@ function el(tag, props, ...kids){
 }
 function toast(msg){ const t=$('#toast'); t.textContent=msg; t.hidden=false; clearTimeout(toast.t); toast.t=setTimeout(()=>t.hidden=true,2600); }
 
-/* ---------- Visszavonás, mentés a böngészőbe ---------- */
+/* ---------- Undo, browser persistence ---------- */
 function persist(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
 function commit(){ const now = JSON.stringify(S); if(now===last) return; undoSt.push(last); if(undoSt.length>200) undoSt.shift(); redoSt=[]; last=now; persist(); updButtons(); }
 let cTimer; function commitSoon(){ clearTimeout(cTimer); cTimer=setTimeout(commit,450); }
@@ -263,7 +257,7 @@ function undo(){ clearTimeout(cTimer); commit(); if(!undoSt.length) return; redo
 function redo(){ if(!redoSt.length) return; undoSt.push(last); restore(redoSt.pop()); }
 function updButtons(){ $('#undo').disabled=!undoSt.length; $('#redo').disabled=!redoSt.length; }
 
-/* ---------- Elemek ---------- */
+/* ---------- Elements ---------- */
 function kind(e){
   if(e.type===0) return 'text'; if(e.type===2) return 'dyn'; if(e.type===3) return 'sep';
   const t = e.a.eletype||'';
@@ -273,8 +267,8 @@ function kind(e){
 }
 const hasBox = e => ['line','rect','graph','box'].includes(kind(e));
 function mk(type, a, extra){ return Object.assign({id:S.nid++, type, a}, extra||{}); }
-function mkText(o){ return mk(0, Object.assign({color:'000000',x:'0',y:'0',fixedtext:'true',daynight:'true',eletype:'FX',text:'CÍMKE',font:'XTINY',halignment:'1',precision:'0',nr_values:'1',maxonly:'false'}, o)); }
-function mkVal(code, o){ const v=VT[code]||VT.FX; return mkText(Object.assign({fixedtext:'false',eletype:code,text:v.k==='t'?'$H:$M:$S':v.k==='p'?'$m:$S':'$V',font:'NR_MEDIUM',precision:String(v.s%1?1:0)}, o)); }
+function mkText(o){ return mk(0, Object.assign({color:'000000',x:'0',y:'0',fixedtext:'true',daynight:'true',eletype:'FX',text:'LABEL',font:'XTINY',halignment:'1',precision:'0',nr_values:'1',maxonly:'false'}, o)); }
+function mkVal(code, o){ const v=VT[code]||VT.FX; return mkText(Object.assign({fixedtext:'false',eletype:code,text:v.mask||'$V',font:'NR_MEDIUM',precision:String(v.k==='n'&&v.s%1?1:0)}, o)); }
 function mkG(t, o, extra){ return mk(1, Object.assign({color:'000000',x:'0',y:'0',x2:'0',y2:'0',eletype:t,valuetype:'FX',minval:'false',maxonly:'false',daynight:'true',radius:'0',stroke:'1',nr_values:'1'}, o), extra); }
 function mkDyn(key, rows){ return mk(2, {replDC:key, invertcolor:'false'}, {dc:rows, dirty:true}); }
 function usedColors(){ const u=new Set(); for(const e of S.els){ if(e.a.color) u.add(e.a.color.toUpperCase()); if(e.type===2){ u.add((e.a.replDC||'').toUpperCase()); e.dc.forEach(r=>u.add(r.col.toUpperCase())); } } return u; }
@@ -297,7 +291,7 @@ function attachDyn(e){
 function dcRows(dc){ const inv=dc.a.invertcolor==='true'; return [...dc.dc].sort((p,q)=>inv?p.val-q.val:q.val-p.val); }
 function pruneDyn(){ S.els = S.els.filter(e=>e.type!==2 || !e.auto || dcUsers(e).length); }
 
-/* ---------- Szövegformázás ---------- */
+/* ---------- Text formatting ---------- */
 const p2 = n => String(Math.floor(n)).padStart(2,'0');
 function fmtTime(mask, sec){
   sec = Math.max(0, Math.round(sec)); const hasH = /\$[Hh]/.test(mask);
@@ -310,14 +304,14 @@ function fmtTime(mask, sec){
 function textOf(e){
   const a = e.a; if(a.fixedtext==='true') return a.text||'';
   const v = VT[a.eletype], mask = a.eletype==='BG' ? '$V' : (a.text||'$V');
-  if(v && v.k==='s') return mask.replace('$V', a.sampletext || v.s);
+  if(v && v.k==='s') return a.sampletext || v.s;
   const s = sampleOf(e);
   let out = /\$[HhMmSCNDYa]/.test(mask) ? fmtTime(mask, s) : mask;
   const dirs = ['N','NE','E','SE','S','SW','W','NW'];
   return out.replace('$V', s.toFixed(clamp(N(a.precision),0,4))).replace('$T', a.eletype==='HA' ? dirs[Math.round(s/45)%8] : 'OK');
 }
 
-/* ---------- Betűk, geometria ---------- */
+/* ---------- Fonts, geometry ---------- */
 const mctx = document.createElement('canvas').getContext('2d');
 function fontOf(e){
   const name = e.a.font||'SMALL', map = (DEV[S.device]||[])[3]||{};
@@ -371,7 +365,7 @@ function dragHandle(e, hk, px, py, shift){
   else { const key = hk==='s'?'x2':'y2', old=N(a[key]); let g=Math.atan2(py-N(a.y),px-N(a.x))*180/Math.PI; if(shift) g=Math.round(g/15)*15; a[key]=S_(g+360*Math.round((old-g)/360)); }
 }
 
-/* ---------- Szín feloldása (dinamikus szín, éjszakai mód) ---------- */
+/* ---------- Colour resolution (dynamic colour, night mode) ---------- */
 function invert(c){ return (0xFFFFFF^parseInt(c,16)).toString(16).padStart(6,'0'); }
 function resolve(e){
   const a=e.a, dc=dcFor(a.color); let col=a.color||'000000', frac=0.62, hidden=false, blink=false;
@@ -384,7 +378,7 @@ function resolve(e){
   return {col,frac,hidden,blink};
 }
 
-/* ---------- Rajzolás ---------- */
+/* ---------- Drawing ---------- */
 function drawEl(c, e){
   const a=e.a, k=kind(e); if(k==='dyn'||k==='sep') return;
   const r=resolve(e), x=N(a.x), y=N(a.y), x2=N(a.x2), y2=N(a.y2), R=N(a.radius), st=Math.max(1,N(a.stroke)), t=a.eletype;
@@ -402,8 +396,9 @@ function drawEl(c, e){
   else if(t==='CF'){ c.beginPath(); c.arc(x,y,R,0,7); c.fill(); }
   else if(t==='AC'){ c.beginPath(); c.arc(x,y,R,rad(x2),rad(y2),y2<x2); c.stroke(); }
   else if(t==='AF'){ const end=x2+(y2-x2)*r.frac; if(r.frac>0){ c.beginPath(); c.arc(x,y,R,rad(x2),rad(end),y2<x2); c.stroke(); } ghost(()=>c.arc(x,y,R,rad(x2),rad(y2),y2<x2)); }
+  else if(t==='DA'){ const cy=y-y2; c.beginPath(); c.moveTo(x,cy+R); c.lineTo(x,cy-R); c.moveTo(x-R*.45,cy-R*.4); c.lineTo(x,cy-R); c.lineTo(x+R*.45,cy-R*.4); c.stroke(); }
   else if(k==='dir'){ const cy=y-y2; c.lineJoin='miter'; c.beginPath(); c.moveTo(x,cy-R); c.lineTo(x+R*.75,cy+R*.8); c.lineTo(x,cy+R*.35); c.lineTo(x-R*.75,cy+R*.8); c.closePath(); c.stroke(); }
-  else if(k==='graph'){ const n=Math.max(1,Math.floor(bw/st)); for(let i=0;i<n;i++){ const hgt=bh*(.45+.28*Math.sin(i*.37)+.17*Math.sin(i*1.31+1)); c.fillRect(bx+i*st,by+bh-hgt,st,hgt); } ghost(()=>c.rect(bx,by,bw,bh)); }
+  else if(k==='graph'){ const n=Math.max(1,Math.floor(bw/st)); for(let i=0;i<n;i++){ const hgt=bh*(.45+.28*Math.sin(i*.37)+.17*Math.sin(i*1.31+1)); const j=(t==='GR'||t==='GT')?n-1-i:i; c.fillRect(bx+j*st,(t==='GL'||t==='GR')?by:by+bh-hgt,st,hgt); } ghost(()=>c.rect(bx,by,bw,bh)); }
   else { c.lineWidth=1/zoom; c.setLineDash([4/zoom,3/zoom]); c.strokeRect(bx,by,bw||R*2,bh||R*2); c.font='10px sans-serif'; c.textBaseline='top'; c.fillText(t,bx+2,by+2); }
   c.restore();
 }
@@ -418,7 +413,7 @@ function draw(){
   c.save(); shape(); c.clip();
   for(const e of S.els) if(!e.hide) drawEl(c,e);
   c.restore();
-  if(!S.els.length){ c.fillStyle='#888'; c.font=`${12/zoom*1.2}px sans-serif`; c.textAlign='center'; c.fillText('Adj hozzá elemet a bal oldali listából', S.w/2, S.h/2); }
+  if(!S.els.length){ c.fillStyle='#888'; c.font=`${12/zoom*1.2}px sans-serif`; c.textAlign='center'; c.fillText('Add an element from the list on the left', S.w/2, S.h/2); }
   const acc=css('--accent')||'#0a66c2', px=1/zoom;
   c.lineWidth=px; c.strokeStyle='#d0289a';
   for(const g of guides){ c.beginPath(); if(g.x!=null){ c.moveTo(g.x,-PAD/zoom); c.lineTo(g.x,S.h+PAD/zoom); } else { c.moveTo(-PAD/zoom,g.y); c.lineTo(S.w+PAD/zoom,g.y); } c.stroke(); }
@@ -428,7 +423,7 @@ function draw(){
   if(marquee){ c.lineWidth=px; c.fillStyle='rgba(10,102,194,.12)'; c.fillRect(marquee.x,marquee.y,marquee.w,marquee.h); c.strokeRect(marquee.x,marquee.y,marquee.w,marquee.h); }
 }
 
-/* ---------- Egér / érintés a vásznon ---------- */
+/* ---------- Pointer handling on the canvas ---------- */
 let drag=null;
 function devPt(ev){ const r=$('#cv').getBoundingClientRect(); return {x:(ev.clientX-r.left-PAD)/zoom, y:(ev.clientY-r.top-PAD)/zoom}; }
 function pick(p){ for(let i=S.els.length-1;i>=0;i--){ const e=S.els[i]; if(e.type<2 && !e.hide && !e.lock && hit(e,p.x,p.y)) return e; } return null; }
@@ -468,7 +463,7 @@ function onMove(ev){
 }
 function onUp(){ if(!drag) return; const d=drag; drag=null; guides=[]; marquee=null; if(d.moved) commit(); refresh(); }
 
-/* ---------- Kijelölés műveletei ---------- */
+/* ---------- Selection actions ---------- */
 const selEls = () => sel.map(byId).filter(Boolean);
 function addEls(list, select){
   let at=S.els.length; const s=selEls(); if(s.length) at=Math.max(...s.map(e=>S.els.indexOf(e)))+1;
@@ -481,37 +476,37 @@ function nudge(dx,dy,resize){ const s=selEls().filter(e=>e.type<2); if(!s.length
 function moveLayer(dir){ const s=selEls(); if(!s.length) return; const order=dir>0?[...s].sort((a,b)=>S.els.indexOf(b)-S.els.indexOf(a)):[...s].sort((a,b)=>S.els.indexOf(a)-S.els.indexOf(b));
   for(const e of order){ const i=S.els.indexOf(e), j=i+dir; if(j<0||j>=S.els.length||sel.includes(S.els[j].id)) continue; S.els.splice(i,1); S.els.splice(j,0,e); } commit(); refresh(); }
 
-/* ---------- Hozzáadás paletta ---------- */
+/* ---------- Add palette ---------- */
 const ICON = {text:'<path d="M3 4h10M8 4v9"/>',val:'<path d="M3 12V4l4 5 0-5M10 4h3v4h-3v4h3"/>',field:'<path d="M2 4h6M2 8h12M2 12h12"/>',line:'<path d="M2 13L14 3"/>',rect:'<rect x="2.5" y="4" width="11" height="8"/>',rectf:'<rect x="2.5" y="4" width="11" height="8" fill="currentColor"/>',circ:'<circle cx="8" cy="8" r="5.5"/>',circf:'<circle cx="8" cy="8" r="5.5" fill="currentColor"/>',arc:'<path d="M2.5 11a5.5 5.5 0 0 1 11 0"/>',gauge:'<path d="M2.5 11a5.5 5.5 0 0 1 11 0" opacity=".35"/><path d="M2.5 11a5.5 5.5 0 0 1 5.5-5.5" stroke-width="2.4"/>',bar:'<rect x="2" y="6" width="12" height="4"/><rect x="2" y="6" width="7" height="4" fill="currentColor"/>',graph:'<path d="M2 13V9M5 13V6M8 13V8M11 13V4M14 13V7" stroke-width="2"/>',dir:'<path d="M8 2l4 11-4-3-4 3z"/>',bg:'<rect x="2" y="2" width="12" height="12" fill="currentColor" opacity=".35"/><rect x="2" y="2" width="12" height="12"/>',sep:'<path d="M2 8h3M7 8h2M11 8h3"/>'};
 const ico = k => `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true">${ICON[k]}</svg>`;
 function buildPalette(){
   const cx=()=>Math.round(S.w/2), cy=()=>Math.round(S.h/2), u=()=>Math.round(Math.min(S.w,S.h)/4);
   const P=[
-   ['val','t0','Érték',()=>addEls([mkVal('CS',{x:String(cx()),y:String(cy()-20)})])],
-   ['text','t0','Címke',()=>addEls([mkText({x:String(cx()),y:String(cy()-8)})])],
-   ['field','t0 wide','Mező: címke + érték együtt',()=>addEls([mkText({text:'SEBESSÉG',x:String(cx()),y:String(cy()-34)}),mkVal('CS',{x:String(cx()),y:String(cy()-18)})])],
-   ['line','t1','Vonal',()=>addEls([mkG('LN',{x:'8',y:String(cy()),x2:String(S.w-8),y2:String(cy())})])],
-   ['bg','t1','Háttér',()=>{ const g=mkG('RF',{color:'FFFFFF',x2:String(S.w),y2:String(S.h)},{lock:true}); S.els.unshift(g); sel=[g.id]; commit(); refresh(); }],
-   ['rect','t1','Keret',()=>addEls([mkG('RC',{x:String(cx()-u()),y:String(cy()-u()/2),x2:String(cx()+u()),y2:String(cy()+u()/2),stroke:'2'})])],
-   ['rectf','t1','Téglalap',()=>addEls([mkG('RF',{color:'AAAAAA',x:String(cx()-u()),y:String(cy()-u()/2),x2:String(cx()+u()),y2:String(cy()+u()/2)})])],
-   ['circ','t1','Kör',()=>addEls([mkG('CR',{x:String(cx()),y:String(cy()),radius:String(u()),stroke:'2'})])],
-   ['circf','t1','Korong',()=>addEls([mkG('CF',{color:'AAAAAA',x:String(cx()),y:String(cy()),radius:String(Math.round(u()/2))})])],
-   ['arc','t1','Ív',()=>addEls([mkG('AC',{color:'AAAAAA',x:String(cx()),y:String(cy()),radius:String(u()*1.5|0),x2:'200',y2:'340',stroke:'10'})])],
-   ['gauge','t1','Műszer-ív',()=>{ const g=mkG('AF',{color:'FF5500',valuetype:'HR',x:String(cx()),y:String(cy()),radius:String(u()*1.5|0),x2:'200',y2:'340',stroke:'10'}); addEls([g]); const d=attachDyn(g); d.auto=true; d.dc[0].val=2000; d.dc[1].val=600; commit(); refresh(); }],
-   ['bar','t1','Folyamatsáv',()=>{ const g=mkG('RH',{color:'00AA00',valuetype:'BV',x:String(cx()-u()),y:String(cy()-5),x2:String(cx()+u()),y2:String(cy()+5)}); addEls([g]); const d=attachDyn(g); d.auto=true; d.dc[0].val=1000; d.dc[1].val=0; commit(); refresh(); }],
-   ['graph','t1','Grafikon',()=>addEls([mkG('GB',{color:'AA0000',valuetype:'HR',x:String(cx()-u()),y:String(cy()-u()/2|0),x2:String(cx()+u()),y2:String(cy()+u()/2|0),radius:'0',stroke:'2',maxonly:'false'})])],
-   ['dir','t1','Irányjelző',()=>addEls([mkG('DT',{x:String(cx()),y:String(cy()),radius:'12',stroke:'2'})])],
-   ['sep','t3','Elválasztó a listában',()=>addEls([mk(3,{text:'*** SZAKASZ ***'})])],
+   ['val','t0','Value',()=>addEls([mkVal('CS',{x:String(cx()),y:String(cy()-20)})])],
+   ['text','t0','Label',()=>addEls([mkText({x:String(cx()),y:String(cy()-8)})])],
+   ['field','t0 wide','Field: label + value',()=>addEls([mkText({text:'SPEED',x:String(cx()),y:String(cy()-34)}),mkVal('CS',{x:String(cx()),y:String(cy()-18)})])],
+   ['line','t1','Line',()=>addEls([mkG('LN',{x:'8',y:String(cy()),x2:String(S.w-8),y2:String(cy())})])],
+   ['bg','t1','Background',()=>{ const g=mkG('RF',{color:'FFFFFF',x2:String(S.w),y2:String(S.h)},{lock:true}); S.els.unshift(g); sel=[g.id]; commit(); refresh(); }],
+   ['rect','t1','Frame',()=>addEls([mkG('RC',{x:String(cx()-u()),y:String(cy()-u()/2),x2:String(cx()+u()),y2:String(cy()+u()/2),stroke:'2'})])],
+   ['rectf','t1','Rectangle',()=>addEls([mkG('RF',{color:'AAAAAA',x:String(cx()-u()),y:String(cy()-u()/2),x2:String(cx()+u()),y2:String(cy()+u()/2)})])],
+   ['circ','t1','Circle',()=>addEls([mkG('CR',{x:String(cx()),y:String(cy()),radius:String(u()),stroke:'2'})])],
+   ['circf','t1','Disc',()=>addEls([mkG('CF',{color:'AAAAAA',x:String(cx()),y:String(cy()),radius:String(Math.round(u()/2))})])],
+   ['arc','t1','Arc',()=>addEls([mkG('AC',{color:'AAAAAA',x:String(cx()),y:String(cy()),radius:String(u()*1.5|0),x2:'200',y2:'340',stroke:'10'})])],
+   ['gauge','t1','Gauge arc',()=>{ const g=mkG('AF',{color:'FF5500',valuetype:'HR',x:String(cx()),y:String(cy()),radius:String(u()*1.5|0),x2:'200',y2:'340',stroke:'10'}); addEls([g]); const d=attachDyn(g); d.auto=true; d.dc[0].val=2000; d.dc[1].val=600; commit(); refresh(); }],
+   ['bar','t1','Progress bar',()=>{ const g=mkG('RH',{color:'00AA00',valuetype:'BV',x:String(cx()-u()),y:String(cy()-5),x2:String(cx()+u()),y2:String(cy()+5)}); addEls([g]); const d=attachDyn(g); d.auto=true; d.dc[0].val=1000; d.dc[1].val=0; commit(); refresh(); }],
+   ['graph','t1','Graph',()=>addEls([mkG('GB',{color:'AA0000',valuetype:'HR',x:String(cx()-u()),y:String(cy()-u()/2|0),x2:String(cx()+u()),y2:String(cy()+u()/2|0),radius:'0',stroke:'2',maxonly:'false'})])],
+   ['dir','t1','Direction',()=>addEls([mkG('DT',{x:String(cx()),y:String(cy()),radius:'12',stroke:'2'})])],
+   ['sep','t3','List separator',()=>addEls([mk(3,{text:'*** SECTION ***'})])],
   ];
   const box=$('#palette');
   for(const [i,cls,label,fn] of P){ const b=el('button',{class:cls,type:'button',onclick:fn}); b.innerHTML=ico(i)+'<span style="color:var(--ink)">'+label+'</span>'; box.append(b); }
 }
 
-/* ---------- Rétegek ---------- */
+/* ---------- Layers ---------- */
 function nameOf(e){
-  if(e.type===0) return e.a.fixedtext==='true' ? '„'+(e.a.text||'')+'”' : (VT[e.a.eletype]?VT[e.a.eletype].n:'Érték '+e.a.eletype);
-  if(e.type===1){ const v=e.a.valuetype&&e.a.valuetype!=='FX' ? ' · '+(VT[e.a.valuetype]?VT[e.a.valuetype].n:e.a.valuetype) : ''; return (GT[e.a.eletype]||'Grafika '+e.a.eletype)+v; }
-  if(e.type===2) return 'Dinamikus szín #'+e.a.replDC+' ('+dcUsers(e).length+' elem)';
+  if(e.type===0) return e.a.fixedtext==='true' ? '“'+(e.a.text||'')+'”' : (VT[e.a.eletype]?VT[e.a.eletype].n:'Value '+e.a.eletype);
+  if(e.type===1){ const v=e.a.valuetype&&e.a.valuetype!=='FX' ? ' · '+(VT[e.a.valuetype]?VT[e.a.valuetype].n:e.a.valuetype) : ''; return (GT[e.a.eletype]||'Graphic '+e.a.eletype)+v; }
+  if(e.type===2) return 'Dynamic colour #'+e.a.replDC+' ('+dcUsers(e).length+' used)';
   return e.a.text||'———';
 }
 let dragId=null;
@@ -525,17 +520,17 @@ function renderLayers(){
       ondrop:ev=>{ ev.preventDefault(); li.classList.remove('drop'); const d=byId(dragId); if(!d||d===e) return; S.els.splice(S.els.indexOf(d),1); S.els.splice(S.els.indexOf(e)+1,0,d); commit(); refresh(); }},
       el('span',{class:'n',title:nameOf(e)},nameOf(e)));
     if(e.type<2){
-      li.append(el('button',{class:'ic'+(e.lock?' act':''),title:e.lock?'Zárolva – a vásznon nem jelölhető ki':'Zárolás',onclick:()=>{ e.lock=!e.lock; commit(); refresh(); }},e.lock?'🔒':'🔓'),
-                el('button',{class:'ic'+(e.hide?' act':''),title:'Elrejtés a szerkesztőben (az XML-be bekerül)',onclick:()=>{ e.hide=!e.hide; commit(); refresh(); }},e.hide?'◌':'●'));
+      li.append(el('button',{class:'ic'+(e.lock?' act':''),title:e.lock?'Locked – cannot be selected on the canvas':'Lock',onclick:()=>{ e.lock=!e.lock; commit(); refresh(); }},e.lock?'🔒':'🔓'),
+                el('button',{class:'ic'+(e.hide?' act':''),title:'Hide in the editor (still exported)',onclick:()=>{ e.hide=!e.hide; commit(); refresh(); }},e.hide?'◌':'●'));
     }
     ul.append(li);
   }
   const n=S.els.filter(e=>e.type!==3).length;
-  $('#st-count').textContent=n+' elem'; $('#st-count').title='Elemszám-korlát az eszköz memóriájától függ: kis memória 30, közepes 35, nagy 500 elem.';
+  $('#st-count').textContent=n+' elements'; $('#st-count').title='The element limit depends on device memory: low 30, medium 35, high 500 elements.';
 }
-function selStatus(){ const s=selEls(); $('#st-sel').textContent = s.length===1&&s[0].type<2 ? `${nameOf(s[0])}: ${s[0].a.x}, ${s[0].a.y}` : s.length>1 ? s.length+' elem kijelölve' : ''; }
+function selStatus(){ const s=selEls(); $('#st-sel').textContent = s.length===1&&s[0].type<2 ? `${nameOf(s[0])}: ${s[0].a.x}, ${s[0].a.y}` : s.length>1 ? s.length+' elements selected' : ''; }
 
-/* ---------- Tulajdonság-panel ---------- */
+/* ---------- Property panel ---------- */
 function live(){ draw(); selStatus(); commitSoon(); }
 function fld(label, input){ return el('label',{class:'f'},el('span',{},label),input); }
 function fNum(e,key,label,o){ o=o||{}; const i=el('input',{type:'number',id:'p-'+key,step:o.step||1,min:o.min,value:e.a[key]??'0',oninput:()=>{ if(i.value==='') return; e.a[key]=String(o.float?N(i.value):Math.round(N(i.value))); live(); if(o.after) o.after(); }}); return fld(label,i); }
@@ -544,108 +539,109 @@ function fChk(e,key,label){ const i=el('input',{type:'checkbox',id:'p-'+key,onch
 let rlT; function renderLayersSoon(){ clearTimeout(rlT); rlT=setTimeout(renderLayers,200); }
 function seg(opts, cur, fn){ return el('div',{class:'seg'},opts.map(([v,l])=>el('button',{type:'button',class:v===cur?'on':'',onclick:()=>fn(v)},l))); }
 function valueSelect(cur, fn, id){
-  const s=el('select',{id,onchange:()=>fn(s.value)}); s.append(el('option',{value:'FX'},'– nincs –'));
-  for(const [g,list] of VGROUPS){ const og=el('optgroup',{label:g}); for(const [c,n,,,u] of list) og.append(el('option',{value:c},n+(u?' (?)':'')+'  ['+c+']')); s.append(og); }
-  if(!VT[cur]) s.append(el('option',{value:cur},'Ismeretlen kód ['+cur+']'));
+  const s=el('select',{id,onchange:()=>fn(s.value)}); s.append(el('option',{value:'FX'},'– none –'));
+  for(const [g,list] of VGROUPS){ const og=el('optgroup',{label:g}); for(const c of list) og.append(el('option',{value:c},VT[c].n+'  ['+c+']'+(VT[c].mem>=500?' (H)':VT[c].mem>30?' (M)':''))); s.append(og); }
+  if(!VT[cur]) s.append(el('option',{value:cur},'Unknown code ['+cur+']'));
   s.value=cur; return s;
 }
 function sampleField(e){
   const code=valCode(e); if(code==='FX') return null; const v=VT[code];
   const cur = e.type===0 && e.a.sampletext ? e.a.sampletext : (S.samples[code]??(v?v.s:0));
   const i=el('input',{type:'text',id:'p-sample',value:cur,oninput:()=>{ if(e.type===0){ if(i.value==='') delete e.a.sampletext; else e.a.sampletext=i.value; } else { const n=parseFloat(i.value.replace(',','.')); if(isFinite(n)) S.samples[code]=n; } live(); }});
-  return fld('Mintaérték az előnézethez'+(v&&(v.k==='t'||v.k==='p')?' (másodperc)':''), i);
+  return fld('Sample value for the preview'+(v&&v.k==='t'?' (seconds)':''), i);
 }
 function colorSection(e){
   const box=el('div',{}), dc=dcFor(e.a.color), fill=FILL.includes(e.a.eletype);
-  box.append(el('h2',{},'Szín'));
-  if(dc){ box.append(dcEditor(dc,e), el('div',{class:'dlgbar',style:'margin-top:0'}, el('button',{class:'btn sm',onclick:()=>{ const rows=[...dc.dc].sort((a,b)=>b.val-a.val); e.a.color=rows.length?rows[rows.length-1].col:'000000'; if(!dcUsers(dc).length) S.els=S.els.filter(x=>x!==dc); commit(); refresh(); }},'Vissza egyetlen fix színre'))); }
+  box.append(el('h2',{},'Colour'));
+  if(dc){ box.append(dcEditor(dc,e), el('div',{class:'dlgbar',style:'margin-top:0'}, el('button',{class:'btn sm',onclick:()=>{ const rows=[...dc.dc].sort((a,b)=>b.val-a.val); e.a.color=rows.length?rows[rows.length-1].col:'000000'; if(!dcUsers(dc).length) S.els=S.els.filter(x=>x!==dc); commit(); refresh(); }},'Back to a single fixed colour'))); }
   else {
     const hex=el('input',{type:'text',id:'p-hex',maxlength:6,value:e.a.color,oninput:()=>{ if(/^[0-9a-f]{6}$/i.test(hex.value)){ e.a.color=hex.value.toUpperCase(); pick.value='#'+hex.value; live(); } }});
     const pick=el('input',{type:'color',id:'p-color',value:'#'+(/^[0-9a-f]{6}$/i.test(e.a.color)?e.a.color:'000000'),oninput:()=>{ e.a.color=pick.value.slice(1).toUpperCase(); hex.value=e.a.color; live(); }});
-    box.append(el('div',{class:'colrow'},pick,hex,el('button',{class:'btn sm',title:'A szín (vagy a kitöltöttség) az élő értéktől függjön',onclick:()=>{ attachDyn(e); commit(); refresh(); }},fill?'Értékhez kötés…':'Érték szerint változzon…')),
+    box.append(el('div',{class:'colrow'},pick,hex,el('button',{class:'btn sm',title:'Make the colour (or fill level) follow a live value',onclick:()=>{ attachDyn(e); commit(); refresh(); }},fill?'Link to a value…':'Change with a value…')),
       el('div',{class:'sw'},SWATCH.map(c=>el('button',{type:'button',title:'#'+c,style:'background:#'+c,onclick:()=>{ e.a.color=c; commit(); refresh(); }}))));
-    if(fill) box.append(el('div',{class:'hint'},'A sáv csak akkor mozog az órán, ha értékhez van kötve: a legkisebb határnál üres, a legnagyobbnál tele.'));
+    if(fill) box.append(el('div',{class:'hint'},'The bar only moves on the device when it is linked to a value: empty at the lowest threshold, full at the highest.'));
   }
-  box.append(fChk(e,'daynight','Éjszakai módban invertálódjon a szín'));
+  box.append(fChk(e,'daynight','Invert colour in night mode'));
   return box;
 }
 function dcEditor(dc, user){
   const fill = user && FILL.includes(user.a.eletype), box=el('div',{class:'dc'});
   const src = user ? valCode(user) : null, v = VT[src];
-  box.append(el('div',{class:'hint',style:'margin-top:0'}, user ? (src&&src!=='FX' ? el('span',{},'Forrásérték: ',el('b',{},v?v.n:src), v&&(v.k==='t'||v.k==='p')?' (másodpercben)':'') : el('span',{},el('b',{},'Nincs forrásérték. '),'Válassz „Kapcsolt értéket” fent.')) : 'Ezt a színszabályt a(z) #'+dc.a.replDC+' kulcsszínű elemek használják.'));
+  box.append(el('div',{class:'hint',style:'margin-top:0'}, user ? (src&&src!=='FX' ? el('span',{},'Source value: ',el('b',{},v?v.n:src), v&&v.k==='t'?' (in seconds)':'') : el('span',{},el('b',{},'No source value. '),'Pick a linked value above.')) : 'This colour rule applies to elements whose key colour is #'+dc.a.replDC+'.'));
   const tb=el('tbody',{}); const rows=dcRows(dc), inv=dc.a.invertcolor==='true';
   rows.forEach((r,i)=>{
-    const vi=el('input',{type:'number',step:'0.1',value:r.val/10,'aria-label':'Határérték',oninput:()=>{ if(vi.value!==''){ r.val=Math.round(N(vi.value)*10); dc.dirty=true; live(); } },onchange:()=>renderPanel()});
-    const ci=el('input',{type:'color',value:'#'+r.col,'aria-label':'Szín',oninput:()=>{ r.col=ci.value.slice(1).toUpperCase(); live(); }});
-    const hi=el('input',{type:'checkbox',title:'Elrejtés ebben a tartományban',onchange:()=>{ r.hide=hi.checked; live(); }}); hi.checked=!!r.hide;
-    const bi=el('input',{type:'checkbox',title:'Villogás ebben a tartományban',onchange:()=>{ r.blink=bi.checked; live(); }}); bi.checked=!!r.blink;
-    tb.append(el('tr',{},el('td',{style:'color:var(--mute);font-size:11px;white-space:nowrap'}, fill ? (r.val===Math.max(...rows.map(x=>x.val))?'tele':r.val===Math.min(...rows.map(x=>x.val))?'üres':'') : (i===rows.length-1?(inv?'felette is':'alatta is'):(inv?'≤':'≥'))),el('td',{},vi),el('td',{},ci),el('td',{},hi),el('td',{},bi),
-      el('td',{},el('button',{class:'btn sm ghost',title:'Sor törlése',disabled:rows.length<2,onclick:()=>{ dc.dc.splice(dc.dc.indexOf(r),1); dc.dirty=true; commit(); refresh(); }},'✕'))));
+    const vi=el('input',{type:'number',step:'0.1',value:r.val/10,'aria-label':'Threshold',oninput:()=>{ if(vi.value!==''){ r.val=Math.round(N(vi.value)*10); dc.dirty=true; live(); } },onchange:()=>renderPanel()});
+    const ci=el('input',{type:'color',value:'#'+r.col,'aria-label':'Colour',oninput:()=>{ r.col=ci.value.slice(1).toUpperCase(); live(); }});
+    const hi=el('input',{type:'checkbox',title:'Hide in this range',onchange:()=>{ r.hide=hi.checked; live(); }}); hi.checked=!!r.hide;
+    const bi=el('input',{type:'checkbox',title:'Blink in this range',onchange:()=>{ r.blink=bi.checked; live(); }}); bi.checked=!!r.blink;
+    tb.append(el('tr',{},el('td',{style:'color:var(--mute);font-size:11px;white-space:nowrap'}, fill ? (r.val===Math.max(...rows.map(x=>x.val))?'full':r.val===Math.min(...rows.map(x=>x.val))?'empty':'') : (i===rows.length-1?(inv?'and above':'and below'):(inv?'≤':'≥'))),el('td',{},vi),el('td',{},ci),el('td',{},hi),el('td',{},bi),
+      el('td',{},el('button',{class:'btn sm ghost',title:'Remove row',disabled:rows.length<2,onclick:()=>{ dc.dc.splice(dc.dc.indexOf(r),1); dc.dirty=true; commit(); refresh(); }},'✕'))));
   });
-  box.append(el('table',{},el('thead',{},el('tr',{},el('th',{}),el('th',{},inv?'Értékig':'Értéktől'),el('th',{},'Szín'),el('th',{title:'Elrejt'},'Rejt'),el('th',{title:'Villog'},'Villog'),el('th',{}))),tb),
-    el('div',{class:'dlgbar',style:'margin-top:6px'},el('button',{class:'btn sm',onclick:()=>{ const d=[...dc.dc].sort((a,b)=>b.val-a.val), top=d[0]||{val:0,col:'FF0000'}; dc.dc.push({val:top.val+(Math.abs(top.val-(d[1]?d[1].val:0))||100),col:top.col,hide:false,blink:false}); dc.dirty=true; commit(); refresh(); }},'+ Tartomány')),
-    (()=>{ const i=el('input',{type:'checkbox',onchange:()=>{ dc.a.invertcolor=String(i.checked); dc.dirty=true; commit(); refresh(); }}); i.checked=dc.a.invertcolor==='true'; return el('label',{class:'chk'},i,'Fordított sorrend: a határ felső korlát (tempóhoz)'); })());
+  box.append(el('table',{},el('thead',{},el('tr',{},el('th',{}),el('th',{},inv?'Up to':'From'),el('th',{},'Colour'),el('th',{title:'Hide'},'Hide'),el('th',{title:'Blink'},'Blink'),el('th',{}))),tb),
+    el('div',{class:'dlgbar',style:'margin-top:6px'},el('button',{class:'btn sm',onclick:()=>{ const d=[...dc.dc].sort((a,b)=>b.val-a.val), top=d[0]||{val:0,col:'FF0000'}; dc.dc.push({val:top.val+(Math.abs(top.val-(d[1]?d[1].val:0))||100),col:top.col,hide:false,blink:false}); dc.dirty=true; commit(); refresh(); }},'+ Range')),
+    (()=>{ const i=el('input',{type:'checkbox',onchange:()=>{ dc.a.invertcolor=String(i.checked); dc.dirty=true; commit(); refresh(); }}); i.checked=dc.a.invertcolor==='true'; return el('label',{class:'chk'},i,'Inverted order: thresholds are upper limits (for pace)'); })());
   return box;
 }
 function renderPanel(){
   const p=$('#panel'); const keep=document.activeElement&&p.contains(document.activeElement)?document.activeElement.id:null; p.textContent='';
   const s=selEls();
   if(!s.length){
-    p.append(el('h2',{},'Kezdéshez'),
-      el('div',{class:'hint'},'Kattints egy elemre a képernyőn vagy a rétegek között, és itt szerkesztheted. Új elemet a bal felső listából adhatsz hozzá.'),
-      el('h2',{},'Billentyűk'),
-      el('div',{class:'hint',style:'line-height:2'},el('kbd',{},'nyilak'),' mozgatás 1 px (',el('kbd',{},'Shift'),' 10 px)',el('br'),el('kbd',{},'Alt'),'+',el('kbd',{},'nyilak'),' átméretezés',el('br'),el('kbd',{},'Del'),' törlés · ',el('kbd',{},'Ctrl'),'+',el('kbd',{},'D'),' duplikálás',el('br'),el('kbd',{},'Ctrl'),'+',el('kbd',{},'C'),' / ',el('kbd',{},'V'),' másol / beilleszt',el('br'),el('kbd',{},'Ctrl'),'+',el('kbd',{},'Z'),' / ',el('kbd',{},'Y'),' visszavon / mégis',el('br'),el('kbd',{},'Shift'),'+húzás: egyenesen · ',el('kbd',{},'Alt'),'+húzás: illesztés nélkül'),
-      el('h2',{},'Eszköz'),
-      el('div',{class:'hint'},S.device+' · '+S.w+'×'+S.h+' px'+(S.round?' · kerek':''),el('br'),'A betűméretek az eszköz szerint változnak; a betűk képe közelítés.'));
+    p.append(el('h2',{},'Getting started'),
+      el('div',{class:'hint'},'Click an element on the screen or in the layer list to edit it here. Add new elements from the list at the top left.'),
+      el('h2',{},'Keyboard'),
+      el('div',{class:'hint',style:'line-height:2'},el('kbd',{},'arrows'),' move 1 px (',el('kbd',{},'Shift'),' 10 px)',el('br'),el('kbd',{},'Alt'),'+',el('kbd',{},'arrows'),' resize',el('br'),el('kbd',{},'Del'),' delete · ',el('kbd',{},'Ctrl'),'+',el('kbd',{},'D'),' duplicate',el('br'),el('kbd',{},'Ctrl'),'+',el('kbd',{},'C'),' / ',el('kbd',{},'V'),' copy / paste',el('br'),el('kbd',{},'Ctrl'),'+',el('kbd',{},'Z'),' / ',el('kbd',{},'Y'),' undo / redo',el('br'),el('kbd',{},'Shift'),'+drag: constrain · ',el('kbd',{},'Alt'),'+drag: no snapping'),
+      el('h2',{},'Device'),
+      el('div',{class:'hint'},S.device+' · '+S.w+'×'+S.h+' px'+(S.round?' · round':''),el('br'),'Font sizes depend on the device; glyph shapes are approximations.'));
     return;
   }
   if(s.length>1){
-    p.append(el('h2',{},s.length+' elem kijelölve'),el('div',{class:'hint'},'Húzással vagy a nyilakkal együtt mozgathatók.'),
-      el('div',{class:'dlgbar'},el('button',{class:'btn',onclick:dupSel},'Duplikálás'),el('button',{class:'btn',onclick:delSel},'Törlés')));
+    p.append(el('h2',{},s.length+' elements selected'),el('div',{class:'hint'},'Drag or use the arrow keys to move them together.'),
+      el('div',{class:'dlgbar'},el('button',{class:'btn',onclick:dupSel},'Duplicate'),el('button',{class:'btn',onclick:delSel},'Delete')));
     return;
   }
   const e=s[0], a=e.a, k=kind(e);
-  if(k==='sep'){ p.append(el('h2',{class:'t3'},'Elválasztó'),el('div',{class:'row one'},fTxt(e,'text','Felirat a listában')),el('div',{class:'hint'},'Csak a rétegek áttekintését segíti, az órán nem jelenik meg.')); }
-  else if(k==='dyn'){ p.append(el('h2',{class:'t2'},'Dinamikus szín'),dcEditor(dc_(e),null),el('div',{class:'hint'},'Használja: ',dcUsers(e).map(nameOf).join(', ')||'egyik elem sem')); }
+  if(k==='sep'){ p.append(el('h2',{class:'t3'},'Separator'),el('div',{class:'row one'},fTxt(e,'text','Caption in the list')),el('div',{class:'hint'},'Only organises the layer list; it is not shown on the device.')); }
+  else if(k==='dyn'){ p.append(el('h2',{class:'t2'},'Dynamic colour'),dcEditor(dc_(e),null),el('div',{class:'hint'},'Used by: ',dcUsers(e).map(nameOf).join(', ')||'no element')); }
   else if(k==='text'){
     const isVal=a.fixedtext!=='true', v=VT[a.eletype];
-    p.append(el('h2',{class:'t0'},isVal?'Érték':'Címke'),
-      el('div',{class:'row one'},seg([['v','Élő érték'],['l','Fix felirat']],isVal?'v':'l',m=>{ if(m==='v'){ a.fixedtext='false'; if(a.eletype==='FX') a.eletype='CS'; if(!/\$/.test(a.text)) a.text='$V'; } else { a.fixedtext='true'; a.eletype='FX'; if(/\$/.test(a.text)) a.text='CÍMKE'; } commit(); refresh(); })));
+    p.append(el('h2',{class:'t0'},isVal?'Value':'Label'),
+      el('div',{class:'row one'},seg([['v','Live value'],['l','Fixed text']],isVal?'v':'l',m=>{ if(m==='v'){ a.fixedtext='false'; if(a.eletype==='FX') a.eletype='CS'; if(!/\$/.test(a.text)) a.text='$V'; } else { a.fixedtext='true'; a.eletype='FX'; if(/\$/.test(a.text)) a.text='LABEL'; } commit(); refresh(); })));
     if(isVal){
-      p.append(el('div',{class:'row one'},fld('Mit mutasson?',valueSelect(a.eletype,c=>{ a.eletype=c; const nv=VT[c]; if(nv){ a.text=nv.k==='t'?'$H:$M:$S':nv.k==='p'?'$m:$S':'$V'; } delete a.sampletext; commit(); refresh(); },'p-eletype'))));
-      if(v&&v.u) p.append(el('div',{class:'hint'},'A (?) jelű neveket a példafájlokból következtettem ki – a kód biztos, a megnevezés nem.'));
-      p.append(el('div',{class:'row one'},fTxt(e,'text',a.eletype==='BG'?'Váltó adatai (kerület;lánctányér;fogaskerekek)':'Formátum – a $V helyére kerül az érték')));
-      if(a.eletype!=='BG'){ const masks = v&&(v.k==='t'||v.k==='p') ? ['$H:$M:$S','$H:$M:$C','$h:$M:$S','$H:$M','$m:$S','$M:$S'] : ['$V','$V%','$V km','$V W','$T'];
+      p.append(el('div',{class:'row one'},fld('Value',valueSelect(a.eletype,c=>{ a.eletype=c; const nv=VT[c]; if(nv) a.text=nv.mask; delete a.sampletext; commit(); refresh(); },'p-eletype'))));
+      if(v&&v.mem>30) p.append(el('div',{class:'hint'},v.mem>=500?'(H): only available on high-memory devices.':'(M): available on medium- and high-memory devices.'));
+      if(v&&v.id>0&&v.id<10) p.append(el('div',{class:'hint'},'The data field ignores the format for this type; no text is stored in the string.'));
+      p.append(el('div',{class:'row one'},fTxt(e,'text',a.eletype==='BG'?'Drivetrain (circumference;chainring;sprockets)':'Format – $V is replaced by the value')));
+      if(a.eletype!=='BG'){ const masks = v&&v.k==='t' ? ['$H:$M:$S','$H:$M:$C','$h:$M:$S','$H:$M','$m:$S','$M:$S'] : ['$V','$V%','$V km','$V W','$T'];
         p.append(el('div',{class:'chips'},masks.map(m=>el('button',{type:'button',onclick:()=>{ a.text=m; commit(); refresh(); }},m)))); }
-      p.append(el('div',{class:'row'},fNum(e,'precision','Tizedesjegyek',{min:0}),fNum(e,'nr_values','Átlagolás (mp)',{min:1})), el('div',{class:'row one'},sampleField(e)), fChk(e,'maxonly','Csak az eddigi maximumot mutassa'));
-    } else p.append(el('div',{class:'row one'},fTxt(e,'text','Felirat')));
+      p.append(el('div',{class:'row'},fNum(e,'precision','Decimals',{min:0}),fNum(e,'nr_values','Averaging (s)',{min:1})), el('div',{class:'row one'},sampleField(e)), fChk(e,'maxonly','Show only the maximum reached'));
+    } else p.append(el('div',{class:'row one'},fTxt(e,'text','Text')));
     const map=(DEV[S.device]||[])[3]||{}, names=Object.keys(map).length?Object.keys(map):Object.keys(FONT_FALLBACK); if(!names.includes(a.font)) names.push(a.font);
-    const fs=el('select',{id:'p-font',onchange:()=>{ a.font=fs.value; commit(); refresh(); }},names.map(n=>el('option',{value:n},(FONT_NAMES[n.replace(/^S_/,'')]||n)+(n.startsWith('S_')?' (rendszer)':'')+' – '+n+(map[n]?' · '+map[n][1]+' px':''))));
+    const fs=el('select',{id:'p-font',onchange:()=>{ a.font=fs.value; commit(); refresh(); }},names.map(n=>el('option',{value:n},(FONT_NAMES[n.replace(/^S_/,'')]||n)+(n.startsWith('S_')?' (system)':'')+' – '+n+(map[n]?' · '+map[n][1]+' px':''))));
     fs.value=a.font;
-    p.append(el('h2',{},'Betű és hely'),el('div',{class:'row one'},fld('Betűméret',fs)),
-      el('div',{class:'row one'},fld('Igazítás az X ponthoz',seg([['2','Balra'],['1','Középre'],['0','Jobbra']],a.halignment,v=>{ a.halignment=v; commit(); refresh(); }))),
-      el('div',{class:'row'},fNum(e,'x','X'),fNum(e,'y','Y (felső él)')), colorSection(e));
+    p.append(el('h2',{},'Font and position'),el('div',{class:'row one'},fld('Font',fs)),
+      el('div',{class:'row one'},fld('Alignment at X',seg([['2','Left'],['1','Centre'],['0','Right']],a.halignment,v=>{ a.halignment=v; commit(); refresh(); }))),
+      el('div',{class:'row'},fNum(e,'x','X'),fNum(e,'y','Y (top edge)')), colorSection(e));
   } else {
     const ts=el('select',{id:'p-gtype',onchange:()=>{ const was=kind(e); a.eletype=ts.value; const now=kind(e);
         if(was!==now){ const b=(()=>{ a.eletype=ts.value; return null; })(); if(['arc'].includes(now)){ a.radius=String(N(a.radius)||40); a.x2='200'; a.y2='340'; } else if(now==='circle'||now==='dir'){ a.radius=String(N(a.radius)||20); if(now==='dir'){ a.x2='0'; a.y2='0'; } } else if(hasBox(e)&&!['line','rect','graph','box'].includes(was)){ a.x2=String(N(a.x)+60); a.y2=String(N(a.y)+(now==='line'?0:30)); } }
         commit(); refresh(); }}, Object.entries(GT).map(([c,n])=>el('option',{value:c},n)));
-    if(!GT[a.eletype]) ts.append(el('option',{value:a.eletype},'Ismeretlen típus ['+a.eletype+']')); ts.value=a.eletype;
-    p.append(el('h2',{class:'t1'},'Grafika'),el('div',{class:'row one'},fld('Típus',ts)));
+    if(!GT[a.eletype]) ts.append(el('option',{value:a.eletype},'Unknown type ['+a.eletype+']')); ts.value=a.eletype;
+    p.append(el('h2',{class:'t1'},'Graphic'),el('div',{class:'row one'},fld('Type',ts)));
     if(k==='line'||k==='rect'||k==='graph'||k==='box'){
-      p.append(el('div',{class:'row four'},fNum(e,'x',k==='line'?'X1':'Bal'),fNum(e,'y',k==='line'?'Y1':'Felső'),fNum(e,'x2',k==='line'?'X2':'Jobb'),fNum(e,'y2',k==='line'?'Y2':'Alsó')));
-      if(a.eletype==='LN'||a.eletype==='RC') p.append(el('div',{class:'row'},fNum(e,'stroke','Vonalvastagság',{min:1})));
-      if(k==='graph') p.append(el('div',{class:'row'},fNum(e,'stroke','Oszlopszélesség (px/mp)',{min:1}),fNum(e,'radius','Min./max. határ (×10)')),fChk(e,'minval','A határ a minimumot adja meg'),fChk(e,'maxonly','Minimum és maximum megjelölése'));
-    } else if(k==='circle'){ p.append(el('div',{class:'row'},fNum(e,'x','Középpont X'),fNum(e,'y','Középpont Y'),fNum(e,'radius','Sugár',{min:1}),a.eletype==='CR'?fNum(e,'stroke','Vonalvastagság',{min:1}):null)); }
-    else if(k==='arc'){ p.append(el('div',{class:'row'},fNum(e,'x','Középpont X'),fNum(e,'y','Középpont Y'),fNum(e,'radius','Sugár',{min:1}),fNum(e,'stroke','Vastagság',{min:1}),fNum(e,'x2','Kezdőszög °'),fNum(e,'y2','Végszög °')),
-        el('div',{class:'hint'},'0° a 3 óra iránya, a szög az óramutató járása szerint nő (270° = fent). A kitöltődő ív a kezdőszögtől halad a végszög felé. A kör alakú fogókkal is állítható.')); }
-    else if(k==='dir'){ p.append(el('div',{class:'row'},fNum(e,'x','Középpont X'),fNum(e,'y','Középpont Y'),fNum(e,'radius','Méret (sugár)',{min:1}),fNum(e,'stroke','Vonalvastagság',{min:1}),fNum(e,'y2','Távolság a középponttól')),
-        el('div',{class:'hint'},'Ha a távolság nem 0, a jel körpályán mozog a középpont körül (iránytű-szerűen).')); }
-    p.append(el('h2',{},k==='dir'?'Mire mutasson?':'Kapcsolt érték'),
-      el('div',{class:'row one'},fld(k==='dir'?'Cél (üresen: az adatmező beállítása dönt)':FILL.includes(a.eletype)||k==='graph'?'Melyik értéket ábrázolja?':'Melyik érték vezérelje a színt?',valueSelect(a.valuetype||'FX',c=>{ a.valuetype=c; commit(); refresh(); },'p-valuetype'))));
-    if(a.valuetype&&a.valuetype!=='FX'&&k!=='dir'){ p.append(el('div',{class:'row'},sampleField(e),fNum(e,'nr_values','Átlagolás (mp)',{min:1}))); }
+      p.append(el('div',{class:'row four'},fNum(e,'x',k==='line'?'X1':'Left'),fNum(e,'y',k==='line'?'Y1':'Top'),fNum(e,'x2',k==='line'?'X2':'Right'),fNum(e,'y2',k==='line'?'Y2':'Bottom')));
+      if(a.eletype==='LN'||a.eletype==='RC') p.append(el('div',{class:'row'},fNum(e,'stroke','Stroke width',{min:1})));
+      if(k==='graph') p.append(el('div',{class:'row'},fNum(e,'stroke','Bar width (px per second)',{min:1}),fNum(e,'radius','Min./max. value')),fChk(e,'minval','Limit is the minimum value'),fChk(e,'maxonly','Mark min/max values'));
+    } else if(k==='circle'){ p.append(el('div',{class:'row'},fNum(e,'x','Centre X'),fNum(e,'y','Centre Y'),fNum(e,'radius','Radius',{min:1}),a.eletype==='CR'?fNum(e,'stroke','Stroke width',{min:1}):null)); }
+    else if(k==='arc'){ p.append(el('div',{class:'row'},fNum(e,'x','Centre X'),fNum(e,'y','Centre Y'),fNum(e,'radius','Radius',{min:1}),fNum(e,'stroke','Stroke',{min:1}),fNum(e,'x2','Start angle °'),fNum(e,'y2','End angle °')),
+        el('div',{class:'hint'},'0° points to 3 o\'clock and angles grow clockwise (270° = top). A filling arc runs from the start angle towards the end angle. The round handles adjust them too.')); }
+    else if(k==='dir'){ p.append(el('div',{class:'row'},fNum(e,'x','Centre X'),fNum(e,'y','Centre Y'),fNum(e,'radius','Size (radius)',{min:1}),fNum(e,'stroke','Stroke width',{min:1}),fNum(e,'y2','Distance from centre')),
+        el('div',{class:'hint'},'With a non-zero distance the marker moves on a circle around the centre, like a compass.')); }
+    p.append(el('h2',{},k==='dir'?'Points to':'Linked value'),
+      el('div',{class:'row one'},fld(k==='dir'?'Target (none: the data field setting decides)':FILL.includes(a.eletype)||k==='graph'?'Which value does it show?':'Which value drives the colour?',valueSelect(a.valuetype||'FX',c=>{ a.valuetype=c; commit(); refresh(); },'p-valuetype'))));
+    if(a.valuetype&&a.valuetype!=='FX'&&k!=='dir'){ p.append(el('div',{class:'row'},sampleField(e),fNum(e,'nr_values','Averaging (s)',{min:1}))); }
     p.append(colorSection(e));
   }
-  if(e.type<2) p.append(el('div',{class:'dlgbar'},el('button',{class:'btn sm',onclick:dupSel},'Duplikálás'),el('button',{class:'btn sm',onclick:delSel},'Törlés')));
+  if(e.type<2) p.append(el('div',{class:'dlgbar'},el('button',{class:'btn sm',onclick:dupSel},'Duplicate'),el('button',{class:'btn sm',onclick:delSel},'Delete')));
   if(keep){ const f=document.getElementById(keep); if(f) f.focus(); }
 }
 const dc_ = e => e;
@@ -655,7 +651,7 @@ function refresh(){ draw(); renderLayers(); renderPanel(); selStatus(); updButto
 const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 function toXML(){
   const L=['<?xml version="1.0" encoding="UTF-8"?>','<DIYLayout>','    <Device name="'+esc(S.device)+'"/>'];
-  const d=S.designer||{time:new Date().toLocaleString('de-AT',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}).replace(',',''),ver:'3.2.1',ifver:'C'};
+  const d=S.designer||{time:new Date().toLocaleString('de-AT',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}).replace(',',''),ver:'3.4.2',ifver:'C'};
   L.push('    <Designer '+Object.entries(d).map(([k,v])=>k+'="'+esc(v)+'"').join(' ')+'/>');
   for(const e of S.els){
     let at=[['type',e.type]];
@@ -668,7 +664,7 @@ function toXML(){
 function fromXML(text){
   const body=text.match(/<DIYLayout[\s\S]*<\/DIYLayout>/);
   const doc=new DOMParser().parseFromString(body?body[0]:'<x/>','application/xml');
-  if(!body||doc.querySelector('parsererror')||!doc.querySelector('DIYLayout')) throw new Error('Ez nem HMs DIY elrendezés (hiányzik a <DIYLayout> elem).');
+  if(!body||doc.querySelector('parsererror')||!doc.querySelector('DIYLayout')) throw new Error('Not a HMs DIY layout (no <DIYLayout> element).');
   const ns={device:S.device,w:S.w,h:S.h,round:S.round,designer:null,els:[],samples:S.samples,nid:1};
   const dv=doc.querySelector('Device'); if(dv){ ns.device=dv.getAttribute('name')||ns.device; const d=DEV[ns.device]; if(d){ ns.w=d[0]; ns.h=d[1]; ns.round=!!d[2]; } }
   const dg=doc.querySelector('Designer'); if(dg){ ns.designer={}; for(const at of dg.attributes) ns.designer[at.name]=at.value; }
@@ -681,55 +677,127 @@ function fromXML(text){
   }
   return ns;
 }
-function loadText(text){ try{ const ns=fromXML(text); clearTimeout(cTimer); commit(); S=ns; sel=[]; commit(); syncDevice(); fitZoom(); refresh(); toast('Betöltve: '+S.els.length+' elem · '+S.device); return true; }catch(err){ toast(err.message); return false; } }
+function loadText(text){ try{ let ns, note=''; if(/<DIYLayout/.test(text)) ns=fromXML(text); else { const d=decodeLayout(text); ns=autoLock({device:S.device,w:S.w,h:S.h,round:S.round,designer:null,els:d.els,samples:S.samples,nid:d.nid}); note=d.gen==='C'?' (from layout string)':' – note: this is a generation "'+d.gen+'" string, the editor knows format "C"'; } clearTimeout(cTimer); commit(); S=ns; sel=[]; commit(); syncDevice(); fitZoom(); refresh(); toast('Loaded: '+S.els.length+' elements · '+S.device+note); return true; }catch(err){ toast(err.message); return false; } }
 function readFile(f){ const r=new FileReader(); r.onload=()=>{ let t; try{ t=new TextDecoder('utf-8',{fatal:true}).decode(r.result); }catch(e){ t=new TextDecoder('windows-1252').decode(r.result); } if(loadText(t)){ $('#fname').value=f.name; $('#dlg-open').close(); } }; r.readAsArrayBuffer(f); }
 
-/* ---------- Eszköz, nagyítás ---------- */
-function syncDevice(){ const s=$('#device'); if(![...s.options].some(o=>o.value===S.device)) s.append(el('option',{value:S.device},S.device+' (ismeretlen)')); s.value=S.device; $('#devw').value=S.w; $('#devh').value=S.h; $('#devround').checked=S.round; }
+/* ---------- Layout string: generation "C" encoding of Designer 3.4.2 ----------
+   Four 32-bit words per element, each written as 5 base-85 characters (w x y z stand in for < > & #).
+   Text:    [type|value<<3|value<<11|averaging<<19] [colour|length<<24] [x+50|y+50<<10|font<<20|decimals<<25|align<<27|maxonly<<30|daynight<<31] [0] + the text
+   Graphic: [1|kind<<3|value<<11|averaging<<19] [colour|stroke<<24] [x+50|y+50<<10|A<<20|maxonly<<30|daynight<<31] [B]
+   Dynamic colour: [2|key colour<<3|rows<<27], then per row [colour|invert<<25|hide<<26|blink<<27] [threshold, negative flagged with 1<<20] */
+function w85(v){ v>>>=0; let s=''; for(let i=0;i<5;i++){ s=String.fromCharCode(33+v%85)+s; v=Math.floor(v/85); } return s.replace(/[<>&#]/g,c=>({'<':'w','>':'x','&':'y','#':'z'})[c]); }
+function r85(s){ let v=0; for(const ch of s){ const c=({w:'<',x:'>',y:'&',z:'#'})[ch]||ch; v=v*85+c.charCodeAt(0)-33; } return v>>>0; }
+function encodeLayout(){
+  const warn=[], seen=new Set(), B=(a,k)=>a[k]==='true'?1:0, col=c=>(parseInt(c,16)||0)&0xffffff; let out='C', mem=30, n=0;
+  const w=m=>{ if(!seen.has(m)){ seen.add(m); warn.push(m); } };
+  const vid=(c,name)=>{ if(!c) return 0; if(VT[c]){ mem=Math.max(mem,VT[c].mem); return VT[c].id; } const m=/^#(\d+)$/.exec(c); if(m) return +m[1]; w(name+': unknown value type ('+c+'), encoded without a value.'); return 0; };
+  const rng=(v,lo,hi,name,what)=>{ if(v<lo||v>hi) w(name+': '+what+' ('+v+') is outside the storable range '+lo+'…'+hi+'.'); return v; };
+  for(const e of S.els){ const a=e.a;
+    if(e.type===0){ const name=nameOf(e); n++;
+      const id=vid(a.eletype,name), txt=(id>0&&id<10)?'':(a.text||''); let fi=FONTS.indexOf(a.font);
+      if(fi<0){ w(name+': unknown font ('+a.font+').'); fi=0; }
+      if(txt.length>255) w(name+': text is longer than 255 characters.');
+      const x=rng(N(a.x),-50,973,name,'X'), y=rng(N(a.y),-50,973,name,'Y');
+      out+=w85(((B(a,'fixedtext')?0:id)&255)<<3|(id&255)<<11|(rng(N(a.nr_values),0,8191,name,'averaging')&0x1fff)<<19)
+        +w85(col(a.color)|(txt.length&255)<<24)
+        +w85((x+50)&1023|((y+50)&1023)<<10|(fi&31)<<20|(rng(N(a.precision),0,3,name,'decimals')&3)<<25|(N(a.halignment)&3)<<27|B(a,'maxonly')<<30|B(a,'daynight')<<31)
+        +w85(0)+txt;
+    } else if(e.type===1){ const name=nameOf(e), g=GID[a.eletype];
+      if(g==null){ w(name+': unknown graphic type, left out of the string.'); continue; }
+      n++; if(g>=9) mem=500;
+      const x=rng(N(a.x),-50,973,name,'X'), y=rng(N(a.y),-50,973,name,'Y'), x2=N(a.x2), y2=N(a.y2), r=N(a.radius), st=(rng(N(a.stroke),0,255,name,'stroke')&255)<<24;
+      let w2=col(a.color), w3=(x+50)&1023|((y+50)&1023)<<10, w4=0;
+      if(g===0){ w2|=st; w3|=((rng(x2,-50,973,name,'X2')+50)&1023)<<20; w4=(rng(y2,-50,973,name,'Y2')+50)&1023; }
+      else if(g<=2){ if(g===1) w2|=st; w3|=(rng(r,0,1023,name,'radius')&1023)<<20; }
+      else if(g<=6||g>=11){ if(g!==4&&g!==5&&g!==6) w2|=st; if(x2<x||y2<y) w(name+': the right/bottom edge is before the left/top one; it may render wrongly on the device.');
+        w3|=((x2-x)&1023)<<20; w4=(y2-y)&1023; if(g>=11) w4|=(rng(r,0,1023,name,'min./max. value')&1023)<<10|B(a,'minval')<<20; }
+      else if(g<=8){ w2|=st; w3|=(rng(r,0,1023,name,'radius')&1023)<<20; w4=rng(x2,0,1023,name,'start angle')&1023|(rng(y2,0,1023,name,'end angle')&1023)<<10; }
+      else { w2|=st; w3|=(rng(r,0,1023,name,'size')&1023)<<20; w4=rng(y2,0,1023,name,'distance')&1023; }
+      w3|=B(a,'maxonly')<<30|B(a,'daynight')<<31;
+      out+=w85(1|g<<3|(vid(a.valuetype,name)&255)<<11|(rng(N(a.nr_values),0,8191,name,'averaging')&0x1fff)<<19)+w85(w2)+w85(w3)+w85(w4);
+    } else if(e.type===2){ const rows=(e.dirty?dcRows(e):e.dc).slice(0,10); if(!rows.length) continue; n++;
+      if(e.dc.length>10) w('Dynamic colour #'+a.replDC+': at most 10 ranges fit in the string.');
+      out+=w85(2|col(a.replDC)<<3|(rows.length&15)<<27);
+      rows.forEach((r,i)=>{ if(Math.abs(r.val)>0xfffff) w('Dynamic colour #'+a.replDC+': threshold is too large.');
+        out+=w85(col(r.col)|((a.invertcolor==='true'&&i===0)?1:0)<<25|(r.hide?1:0)<<26|(r.blink?1:0)<<27)+w85(r.val<0?((-r.val)&0xfffff)|0x100000:r.val&0xfffff); });
+    }
+  }
+  return {str:out,warn,n,mem};
+}
+function decodeLayout(str){
+  str=str.replace(/^\s+|[\r\n]+$/g,''); if(!/^[A-Z][!-uw-z]{5}/.test(str)||/<\w/.test(str)) throw new Error('This is neither HMs DIY XML nor a layout string.');
+  let p=1, nid=1; const els=[], GC=Object.keys(GID), b=v=>v?'true':'false', S_=v=>String(v);
+  const rd=()=>{ if(p+5>str.length) throw new Error('The layout string is truncated (after element '+els.length+').'); const v=r85(str.substr(p,5)); p+=5; return v; };
+  const code=id=>VID[id]||('#'+id), hex=v=>(v&0xffffff).toString(16).toUpperCase().padStart(6,'0');
+  while(p<str.length){ const w1=rd(), t=w1&7;
+    if(t===0){ const w2=rd(), w3=rd(); rd(); const n=w2>>>24, txt=str.substr(p,n), id=(w1>>>11)&255; p+=n;
+      els.push({id:nid++,type:0,a:{color:hex(w2),x:S_((w3&1023)-50),y:S_(((w3>>>10)&1023)-50),fixedtext:b(((w1>>>3)&255)===0),maxonly:b(w3>>>30&1),daynight:b(w3>>>31),eletype:code(id),text:(id>0&&id<10&&VT[code(id)])?VT[code(id)].mask:txt,font:FONTS[(w3>>>20)&31]||'SMALL',halignment:S_((w3>>>27)&3),precision:S_((w3>>>25)&3),nr_values:S_(w1>>>19)}}); }
+    else if(t===1){ const w2=rd(), w3=rd(), w4=rd(), g=(w1>>>3)&255, x=(w3&1023)-50, y=((w3>>>10)&1023)-50, f=(w3>>>20)&1023; let x2=0, y2=0, r=0;
+      if(g===0){ x2=f-50; y2=(w4&1023)-50; } else if(g<=2) r=f; else if(g<=6||g>=11){ x2=x+f; y2=y+(w4&1023); if(g>=11) r=(w4>>>10)&1023; } else if(g<=8){ r=f; x2=w4&1023; y2=(w4>>>10)&1023; } else { r=f; y2=w4&1023; }
+      els.push({id:nid++,type:1,a:{color:hex(w2),x:S_(x),y:S_(y),x2:S_(x2),y2:S_(y2),eletype:GC[g]||('?'+g),valuetype:code((w1>>>11)&255),minval:b(g>=11&&(w4>>>20&1)),maxonly:b(w3>>>30&1),daynight:b(w3>>>31),radius:S_(r),stroke:S_([2,4,5,6].includes(g)?1:(w2>>>24)),nr_values:S_(w1>>>19)}}); }
+    else if(t===2){ const cnt=(w1>>>27)&15, dc=[]; let inv=false;
+      for(let i=0;i<cnt;i++){ const c=rd(), v=rd(); if(i===0) inv=!!(c>>>25&1); dc.push({val:(v&0x100000)?-(v&0xfffff):(v&0xfffff),col:hex(c),hide:!!(c>>>26&1),blink:!!(c>>>27&1)}); }
+      els.push({id:nid++,type:2,a:{replDC:hex(w1>>>3),invertcolor:b(inv)},dc}); }
+    else throw new Error('Cannot read the layout string (unknown element type: '+t+').');
+  }
+  return {gen:str[0],els,nid};
+}
+function autoLock(st){ for(const e of st.els){ const a=e.a; if(e.type===1&&a.eletype==='RF'&&Math.abs(N(a.x2)-N(a.x))>=st.w-2&&Math.abs(N(a.y2)-N(a.y))>=st.h-2) e.lock=true; } return st; }
+function showString(){
+  clearTimeout(cTimer); commit(); const r=encodeLayout(); $('#strout').value=r.str;
+  if(r.str.length>5000) r.warn.unshift('The string is '+r.str.length+' characters long; the data field setting accepts at most 5000. Remove some elements.');
+  const lim={30:'on any supported device',35:'on medium- or high-memory devices (M)',500:'on high-memory devices only (H)'}[r.mem];
+  $('#strinfo').textContent=r.str.length+' / 5000 characters · '+r.n+' elements · with the types used it runs '+lim+'. Element limits: low memory 30, medium 35, high 500.';
+  const ul=$('#strwarn'); ul.textContent=''; ul.hidden=!r.warn.length; r.warn.forEach(m=>ul.append(el('li',{},m)));
+  $('#dlg-dev').showModal();
+}
+
+/* ---------- Device, zoom ---------- */
+function syncDevice(){ const s=$('#device'); if(![...s.options].some(o=>o.value===S.device)) s.append(el('option',{value:S.device},S.device+' (unknown)')); s.value=S.device; $('#devw').value=S.w; $('#devh').value=S.h; $('#devround').checked=S.round; }
 let prevDim=null;
 function setDevice(name){ const d=DEV[name]; prevDim={w:S.w,h:S.h}; S.device=name; if(d){ S.w=d[0]; S.h=d[1]; S.round=!!d[2]; } $('#rescale').hidden=!(S.els.length&&(prevDim.w!==S.w||prevDim.h!==S.h)); commit(); syncDevice(); fitZoom(); refresh(); }
 function rescale(){ if(!prevDim) return; const fx=S.w/prevDim.w, fy=S.h/prevDim.h, fr=Math.min(fx,fy), R=v=>String(Math.round(v));
   for(const e of S.els){ if(e.type>1) continue; const a=e.a, k=kind(e); a.x=R(N(a.x)*fx); a.y=R(N(a.y)*fy); if(hasBox(e)){ a.x2=R(N(a.x2)*fx); a.y2=R(N(a.y2)*fy); } if(k==='circle'||k==='arc'||k==='dir'){ a.radius=R(N(a.radius)*fr); if(k==='dir') a.y2=R(N(a.y2)*fr); } }
-  $('#rescale').hidden=true; commit(); refresh(); toast('Az elemek az új képernyőmérethez igazítva.'); }
+  $('#rescale').hidden=true; commit(); refresh(); toast('Elements scaled to the new screen size.'); }
 function setZoom(z){ zoom=clamp(Math.round(z*4)/4,.5,6); $('#zfit').textContent=Math.round(zoom*100)+'%'; draw(); }
 function fitZoom(){ const st=$('#stage'); const z=Math.min((st.clientWidth-PAD*2-8)/S.w,(st.clientHeight-PAD*2-8)/S.h); setZoom(clamp(Math.floor(z*4)/4,.5,4)); }
 
-/* ---------- Minta elrendezés ---------- */
+/* ---------- Sample layout ---------- */
 function sampleLayout(){
   S.els=[]; S.nid=1; const w=S.w, h=S.h, sx=v=>String(Math.round(v*w/246)), sy=v=>String(Math.round(v*h/322)), add=e=>(S.els.push(e),e);
   add(mkG('RF',{color:'FFFFFF',x2:String(w),y2:String(h)},{lock:true}));
-  add(mk(3,{text:'*** FEJLÉC ***'}));
+  add(mk(3,{text:'*** HEADER ***'}));
   add(mkVal('CT',{text:'$H:$M',font:'XTINY',halignment:'2',x:sx(6),y:sy(6)}));
   add(mkVal('TM',{text:'$V°C',font:'XTINY',halignment:'1',precision:'0',x:sx(123),y:sy(6)}));
   add(mkVal('BV',{text:'$V%',font:'XTINY',halignment:'0',precision:'0',x:sx(240),y:sy(6)}));
   add(mkG('LN',{x:'0',y:sy(26),x2:String(w),y2:sy(26)}));
-  add(mk(3,{text:'*** SEBESSÉG ***'}));
-  add(mkText({text:'SEBESSÉG km/h',color:'555555',x:sx(123),y:sy(30)}));
+  add(mk(3,{text:'*** SPEED ***'}));
+  add(mkText({text:'SPEED km/h',color:'555555',x:sx(123),y:sy(30)}));
   const arcBg=add(mkG('AC',{color:'AAAAAA',x:sx(123),y:sy(150),radius:sx(100),x2:'205',y2:'335',stroke:'10'}));
   const arc=add(mkG('AF',{color:'00AAFF',valuetype:'CS',x:arcBg.a.x,y:arcBg.a.y,radius:arcBg.a.radius,x2:'205',y2:'335',stroke:'10'}));
   add(mkDyn('00AAFE',[{val:600,col:'FF0000',hide:false,blink:false},{val:400,col:'FF5500',hide:false,blink:false},{val:0,col:'00AAFF',hide:false,blink:false}])); arc.a.color='00AAFE';
   add(mkVal('CS',{font:'NR_THAI_HOT',precision:'1',x:sx(123),y:sy(62)}));
-  add(mkVal('AS',{text:'átl. $V',font:'TINY',color:'555555',precision:'1',x:sx(123),y:sy(120)}));
+  add(mkVal('AS',{text:'avg $V',font:'TINY',color:'555555',precision:'1',x:sx(123),y:sy(120)}));
   add(mkG('LN',{x:'0',y:sy(148),x2:String(w),y2:sy(148)}));
-  add(mk(3,{text:'*** PULZUS / FORDULAT ***'}));
+  add(mk(3,{text:'*** HEART RATE / CADENCE ***'}));
   add(mkG('LN',{x:sx(123),y:sy(148),x2:sx(123),y2:String(h)}));
-  add(mkText({text:'PULZUS',color:'555555',x:sx(61),y:sy(152)}));
+  add(mkText({text:'HEART RATE',color:'555555',x:sx(61),y:sy(152)}));
   const hr=add(mkVal('HR',{font:'NR_HOT',x:sx(61),y:sy(170)}));
   add(mkDyn('000001',[{val:1700,col:'FF0000',hide:false,blink:false},{val:1500,col:'FF5500',hide:false,blink:false},{val:1300,col:'00AA00',hide:false,blink:false},{val:0,col:'000000',hide:false,blink:false}])); hr.a.color='000001'; hr.a.daynight='false';
   const bar=add(mkG('RH',{color:'AA0001',valuetype:'HR',x:sx(10),y:sy(222),x2:sx(113),y2:sy(228)}));
   add(mkDyn('AA0001',[{val:1900,col:'AA0000',hide:false,blink:false},{val:600,col:'AA0000',hide:false,blink:false}]));
-  add(mkText({text:'FORDULAT',color:'555555',x:sx(185),y:sy(152)}));
+  add(mkText({text:'CADENCE',color:'555555',x:sx(185),y:sy(152)}));
   add(mkVal('CC',{font:'NR_HOT',x:sx(185),y:sy(170)}));
   add(mkG('LN',{x:'0',y:sy(236),x2:String(w),y2:sy(236)}));
-  add(mk(3,{text:'*** TÁV / IDŐ ***'}));
-  add(mkText({text:'TÁV km',color:'555555',x:sx(61),y:sy(240)}));
+  add(mk(3,{text:'*** DISTANCE / TIME ***'}));
+  add(mkText({text:'DIST km',color:'555555',x:sx(61),y:sy(240)}));
   add(mkVal('DS',{font:'NR_MEDIUM',precision:'2',x:sx(61),y:sy(260)}));
-  add(mkText({text:'IDŐ',color:'555555',x:sx(185),y:sy(240)}));
+  add(mkText({text:'TIME',color:'555555',x:sx(185),y:sy(240)}));
   add(mkVal('TT',{text:'$h:$M:$S',font:'NR_MEDIUM',x:sx(185),y:sy(260)}));
   S.designer=null; sel=[];
 }
 
-/* ---------- Indulás, események ---------- */
+/* ---------- Start-up, events ---------- */
 function init(){
   const ds=$('#device'); for(const n of Object.keys(DEV).sort((a,b)=>a.localeCompare(b,'hu',{numeric:true}))) ds.append(el('option',{value:n},n+'  ('+DEV[n][0]+'×'+DEV[n][1]+')'));
   buildPalette();
@@ -749,12 +817,13 @@ function init(){
   $('#lup').onclick=()=>moveLayer(1); $('#ldown').onclick=()=>moveLayer(-1); $('#ldup').onclick=dupSel; $('#ldel').onclick=delSel;
   document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>b.closest('dialog').close());
   $('#bsave').onclick=()=>{ clearTimeout(cTimer); commit(); $('#xmlout').value=toXML(); $('#dlg-save').showModal(); };
-  $('#dl').onclick=()=>{ const blob=new Blob(['\uFEFF'+toXML()],{type:'text/xml'}), a=el('a',{href:URL.createObjectURL(blob),download:$('#fname').value||'layout.xml'}); document.body.append(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),2000); toast('Letöltés elindítva. Ha nem indul, használd a Másolás gombot.'); };
-  $('#cp').onclick=()=>{ const t=$('#xmlout'); const fb=()=>{ t.focus(); t.select(); toast('Kijelölve – Ctrl+C-vel másolható.'); }; if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(t.value).then(()=>toast('XML a vágólapon.'),fb); else fb(); };
+  $('#dl').onclick=()=>{ const blob=new Blob(['\uFEFF'+toXML()],{type:'text/xml'}), a=el('a',{href:URL.createObjectURL(blob),download:$('#fname').value||'layout.xml'}); document.body.append(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),2000); toast('Download started. If nothing happens, use Copy instead.'); };
+  $('#cp').onclick=()=>{ const t=$('#xmlout'); const fb=()=>{ t.focus(); t.select(); toast('Selected – press Ctrl+C to copy.'); }; if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(t.value).then(()=>toast('XML copied.'),fb); else fb(); };
   $('#bopen').onclick=()=>{ $('#xmlin').value=''; $('#file').value=''; $('#dlg-open').showModal(); };
   $('#file').onchange=ev=>{ if(ev.target.files[0]) readFile(ev.target.files[0]); };
   $('#loadtxt').onclick=()=>{ if(loadText($('#xmlin').value)) $('#dlg-open').close(); };
-  $('#bdev').onclick=()=>$('#dlg-dev').showModal();
+  $('#bdev').onclick=showString;
+  $('#strcp').onclick=()=>{ const t=$('#strout'); const fb=()=>{ t.focus(); t.select(); toast('Selected – press Ctrl+C to copy.'); }; if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(t.value).then(()=>toast('Layout string copied.'),fb); else fb(); };
   $('#bnew').onclick=()=>$('#dlg-new').showModal();
   $('#new-sample').onclick=()=>{ commit(); sampleLayout(); commit(); refresh(); $('#dlg-new').close(); };
   $('#new-empty').onclick=()=>{ commit(); S.els=[]; S.designer=null; sel=[]; commit(); refresh(); $('#dlg-new').close(); };
@@ -770,7 +839,7 @@ function init(){
     if(mod&&k==='z'){ ev.preventDefault(); ev.shiftKey?redo():undo(); }
     else if(mod&&k==='y'){ ev.preventDefault(); redo(); }
     else if(mod&&k==='d'){ ev.preventDefault(); dupSel(); }
-    else if(mod&&k==='c'){ clip=JSON.parse(JSON.stringify(selEls())); if(clip.length) toast(clip.length+' elem másolva'); }
+    else if(mod&&k==='c'){ clip=JSON.parse(JSON.stringify(selEls())); if(clip.length) toast(clip.length+' element(s) copied'); }
     else if(mod&&k==='x'){ clip=JSON.parse(JSON.stringify(selEls())); delSel(); }
     else if(mod&&k==='v'){ if(clip.length){ ev.preventDefault(); addEls(cloneEls(clip,8)); } }
     else if(mod&&k==='a'){ ev.preventDefault(); sel=S.els.filter(e=>e.type<2&&!e.lock&&!e.hide).map(e=>e.id); refresh(); }

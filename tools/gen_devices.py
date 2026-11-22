@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-"""Eszköz- és betűtábla generálása a HMs DIY Designer fonts.txt fájljából.
+"""Build the device and font table from the HMs DIY Designer's fonts.txt.
 
-Használat:  python3 tools/gen_devices.py /path/to/fonts.txt
-A kimenet az index.html-ben a /*DATA*/ ... /*END*/ jelölők közé kerül.
-fonts.txt forrása: https://github.com/hundsmiachn/Garmin_HMsDIY
+Usage:  python3 tools/gen_devices.py /path/to/fonts.txt
+The result is written between the /*DATA*/ ... /*END*/ markers in index.html.
+fonts.txt comes from https://github.com/hundsmiachn/Garmin_HMsDIY
 """
 import json, re, sys, pathlib
 
-# Képernyőméretek (szélesség, magasság, kerek-e). A fonts.txt ezt nem tartalmazza.
+# Screen sizes (width, height, round). fonts.txt does not contain them.
 RES = [
     (r'^Edge 10[34]0', (282, 470, 0)), (r'^Edge 130', (230, 303, 0)),
     (r'^Edge (520|820)', (200, 265, 0)), (r'^Edge [58]30', (246, 322, 0)),
@@ -54,6 +54,6 @@ if __name__ == '__main__':
         s = html.read_text(encoding='utf-8')
         s2 = re.sub(r'/\*DATA\*/.*?/\*END\*/', lambda m: '/*DATA*/' + data + '/*END*/', s, flags=re.S)
         html.write_text(s2, encoding='utf-8')
-        print('index.html frissítve,', len(data), 'bájt,', data.count('":[') , 'bejegyzés')
+        print('index.html updated,', len(data), 'bytes')
     else:
         print(data)
