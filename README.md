@@ -12,17 +12,20 @@ browser between visits.
 
 ### Starting a layout
 
-**New layout** (menu) works in two steps:
+**New layout** (menu) has three parts side by side:
 
-1. **The field**: pick the device, then the field the layout is for: the whole screen, or one of
-   the device's field sizes (each size is listed once) for a DIY field that sits beside native
-   Garmin fields.
-2. **A grid inside the field**: for the whole screen the device's own data screen layouts. For a
-   smaller field up to eight grid ideas (no cell taller than wide), plus **Custom**: a mesh of
-   equal cells (each at least 61 × 31 px) in which you merge cells by dragging across them; a
-   click splits a merged cell again. Where the mesh is so small that only a handful of grids are
-   possible, all of them are listed instead of Custom. The dividing lines are drawn for you,
-   optionally with a sample label and value in every cell.
+1. **Device**: a searchable list.
+2. **Field**: the screen, or one of the device's field sizes (each size is listed once) for a
+   DIY field that sits beside native Garmin fields.
+3. **Grid** inside the field: for the screen the device's own data screen layouts. For a smaller
+   field up to eight grid ideas (no cell taller than wide), plus **Custom**: a mesh of equal cells
+   (each at least 61 × 31 px) in which you merge cells by dragging across them; a click splits a
+   merged cell again. Where the mesh is so small that only a handful of grids are possible, all
+   of them are listed instead of Custom. The dividing lines are drawn for you, optionally with a
+   sample label and value in every cell.
+
+Device and field can be changed later from the top bar. A factory field has a fixed size; only
+"Custom size" in the device list lets you type a width and height.
 
 For 178 of the 180 devices the layouts and field rectangles are Garmin's own, taken from the
 Connect IQ device files. The two without data (Forerunner 45, vívolife) use an even split.
@@ -71,7 +74,7 @@ gets the largest font of its family that fits the box.
   HMs DIY Designer plus 74 newer ones known from the Connect IQ SDK (whether HMs DIY runs on
   those is not known here). The device is chosen in a searchable dialog. Devices that are
   identical for the editor (same screen, fonts and field layouts) share one entry in the device
-  list, 99 entries in all; a loaded layout keeps its own device name. Changing the
+  list (about a hundred entries); a loaded layout keeps its own device name. Changing the
   device offers to rescale the layout to the new screen.
 
 ### Getting it onto the device
