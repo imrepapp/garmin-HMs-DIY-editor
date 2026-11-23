@@ -635,6 +635,7 @@ function drawEl(c, e){
 }
 function css(v){ return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
 function draw(){
+  { const d=DEV[S.device], pb=$('#bprev'); if(pb) pb.hidden=!d||(Math.abs(S.w-d[0])<=3&&Math.abs(S.h-d[1])<=3); }   // a whole-screen layout is already what the device shows
   const cv=$('#cv'), dpr=window.devicePixelRatio||1, W=S.w*zoom+PAD*2, H=S.h*zoom+PAD*2;
   if(cv.width!==Math.round(W*dpr)||cv.height!==Math.round(H*dpr)){ cv.width=Math.round(W*dpr); cv.height=Math.round(H*dpr); cv.style.width=W+'px'; cv.style.height=H+'px'; }
   const c=cv.getContext('2d'); c.setTransform(dpr,0,0,dpr,0,0); c.clearRect(0,0,W,H);
