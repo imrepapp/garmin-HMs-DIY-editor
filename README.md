@@ -1,5 +1,7 @@
 # HMs DIY Editor
 
+Version 1.0.0
+
 A browser-based layout designer for the Garmin Connect IQ data field **HMs DIY**
 (a freely buildable data field by hundsmiachn). The original Designer is Windows-only;
 this editor runs anywhere, reads and writes the same XML layouts, and produces the
