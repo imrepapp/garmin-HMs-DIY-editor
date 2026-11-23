@@ -272,7 +272,7 @@ dialog li{margin:5px 0}
     <button role="menuitem" id="bset">Settings…</button>
     <button role="menuitem" id="bhelp">Help: shortcuts and device info</button>
   </div>
-  <div class="brand">HMs DIY Editor <span class="ver" title="Version">1.0.0</span><small>Layout designer for the Garmin data field</small></div>
+  <div class="brand">HMs DIY Editor <span class="ver" title="Version">1.0.1</span><small>Layout designer for the Garmin data field</small></div>
   <div class="grp">
     <label for="device">Device</label>
     <select id="device" hidden></select><button class="btn" id="devbtn" type="button" title="Choose the device" style="max-width:230px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></button>
@@ -1295,17 +1295,20 @@ function readFile(f){ const r=new FileReader(); r.onload=()=>{ let t; try{ t=new
    Text:    [type|value<<3|value<<11|averaging<<19] [colour|length<<24] [x+50|y+50<<10|font<<20|decimals<<25|align<<27|maxonly<<30|daynight<<31] [0] + the text
    Graphic: [1|kind<<3|value<<11|averaging<<19] [colour|stroke<<24] [x+50|y+50<<10|A<<20|maxonly<<30|daynight<<31] [B]
    Dynamic colour: [2|key colour<<3|rows<<27], then per row [colour|invert<<25|hide<<26|blink<<27] [threshold, negative flagged with 1<<20] */
-function w85(v){ v>>>=0; let s=''; for(let i=0;i<5;i++){ s=String.fromCharCode(33+v%85)+s; v=Math.floor(v/85); } return s.replace(/[<>&#]/g,c=>({'<':'w','>':'x','&':'y','#':'z'})[c]); }
-function r85(s){ let v=0; for(const ch of s){ const c=({w:'<',x:'>',y:'&',z:'#'})[ch]||ch; v=v*85+c.charCodeAt(0)-33; } return v>>>0; }
+/* ASCII85 with five characters replaced, because they cause trouble when the string is pasted on some devices
+   (from the author of HMs DIY): < > & # \ become w x y z {. Older strings with a plain backslash are still read. */
+const B85_OUT={'<':'w','>':'x','&':'y','#':'z','\\':'{'}, B85_IN={w:'<',x:'>',y:'&',z:'#','{':'\\'};
+function w85(v){ v>>>=0; let s=''; for(let i=0;i<5;i++){ s=String.fromCharCode(33+v%85)+s; v=Math.floor(v/85); } return s.replace(/[<>&#\\]/g,c=>B85_OUT[c]); }
+function r85(s){ let v=0; for(const ch of s){ const c=B85_IN[ch]||ch; v=v*85+c.charCodeAt(0)-33; } return v>>>0; }
 function encodeLayout(){
   const warn=[], seen=new Set(), B=(a,k)=>a[k]==='true'?1:0, col=c=>(parseInt(c,16)||0)&0xffffff; let out='C', mem=30, n=0;
   const w=m=>{ if(!seen.has(m)){ seen.add(m); warn.push(m); } };
   const vid=(c,name)=>{ if(!c) return 0; if(VT[c]){ mem=Math.max(mem,VT[c].mem); return VT[c].id; } const m=/^#(\d+)$/.exec(c); if(m) return +m[1]; w(name+': unknown value type ('+c+'), encoded without a value.'); return 0; };
   const rng=(v,lo,hi,name,what)=>{ if(v<lo||v>hi) w(name+': '+what+' ('+v+') is outside the storable range '+lo+'…'+hi+'.'); return v; };
-  const marks=[];
-  for(const e of S.els){ const a=e.a; marks.push([e,out.length]);
+  for(const e of S.els){ const a=e.a;
     if(e.type===0){ const name=nameOf(e); n++;
-      const id=vid(a.eletype,name), txt=(id>0&&id<10)?'':(a.text||''); let fi=FONTS.indexOf(a.font);
+      const id=vid(a.eletype,name); let txt=(id>0&&id<10)?'':(a.text||'');
+      if(txt.includes('\\')){ txt=txt.replace(/\\/g,'/'); w(name+': a backslash in the text cannot be pasted on some devices, it is written as “/”.'); } let fi=FONTS.indexOf(a.font);
       if(fi<0){ w(name+': unknown font ('+a.font+').'); fi=0; }
       if(txt.length>255) w(name+': text is longer than 255 characters.');
       const tw=textWarn(e); if(tw) w(name+': '+tw);
@@ -1335,60 +1338,10 @@ function encodeLayout(){
         out+=w85(col(r.col)|((a.invertcolor==='true'&&i===0)?1:0)<<25|(r.hide?1:0)<<26|(r.blink?1:0)<<27)+w85(r.val<0?((-r.val)&0xfffff)|0x100000:r.val&0xfffff); });
     }
   }
-  const segs=marks.map((m,k)=>({e:m[0],s:out.slice(m[1],k+1<marks.length?marks[k+1][1]:out.length)}));
-  return {str:out,warn,n,mem,segs};
+  return {str:out,warn,n,mem};
 }
-/* The Garmin settings refuse to save a string that contains a backslash (found on a device: with one the string cannot be saved,
-   without it it can). The backslash is one of the 85 symbols of the format, so it can only be avoided by changing a value.
-   For the string only, never the layout itself, offending elements get the smallest change that removes it: first a colour
-   one step off (not visible), then a position or size one pixel off. Returns the encoder result plus `moved` (names). */
-function encodeClean(){
-  const orig=S, moved=new Set(); let r;
-  try{
-    S=JSON.parse(JSON.stringify(orig));
-    const bs=t=>(t.match(/\\/g)||[]).length, own=e=>{ const g=encodeLayout().segs.find(g=>g.e===e); return g?bs(g.s):0; };
-    const step=(hex,sh,k)=>{ const n=parseInt(hex,16)||0, ch=(n>>sh)&255, v=ch+k<=255?ch+k:ch-k; return ((n&~(255<<sh))|(clamp(v,0,255)<<sh)).toString(16).toUpperCase().padStart(6,'0'); };
-    const free=k=>!S.els.some(x=>(x.type===2&&x.a.replDC===k)||(x.type<2&&x.a.color===k));
-    const setKey=(rule,k)=>{ if(!free(k)) return; dcUsers(rule).forEach(u=>u.a.color=k); rule.a.replDC=k; };
-    const num=(o,key,d)=>()=>{ o[key]=String(N(o[key])+d); };
-    for(const e of S.els) if(e.type===0&&(e.a.text||'').includes('\\')){ e.a.text=e.a.text.replace(/\\/g,'/'); moved.add(plain(e)+' (backslash in the text replaced by /)'); }
-    for(let pass=0;pass<8;pass++){
-      const bad=encodeLayout().segs.filter(g=>bs(g.s)); if(!bad.length) break;
-      for(const {e} of bad){ let n=own(e); if(!n) continue; const muts=[], add=(fn,note)=>muts.push([fn,note||'']);   // in order of how little the user would notice
-        const keyMuts=rule=>{ for(const sh of [0,8,16]) add(()=>setKey(rule,step(rule.a.replDC,sh,1))); for(let b=1;b<24;b++) add(()=>setKey(rule,(((parseInt(rule.a.replDC,16)||0)^(1<<b))>>>0).toString(16).toUpperCase().padStart(6,'0'))); };   // the key colour is never shown
-        if(e.type===2){ keyMuts(e);
-          for(const k of [1,2,3,4,6,8,12]) (e.dc||[]).forEach((_,q)=>{ for(const sh of [0,8,16]) add(()=>{ e.dc[q].col=step(e.dc[q].col,sh,k); },k>2?'a colour slightly changed':''); });
-          for(let d=1;d<=45;d++) (e.dc||[]).forEach((_,q)=>{ add(()=>{ e.dc[q].val+=d; },d>1?'a threshold '+(d/10)+' higher':''); add(()=>{ e.dc[q].val-=d; },d>1?'a threshold '+(d/10)+' lower':''); });
-        } else { const box=hasBox(e), a=()=>e.a, mv=(dx,dy)=>()=>{ const A=e.a; A.x=String(N(A.x)+dx); A.y=String(N(A.y)+dy); if(box){ A.x2=String(N(A.x2)+dx); A.y2=String(N(A.y2)+dy); } };
-          const rule=dcFor(e.a.color); if(rule) keyMuts(rule); else for(const k of [1,2]) for(const sh of [0,8,16]) add(()=>{ e.a.color=step(e.a.color,sh,k); });
-          if(e.type===0&&e.a.fixedtext==='true') for(const pr of ['1','2','3']) add(()=>{ e.a.precision=pr; });   // decimals mean nothing for a fixed text
-          for(const d of [[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1]]) add(mv(d[0],d[1]),'one pixel off');
-          const sizes=d=>{ if(e.type!==1) return; const note=d+' pixel'+(d>1?'s':'')+' larger or smaller'; for(const sg of [d,-d]){ if(box){ add(()=>num(e.a,'x2',sg)(),note); add(()=>num(e.a,'y2',sg)(),note); } else { add(()=>{ if(N(e.a.radius)+sg>0) num(e.a,'radius',sg)(); },note); if(kind(e)==='arc'){ add(()=>num(e.a,'x2',sg)(),'an angle '+d+'° off'); add(()=>num(e.a,'y2',sg)(),'an angle '+d+'° off'); } else add(()=>num(e.a,'y2',sg)(),note); } } };
-          sizes(1);
-          add(()=>num(e.a,'nr_values',1)(),'averaging one higher');   // when the value's own code makes the backslash
-          if(e.type===0) add(()=>{ const f=e.a.font||'SMALL'; e.a.font=/^S_/.test(f)?f.slice(2):'S_'+f; },'the other variant of the same font');
-          if(!rule) for(const k of [3,4,6,8]) for(const sh of [0,8,16]) add(()=>{ e.a.color=step(e.a.color,sh,k); },'colour slightly changed');
-          for(const d of [[0,2],[0,-2],[2,0],[-2,0],[0,3],[0,-3],[3,0],[-3,0]]) add(mv(d[0],d[1]),Math.max(Math.abs(d[0]),Math.abs(d[1]))+' pixels off');
-          sizes(2); sizes(3); add(()=>num(e.a,'nr_values',2)(),'averaging two higher');
-          if(e.type===1&&N(e.a.stroke)>0) add(()=>num(e.a,'stroke',1)(),'stroke one thicker');
-          if(e.type===0){   // the last resorts: same place on the screen for the sample value, another anchor; then decimals, then the font size
-            for(const al of ['0','1','2']) add(()=>{ if(e.a.halignment===al) return; const g=textGeom(e); e.a.halignment=al; const g2=textGeom(e); e.a.x=String(Math.round(N(e.a.x)+g.x-g2.x)); },'alignment changed, same place');
-            if(e.a.fixedtext!=='true') for(const d of [1,-1]) add(()=>{ const v=N(e.a.precision)+d; if(v>=0&&v<=3) e.a.precision=String(v); },'one decimal more or less');
-            for(const d of [1,-1]) add(()=>{ const k=FONTS.indexOf(e.a.font)+d; if(FONTS[k]&&/^S_/.test(FONTS[k])===/^S_/.test(e.a.font)&&/NR_/.test(FONTS[k])===/NR_/.test(e.a.font)) e.a.font=FONTS[k]; },'font one size up or down'); } }
-        const save=()=>JSON.stringify(S.els.map(x=>[x.a,x.dc||null])), load=t=>JSON.parse(t).forEach((v,k)=>{ S.els[k].a=v[0]; if(v[1]) S.els[k].dc=v[1]; });
-        for(let round=0;round<3&&n;round++) for(let k=0;k<muts.length&&n;k++){ const snap=save(), all=bs(encodeLayout().str); muts[k][0](); const m=own(e);
-          if(m<n&&bs(encodeLayout().str)<all){ n=m; if(muts[k][1]) moved.add(plain(e)+' ('+muts[k][1]+')'); } else load(snap); }
-      }
-    }
-    r=encodeLayout();
-  } finally { S=orig; }
-  r.moved=[...moved]; if(r.str.includes('\\')){ const who=[...new Set(r.segs.filter(g=>g.s.includes('\\')).map(g=>g.e.type===2?'colour rule '+ruleName(g.e):plain(g.e)))];
-    r.warn.push('The string still contains a backslash, which the Garmin settings refuse to save. It comes from: '+who.join(', ')+'. Give that element another font size, alignment or number of decimals, or remove a backslash from its text.'); }
-  return r;
-}
-
 function decodeLayout(str){
-  str=str.replace(/^\s+|[\r\n]+$/g,''); if(!/^[A-Z][!-uw-z]{5}/.test(str)||/<\w/.test(str)) throw new Error('This is neither HMs DIY XML nor a layout string.');
+  str=str.replace(/^\s+|[\r\n]+$/g,''); if(!/^[A-Z][!-uw-{]{5}/.test(str)||/<\w/.test(str)) throw new Error('This is neither HMs DIY XML nor a layout string.');
   let p=1, nid=1; const els=[], GC=Object.keys(GID), b=v=>v?'true':'false', S_=v=>String(v);
   const rd=()=>{ if(p+5>str.length) throw new Error('The layout string is truncated (after element '+els.length+').'); const v=r85(str.substr(p,5)); p+=5; return v; };
   const code=id=>VID[id]||('#'+id), hex=v=>(v&0xffffff).toString(16).toUpperCase().padStart(6,'0');
@@ -1443,8 +1396,7 @@ function togglePrev(on){ prefs.prev=on==null?!(prefs.prev!==false):on; savePrefs
 /* Opens a dialog as a drop-down of the button that called it: its top left corner under the button's bottom left corner. */
 function showUnder(dlg,btn){ dlg.showModal(); const r=btn.getBoundingClientRect(), w=dlg.offsetWidth; dlg.style.position='fixed'; dlg.style.margin='0'; dlg.style.left=Math.max(8,Math.min(r.left,innerWidth-w-8))+'px'; dlg.style.top=(r.bottom+4)+'px'; dlg.style.maxHeight=(innerHeight-r.bottom-12)+'px'; }
 function showString(){
-  clearTimeout(cTimer); commit(); const r=encodeClean(); $('#strout').value=r.str;
-  if(r.moved.length) r.warn.push('The Garmin settings refuse a string with a backslash. To avoid one, these elements differ slightly in the string (the layout itself is unchanged): '+r.moved.join(', ')+'.');
+  clearTimeout(cTimer); commit(); const r=encodeLayout(); $('#strout').value=r.str;
   if(r.str.length>5000) r.warn.unshift('The string is '+r.str.length+' characters long; the data field setting accepts at most 5000. Remove some elements.');
   const lim={30:'on any supported device',35:'on medium- or high-memory devices (M)',500:'on high-memory devices only (H)'}[r.mem];
   $('#strinfo').textContent=r.str.length+' / 5000 characters · '+r.n+' elements · with the types used it runs '+lim+'. Element limits: low memory 30, medium 35, high 500.';

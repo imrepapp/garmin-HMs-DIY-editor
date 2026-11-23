@@ -18,7 +18,7 @@ FONTS='XTINY TINY SMALL MEDIUM LARGE NR_MILD NR_MEDIUM NR_HOT NR_THAI_HOT S_XTIN
 def w85(v):
     v&=0xffffffff; s=''
     for _ in range(5): s=chr(33+v%85)+s; v//=85
-    return s.translate(str.maketrans('<>&#','wxyz'))
+    return s.translate(str.maketrans('<>&#\\','wxyz{'))   # the five characters the Designer replaces
 def I(a,k): 
     try: return int(a.get(k,'0'))
     except: return 0
@@ -74,6 +74,7 @@ if __name__ == '__main__':
         bad = 0
         for f in sorted(glob.glob(sys.argv[2] + '/**/*config_string.txt', recursive=True)):
             want = open(f, encoding='utf-8').read().rstrip('\r\n')
+            want = want.replace('\\', '{')   # strings made before the Designer replaced the backslash
             xml = glob.glob(f.rsplit('/', 1)[0] + '/*.xml')[0]
             ok = encode(read_elements(xml)) == want
             bad += not ok

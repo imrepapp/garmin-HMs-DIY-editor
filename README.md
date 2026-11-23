@@ -1,6 +1,6 @@
 # HMs DIY Editor
 
-Version 1.0.0
+Version 1.0.1
 
 A browser-based layout designer for the Garmin Connect IQ data field **HMs DIY**
 (a freely buildable data field by hundsmiachn). The original Designer is Windows-only;
@@ -94,7 +94,7 @@ gets the largest font of its family that fits the box.
 ## Layout string
 
 The string is the generation "C" format of HMs DIY Designer 3.4.2: a letter, then four 32-bit
-words per element written as base-85, followed by the element's text. The bit layout is
+words per element written as ASCII85 with a few characters replaced, followed by the element's text. The bit layout is
 documented above `encodeLayout` in `index.html` and mirrored in `tools/layout_string.py`.
 
 How it was checked:
@@ -108,11 +108,10 @@ How it was checked:
   filling arcs were checked against device screenshots (`tools/calibration`). Graphs and direction
   markers have not been seen on a device yet. If the data field shows "Incompatible string!", it
   expects a different generation than "C".
-- The Garmin settings refused to save strings containing a backslash, which is one of the format's
-  85 symbols. The string dialog therefore changes offending elements minimally, in the string only:
-  a colour one step off, a position or size one pixel off, the averaging count one higher, or the
-  other variant of the same font, and lists what it changed. The exported string never contains a
-  backslash (checked on the 61 example layouts and 400 random ones).
+- Five characters of the base-85 alphabet are replaced, because they cause trouble when a string
+  is pasted on some devices: `<` `>` `&` `#` `\` are written as `w` `x` `y` `z` `{` (information
+  from the author of HMs DIY). Strings made by Designer 3.4.2 still contain a plain backslash;
+  the editor reads those too. A backslash typed into a text is written as `/`.
 
 ## Known limits
 
