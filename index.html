@@ -756,7 +756,7 @@ function onDown(ev){
     else if(!sel.includes(e.id)){ const h=headerOf(e);   // a group moves as one: the first click takes the group, a second click the element inside it
       if(h&&sel.includes(h.id)) drill=e.id; else sel=[h?h.id:e.id]; }
     const items=selX().filter(i=>i.type<2&&!i.lock);
-    drag={mode:'m',p,drill,items,orig:items.map(i=>({x:N(i.a.x),y:N(i.a.y),x2:N(i.a.x2),y2:N(i.a.y2)})),box:items.length?bbox(byId(e.id)||items[0]):null,moved:false,grid:items.length===1?gridInfo(items[0]):null};
+    drag={mode:'m',p,drill,items,orig:items.map(i=>({x:N(i.a.x),y:N(i.a.y),x2:N(i.a.x2),y2:N(i.a.y2)})),box:items.length?(bs=>{ const x=Math.min(...bs.map(b=>b.x)), y=Math.min(...bs.map(b=>b.y)); return {x,y,w:Math.max(...bs.map(b=>b.x+b.w))-x,h:Math.max(...bs.map(b=>b.y+b.h))-y}; })(items.map(bbox)):null,moved:false,grid:items.length===1?gridInfo(items[0]):null};
     refresh();
   } else { if(!ev.shiftKey) sel=[]; drag={mode:'q',p,base:[...sel]}; refresh(); }
 }
@@ -815,7 +815,9 @@ function drawnLine(p0,p1,mod){
   let x2=p1.x, y2=p1.y; if(mod&&mod.shift){ if(Math.abs(dx)>=Math.abs(dy)) y2=p0.y; else x2=p0.x; }
   return {x:cl(p0.x,S.w),y:cl(p0.y,S.h),x2:cl(x2,S.w),y2:cl(y2,S.h),snap:[false,false]};
 }
-function snapAxis(vals, targets){ let best=null; for(const v of vals) for(const t of targets){ const d=t-v; if(Math.abs(d)<=5/zoom && (!best||Math.abs(d)<Math.abs(best.d))) best={d,t}; } return best; }
+function snapAxis(vals, targets){ let best=null; vals.forEach((v,i)=>{ for(const t of targets){ const d=t-v; if(Math.abs(d)<=5/zoom && (!best||Math.abs(d)<Math.abs(best.d))) best={d,t,i}; } }); return best; }
+/* A snap that holds: once an edge has caught a target it stays there until the pointer has pulled it a few pixels further away than it took to catch. */
+function stickySnap(prev, vals, targets){ if(prev && targets.includes(prev.t)){ const d=prev.t-vals[prev.i]; if(Math.abs(d)<=11/zoom) return {d,t:prev.t,i:prev.i}; } return snapAxis(vals,targets); }
 function onMove(ev){
   const p=devPt(ev); $('#st-pos').textContent=`x ${Math.round(p.x)}  y ${Math.round(p.y)}`;
   if(!drag){ if(!tool){ const h=pick(p), g=h?gridInfo(h):null; $('#cv').style.cursor=g?(g.ax==='h'?'ns-resize':'ew-resize'):''; } return; }
@@ -826,7 +828,7 @@ function onMove(ev){
     drag.moved=true; guides=[]; let v=g.pos+d;
     if(snapOn&&!ev.altKey){ const skip=new Set([drag.items[0],...g.att.map(t=>t.o)]), tg=H?[S.h/2,S.h/3,S.h*2/3,S.h/4,S.h*3/4]:[S.w/2,S.w/3,S.w*2/3,S.w/4,S.w*3/4];
       for(const o of S.els){ if(o.type>1||o.hide||skip.has(o)) continue; const ob=bbox(o); if(H) tg.push(ob.y,ob.y+ob.h); else tg.push(ob.x,ob.x+ob.w); }
-      const sn=snapAxis([v],tg); if(sn&&sn.t>=g.lo&&sn.t<=g.hi){ v=sn.t; guides.push(H?{y:v}:{x:v}); } }
+      const sn=stickySnap(drag.sg,[v],tg); drag.sg=sn&&sn.t>=g.lo&&sn.t<=g.hi?sn:null; if(drag.sg){ v=sn.t; guides.push(H?{y:v}:{x:v}); } }
     setGridLine(drag.items[0],g,v); draw(); selStatus(); return; }
   if(drag.mode==='h'){ dragHandle(drag.e,drag.hk,p.x,p.y,ev.shiftKey); drag.moved=true; draw(); selStatus(); return; }
   if(drag.mode==='q'){ const x=Math.min(p.x,drag.p.x), y=Math.min(p.y,drag.p.y), w=Math.abs(p.x-drag.p.x), h=Math.abs(p.y-drag.p.y); marquee={x,y,w,h};
@@ -836,9 +838,10 @@ function onMove(ev){
   drag.moved=true; guides=[];
   if(ev.shiftKey){ if(Math.abs(dx)>Math.abs(dy)) dy=0; else dx=0; }
   if(snapOn && !ev.altKey && drag.box){
-    const b=drag.box, ids=new Set(sel), tx=[0,S.w/2,S.w], ty=[0,S.h/2,S.h];
-    for(const o of S.els){ if(o.type>1||o.hide||ids.has(o.id)) continue; const ob=bbox(o); tx.push(ob.x,ob.x+ob.w/2,ob.x+ob.w); ty.push(ob.y,ob.y+ob.h/2,ob.y+ob.h); }
-    const sx=snapAxis([b.x+dx,b.x+b.w/2+dx,b.x+b.w+dx],tx), sy=snapAxis([b.y+dy,b.y+b.h/2+dy,b.y+b.h+dy],ty);
+    const b=drag.box, moving=new Set(drag.items), tx=[0,S.w/2,S.w], ty=[0,S.h/2,S.h];
+    for(const o of S.els){ if(o.type>1||o.hide||moving.has(o)) continue; const ob=bbox(o), ax=axisOf(o);   // a straight line is a target at its own coordinate, not at the edges of its stroke
+      if(ax==='v') tx.push(N(o.a.x)); else tx.push(ob.x,ob.x+ob.w/2,ob.x+ob.w); if(ax==='h') ty.push(N(o.a.y)); else ty.push(ob.y,ob.y+ob.h/2,ob.y+ob.h); }
+    const sx=stickySnap(drag.sx,[b.x+dx,b.x+b.w/2+dx,b.x+b.w+dx],tx), sy=stickySnap(drag.sy,[b.y+dy,b.y+b.h/2+dy,b.y+b.h+dy],ty); drag.sx=sx; drag.sy=sy;
     if(sx){ dx=Math.round(dx+sx.d); guides.push({x:sx.t}); } if(sy){ dy=Math.round(dy+sy.d); guides.push({y:sy.t}); }
   }
   drag.items.forEach((e,i)=>{ const o=drag.orig[i]; e.a.x=String(o.x+dx); e.a.y=String(o.y+dy); if(hasBox(e)){ e.a.x2=String(o.x2+dx); e.a.y2=String(o.y2+dy); } });
