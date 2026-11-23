@@ -259,6 +259,7 @@ dialog li{margin:5px 0}
   <div class="grp">
     <label for="device">Device</label>
     <select id="device" hidden></select><button class="btn" id="devbtn" type="button" title="Choose the device" style="max-width:230px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></button>
+    <select id="fieldsel" title="Which field of the device the layout is for" aria-label="Field" hidden></select>
     <span class="grp" id="customdim" hidden>
       <input id="devw" type="number" min="50" max="1000" title="Width (px)" aria-label="Width">
       <span>×</span>
@@ -1245,7 +1246,7 @@ function fromProject(text){ let o; try{ o=JSON.parse(text); }catch(e){ throw new
   const st=o&&o.format==='hms-diy-editor'?o.layout:null; if(!st||!Array.isArray(st.els)||!st.els.every(e=>e&&typeof e.a==='object'&&typeof e.type==='number')) throw new Error('This is not an HMs DIY Editor project file.');
   st.w=clamp(Math.round(N(st.w))||240,50,1000); st.h=clamp(Math.round(N(st.h))||240,50,1000); st.device=String(st.device||S.device); st.samples=st.samples||{}; st.nid=Math.max(1,...st.els.map(e=>(e.id|0)+1)); st.els.forEach(e=>{ if(e.type===2&&!Array.isArray(e.dc)) e.dc=[]; }); return st; }
 let saveFmt='json';
-function loadText(text){ try{ let ns, note=''; if(/^\s*\{/.test(text)){ ns=fromProject(text); note=' (project file)'; } else if(/<DIYLayout/.test(text)) ns=fromXML(text); else { const d=decodeLayout(text); ns=autoLock({device:S.device,w:S.w,h:S.h,round:S.round,custom:S.custom,designer:null,els:d.els,samples:S.samples,nid:d.nid}); note=d.gen==='C'?' (from layout string)':' – note: this is a generation "'+d.gen+'" string, the editor knows format "C"'; } clearTimeout(cTimer); commit(); S=ns; sel=[]; commit(); syncDevice(); fitZoom(); refresh(); toast('Loaded: '+S.els.length+' elements · '+S.device+note); return true; }catch(err){ toast(err.message); return false; } }
+function loadText(text){ try{ let ns, note=''; if(/^\s*\{/.test(text)){ ns=fromProject(text); note=' (project file)'; } else if(/<DIYLayout/.test(text)) ns=fromXML(text); else { const d=decodeLayout(text); ns=autoLock({device:S.device,w:S.w,h:S.h,round:S.round,custom:S.custom,designer:null,els:d.els,samples:S.samples,nid:d.nid}); note=d.gen==='C'?' (from layout string)':' – note: this is a generation "'+d.gen+'" string, the editor knows format "C"'; } clearTimeout(cTimer); commit(); S=ns; factorySize(); sel=[]; commit(); syncDevice(); fitZoom(); refresh(); toast('Loaded: '+S.els.length+' elements · '+S.device+note); return true; }catch(err){ toast(err.message); return false; } }
 function readFile(f){ const r=new FileReader(); r.onload=()=>{ let t; try{ t=new TextDecoder('utf-8',{fatal:true}).decode(r.result); }catch(e){ t=new TextDecoder('windows-1252').decode(r.result); } if(loadText(t)){ $('#fname').value=f.name; $('#dlg-open').close(); } }; r.readAsArrayBuffer(f); }
 
 /* ---------- Layout string: generation "C" encoding of Designer 3.4.2 ----------
@@ -1418,8 +1419,16 @@ function pickDevice(cur,cb,withCustom){ pickCb=cb; const q=$('#pick-q'), list=$(
   const done=v=>{ $('#dlg-pick').close(); const f=pickCb; pickCb=null; if(f) f(v); };
   q.value=''; q.oninput=render; q.onkeydown=ev=>{ if(ev.key==='Enter'){ ev.preventDefault(); const b=list.querySelector('button'+(q.value.trim()?'':'.on'))||list.querySelector('button'); if(b) b.click(); } };
   render(); $('#dlg-pick').showModal(); q.focus(); const on=list.querySelector('.on'); if(on) on.scrollIntoView({block:'center'}); }
-function syncDevice(){ const s=$('#device'); if(![...s.options].some(o=>o.value===devGroup(S.device)[0])) s.append(el('option',{value:S.device},S.device+' (unknown)')); const d=DEV[S.device], custom=!!S.custom||!d||d[0]!==S.w||d[1]!==S.h||!!d[2]!==!!S.round; S.custom=custom;
+/* The fields of a device (whole screen first) and the one the layout's size matches, or -1. */
+function devFields(name){ const d=DEV[name]; if(!d) return []; return fieldsOf({name,w:d[0],h:d[1],round:!!d[2],list:layoutsOf(name,d[0],d[1],!!d[2]).list}); }
+function fieldIndex(fields){ const d=DEV[S.device]; if(!d) return -1; return fields.findIndex(u=>u.full?(Math.abs(S.w-d[0])<=3&&Math.abs(S.h-d[1])<=3&&!!S.round===!!d[2]):(!S.round&&u.sz.includes(S.w+' × '+S.h))); }
+/* The top bar: device button, then either the field of that device (a factory size, not editable) or, for "Custom size", the free width and height. */
+/* A loaded layout whose size is one of its device's own fields is that field, not a custom size. */
+function factorySize(){ if(S.custom&&DEV[S.device]){ S.custom=false; if(fieldIndex(devFields(S.device))<0) S.custom=true; } }
+function syncDevice(){ const s=$('#device'); if(![...s.options].some(o=>o.value===devGroup(S.device)[0])) s.append(el('option',{value:S.device},S.device+' (unknown)'));
+  const d=DEV[S.device], fields=devFields(S.device), fi=S.custom?-1:fieldIndex(fields), custom=!!S.custom||!d||fi<0; S.custom=custom;
   s.options[0].textContent='Custom size… (fonts of '+S.device+')'; s.value=custom?'__custom':devGroup(S.device)[0]; $('#customdim').hidden=!custom; $('#devw').value=S.w; $('#devh').value=S.h; $('#devround').checked=S.round;
+  const fsel=$('#fieldsel'); fsel.textContent=''; fields.forEach((u,k)=>fsel.append(el('option',{value:String(k),title:'Found in: '+u.in.join(', ')},u.full?'Whole screen · '+d[0]+' × '+d[1]:'Field · '+u.c[2]+' × '+u.c[3]))); fsel.hidden=custom; if(!custom) fsel.value=String(fi);
   const db=$('#devbtn'); db.textContent=(custom?'Custom · ':'')+devShort(S.device)+' ▾'; db.title=(custom?'Custom size with the fonts of ':'')+devGroup(S.device).join(', ')+' – click to change'; }
 let prevDim=null;
 function setDevice(name){ const d=DEV[name]; prevDim={w:S.w,h:S.h}; S.device=name; S.custom=false; if(d){ S.w=d[0]; S.h=d[1]; S.round=!!d[2]; } $('#rescale').hidden=true; commit(); syncDevice(); fitZoom(); refresh(); }
@@ -1542,7 +1551,7 @@ function fitFont(dev,w,h){ // the largest font whose line fits h and whose five-
   for(const f of ['NR_THAI_HOT','NR_HOT','NR_MEDIUM','NR_MILD','LARGE','MEDIUM','SMALL']){ const r=fit(f); if(r) return r; } const g=textGeom(mkText({text:'0',font:'SMALL'})); return ['SMALL',g.h,g.f.oy]; }
 function createNew(sample){
   const n=newInfo(); if(!newField) newField=fieldsOf(n)[0]; const f=newField, gl=gridsOf(n,f), g=(!f.full&&!meshAll(f)&&newGrid===gl.length)?{cells:meshCells(f)}:(gl[newGrid]||gl[0]), cells=g.cells, R=v=>String(Math.round(v)), m=(DEV[n.name]||[])[3]||{}, labFont=m.XTINY?'XTINY':'TINY'; clearTimeout(cTimer); commit();
-  S.device=n.name; S.w=f.full?n.w:f.c[2]; S.h=f.full?n.h:f.c[3]; S.round=f.full&&n.round; S.custom=!f.full; S.designer=null; S.els=[]; sel=[];
+  S.device=n.name; S.w=f.full?n.w:f.c[2]; S.h=f.full?n.h:f.c[3]; S.round=f.full&&n.round; S.custom=false; S.designer=null; S.els=[]; sel=[];
   // a label and a value that fits, centred in one cell
   const fill=(k,x,y,w,h)=>{ const st=STARTERS[k%STARTERS.length], lh=textGeom(mkText({text:'A',font:labFont})).h+3, ff=fitFont(n.name,w-10,h-lh-6), cx=R(x+w/2);
     return [mkText({text:st[1],color:'555555',font:labFont,x:cx,y:R(y+3-textGeom(mkText({text:'A',font:labFont})).f.oy)}), mkVal(st[0],{text:st[2],precision:st[3],font:ff[0],x:cx,y:R(y+lh+(h-lh-ff[1])/2-ff[2])})]; };
@@ -1595,7 +1604,7 @@ function init(){
   buildPalette();
   let loaded=false; try{ const j=localStorage.getItem(KEY); if(j){ const o=JSON.parse(j); if(o&&Array.isArray(o.els)){ S=o; loaded=true; } } }catch(e){}
   if(!loaded){ const d=DEV[S.device]; if(d){ S.w=d[0]; S.h=d[1]; S.round=!!d[2]; } sampleLayout(); }
-  last=JSON.stringify(S); syncDevice(); fitZoom(); refresh();
+  factorySize(); last=JSON.stringify(S); syncDevice(); fitZoom(); refresh();
   if(document.fonts){ ['700 20px "Roboto Condensed"','400 20px "Roboto Condensed"','400 20px "Bebas Neue"'].forEach(f=>document.fonts.load(f).catch(()=>{})); document.fonts.ready.then(draw); document.fonts.addEventListener&&document.fonts.addEventListener('loadingdone',draw); }
 
   const cv=$('#cv'); cv.addEventListener('pointerdown',onDown); cv.addEventListener('pointermove',onMove); cv.addEventListener('pointerup',onUp); cv.addEventListener('pointercancel',onUp);
@@ -1610,9 +1619,14 @@ function init(){
     if(!d||!S.els.some(e=>e.type<2)||(d[0]===S.w&&d[1]===S.h)){ setDevice(name); return; }
     pendDev=name; $('#dv-text').textContent='The layout was made for '+(S.custom?'a custom size':S.device)+' ('+S.w+' × '+S.h+' px). '+name+' has a '+d[0]+' × '+d[1]+' px screen.';
     $('#dlg-device').showModal(); };
-  $('#dv-scale').onclick=()=>{ const n=pendDev; pendDev=null; $('#dlg-device').close(); setDevice(n); rescale(); };
-  $('#dv-keep').onclick=()=>{ const n=pendDev; pendDev=null; $('#dlg-device').close(); setDevice(n); };
-  $('#dlg-device').addEventListener('close',()=>{ if(pendDev){ pendDev=null; syncDevice(); } });
+  let pendFld=null;
+  const setField=u=>{ const d=DEV[S.device]; prevDim={w:S.w,h:S.h}; S.w=u.full?d[0]:u.c[2]; S.h=u.full?d[1]:u.c[3]; S.round=u.full&&!!d[2]; S.custom=false; $('#rescale').hidden=true; commit(); syncDevice(); fitZoom(); refresh(); };
+  $('#fieldsel').onchange=()=>{ const u=devFields(S.device)[+$('#fieldsel').value]; if(!u) return; const d=DEV[S.device], w=u.full?d[0]:u.c[2], h=u.full?d[1]:u.c[3];
+    if(!S.els.some(e=>e.type<2)||(w===S.w&&h===S.h)){ setField(u); return; }
+    pendFld=u; $('#dv-text').textContent='The layout was made for '+S.w+' × '+S.h+' px. The chosen field is '+w+' × '+h+' px.'; $('#dlg-device').showModal(); };
+  $('#dv-scale').onclick=()=>{ const n=pendDev, u=pendFld; pendDev=pendFld=null; $('#dlg-device').close(); if(u){ setField(u); rescale(); } else { setDevice(n); rescale(); } };
+  $('#dv-keep').onclick=()=>{ const n=pendDev, u=pendFld; pendDev=pendFld=null; $('#dlg-device').close(); if(u) setField(u); else setDevice(n); };
+  $('#dlg-device').addEventListener('close',()=>{ if(pendDev||pendFld){ pendDev=pendFld=null; syncDevice(); } });
   const dim=()=>{ if(!S.custom) return; S.w=clamp(Math.round(N($('#devw').value))||S.w,50,1000); S.h=clamp(Math.round(N($('#devh').value))||S.h,50,1000); S.round=$('#devround').checked; commit(); fitZoom(); refresh(); };
   $('#devw').onchange=dim; $('#devh').onchange=dim; $('#devround').onchange=dim; $('#rescale').onclick=rescale;
   $('#bhelp').onclick=()=>{ renderInfo(); $('#dlg-help').showModal(); };
