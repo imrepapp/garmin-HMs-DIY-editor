@@ -69,8 +69,8 @@ gets the largest font of its family that fits the box.
 - **Night colours**: "Invert at night" per element; the swatch shows the day and night colour.
 - **Preview strip** under the canvas (the Preview button hides it): the layout on the device's
   screen, side by side for every position a field of this size has in Garmin's data screen
-  layouts, following every change; a round screen shows what the bezel cuts off. With the diagonal of your
-  own display entered, the device is drawn at its real physical size. The device's pixel density
+  layouts, following every change; a round screen shows what the bezel cuts off. The device is drawn at its
+  physical size assuming a 96 dpi display; Menu → Settings takes your real display size. The device's pixel density
   comes from the Connect IQ device file where it has one (72 devices), otherwise from the usual
   screen diagonal of that resolution, marked as estimated.
 - **Preview** for 180 devices (screen size and font sizes) with sample values: the 106 of the

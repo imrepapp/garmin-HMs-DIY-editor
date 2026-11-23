@@ -159,13 +159,12 @@ h2 .sp{flex:1}
 #prevdock .pdh{display:flex;gap:10px;align-items:center;padding:5px 12px;font-size:11px;color:var(--mute);border-bottom:1px solid var(--line)}
 #prevdock .pdh b{color:var(--ink);font-size:12px}
 #prevdock .pdh .sp{flex:1}
-#prevdock .pdh label{display:flex;gap:4px;align-items:center;white-space:nowrap}
 #pp-row{display:flex;gap:18px;align-items:flex-start;overflow-x:auto;overflow-y:hidden;padding:12px 14px;background:var(--stage);flex:none}
 #pp-row figure{margin:0;flex:none;display:flex;flex-direction:column;align-items:center;gap:5px;font-size:11px;color:var(--mute)}
 #pp-row canvas{display:block;filter:drop-shadow(0 2px 5px rgba(0,0,0,.3))}
 #pp-row figcaption{max-width:220px;text-align:center}
 #pp-row .none{font-size:12px;color:var(--mute);padding:6px 0}
-#pp-diag{width:52px;padding:2px 4px;font-size:11px}
+
 #stage{flex:1;overflow:auto;display:flex;min-height:0}
 #cvwrap{position:relative;margin:auto;flex:none}
 #cv{touch-action:none;display:block}
@@ -269,6 +268,7 @@ dialog li{margin:5px 0}
     <hr>
     <button role="menuitem" id="mdev">Layout string for device…</button>
     <hr>
+    <button role="menuitem" id="bset">Settings…</button>
     <button role="menuitem" id="bhelp">Help: shortcuts and device info</button>
   </div>
   <div class="brand">HMs DIY Editor<small>Layout designer for the Garmin data field</small></div>
@@ -309,7 +309,7 @@ dialog li{margin:5px 0}
   <div id="stagewrap">
     <div id="stage"><div id="cvwrap"><canvas id="cv"></canvas><div id="chips"></div></div></div>
     <div id="prevdock" hidden>
-      <div class="pdh"><b>On the device</b><span id="pp-pos"></span><span class="sp"></span><span id="pp-info"></span><label title="The diagonal of the display you are looking at, in inches. With it the preview is drawn at the device's real physical size.">Your display <input type="number" id="pp-diag" min="5" max="80" step="0.1" placeholder="?">″</label></div>
+      <div class="pdh"><b>On the device</b><span id="pp-pos"></span><span class="sp"></span><span id="pp-info"></span></div>
       <div id="pp-row"></div>
     </div>
     <div id="status"><span id="st-pos">x – y –</span><span id="st-sel"></span><span class="sp"></span><span id="st-count"></span></div>
@@ -373,6 +373,12 @@ dialog li{margin:5px 0}
   <input type="search" id="pick-q" placeholder="Search: edge 830, fenix 7, 246…" autocomplete="off" aria-label="Search devices">
   <div id="pick-list" class="picklist" role="listbox" aria-label="Devices"></div>
   <div class="dlgbar"><span class="hint" id="pick-count" style="margin:0"></span><span class="sp"></span><button class="btn" data-close>Cancel</button></div>
+</dialog>
+<dialog id="dlg-set" style="width:min(440px,calc(100vw - 32px))">
+  <h3>Settings</h3>
+  <div class="row one"><label class="f"><span>Display size of this computer (diagonal, inches)</span><input type="number" id="pp-diag" min="5" max="80" step="0.1" placeholder="not set: 96 dpi assumed"></label></div>
+  <p class="hint">The preview strip draws the device at its physical size. Browsers cannot tell how large a display really is, so 96 dots per inch is assumed. If the preview looks too big or too small against a ruler, enter the diagonal of your display here; leave it empty to go back to 96 dpi.</p>
+  <div class="dlgbar"><span class="sp"></span><button class="btn" data-close>Close</button></div>
 </dialog>
 <dialog id="dlg-help" style="width:min(560px,calc(100vw - 32px))">
   <h3>Help</h3>
@@ -1222,7 +1228,7 @@ const HELP=[
   'The layout string has not been tested on a device. If the data field shows “Incompatible string!”, it expects a different format generation.',
   'Glyph shapes in the preview are approximations; positions and sizes of shapes are exact.',
   'Low-memory devices accept about 30 elements, medium 35, high 500. Colour rules count as elements.',
-  'The strip under the canvas shows the layout on the device\'s screen, once for every position a field of this size can have, and follows every change; on a round screen you see what the bezel cuts off. Enter the diagonal of your own display there and the device is shown at its real physical size. Preview in the top bar hides or shows the strip.']]];
+  'The strip under the canvas shows the layout on the device\'s screen at its physical size, once for every position a field of this size can have, and follows every change; on a round screen you see what the bezel cuts off. Preview in the top bar hides or shows the strip. The size assumes a 96 dpi display; Menu → Settings lets you enter your real display size.']]];
 const KEYS=[['arrows','move 1 px'],['Shift + arrows','move 10 px'],['Alt + arrows','resize'],['Space','back to the pointer'],['Esc','leave the tool / clear the selection'],['Del','delete'],['Ctrl + D','duplicate'],['Ctrl + C / X / V','copy / cut / paste'],['Ctrl + A','select all'],['Ctrl + G','group'],['Ctrl + Shift + G','ungroup'],['Ctrl + Z / Y','undo / redo'],['Ctrl + S','save']];
 function renderInfo(){ const p=$('#info'); p.textContent='';
   HELP.forEach(([title,items],i)=>p.append(el('details',i===0?{open:''}:{},el('summary',{},title),el(i===0?'ol':'ul',{},items.map(t=>el('li',{},t))))));
@@ -1395,12 +1401,7 @@ const SCREEN_IN={'246x322':2.6,'200x265':2.3,'282x470':3.5,'240x400':3,'230x303'
 function devPpi(name){ const v=(FIELDS.ppi||{})[name]; if(v) return {ppi:v,est:false}; const d=DEV[name]; if(!d) return {ppi:160,est:true};
   const inch=SCREEN_IN[d[0]+'x'+d[1]+(d[2]?'r':'')]; return {ppi:inch?(d[2]?d[0]:Math.hypot(d[0],d[1]))/inch:160,est:true}; }
 /* CSS pixels per inch of the display the editor is shown on: known once the user gives its diagonal, otherwise the nominal 96. */
-function viewPpi(){ const d=+prefs.diag||guessDiag(); return d>3?{ppi:Math.hypot(screen.width,screen.height)/d,known:true,guess:!(+prefs.diag>3)}:{ppi:96,known:false}; }
-/* No browser reports the physical size of the display. Built-in Mac displays can be told from their default resolution, though;
-   the result is only a first guess that the user can overwrite. */
-function guessDiag(){ const k=screen.width+'x'+screen.height, dpr=window.devicePixelRatio||1, mac=/Mac/.test(navigator.platform||navigator.userAgent||'');
-  const retina={'1280x800':13.3,'1440x900':13.3,'1470x956':13.6,'1512x982':14.2,'1680x1050':15.4,'1710x1107':15.3,'1728x1117':16.2,'1792x1120':16,'2048x1152':21.5,'2240x1260':23.5,'2560x1440':27};
-  return mac&&dpr>=2?(retina[k]||0):0; }
+function viewPpi(){ const d=+prefs.diag; return d>3?{ppi:Math.hypot(screen.width,screen.height)/d,set:true}:{ppi:96,set:false}; }
 /* Every position the layout can have on its device: the screen itself, or each place a field of this size has in Garmin's data screen layouts. */
 function prevSpots(){ const d=DEV[S.device]; if(!d) return null; const W=d[0], H=d[1], round=!!d[2], L=layoutsOf(S.device,W,H,round), spots=[];
   if(Math.abs(S.w-W)<=3&&Math.abs(S.h-H)<=3) spots.push({c:[0,0,W,H],lay:{name:'Screen',cells:[[0,0,W,H,0]]},names:['Screen']});
@@ -1421,9 +1422,9 @@ function drawPrev(){ const dock=$('#prevdock'); if(!dock||dock.hidden) return; c
     const cap=o.names[0]==='Screen'?'Screen':o.names.join(', '); if(fig.lastChild.textContent!==cap) fig.lastChild.textContent=cap; });
   $('#pp-pos').textContent=devGroup(S.device).join(' · ')+(P.spots.length>1?' — '+P.spots.length+' positions':'');
   const mm=v=>Math.round(v/dev.ppi*25.4);
-  info.textContent=(view.known?(view.guess?'Real size if your display is '+guessDiag()+'″':'Real size'):'Not real size yet: enter your display')+' · screen '+mm(W)+' × '+mm(H)+' mm'+(dev.est?' (estimated)':'')+' · '+Math.round(k*100)+'%'; }
+  info.textContent='Physical size · screen '+mm(W)+' × '+mm(H)+' mm'+(dev.est?' (estimated)':'')+' · '+(view.set?prefs.diag+'″ display':'96 dpi display'); }
 function togglePrev(on){ prefs.prev=on==null?!(prefs.prev!==false):on; savePrefs(); const show=prefs.prev!==false; $('#prevdock').hidden=!show; $('#bprev').classList.toggle('on',show); $('#bprev').setAttribute('aria-pressed',String(show));
-  if(show){ $('#pp-diag').value=prefs.diag||''; $('#pp-diag').placeholder=guessDiag()||'?'; drawPrev(); } }
+  if(show) drawPrev(); }
 /* Opens a dialog as a drop-down of the button that called it: its top left corner under the button's bottom left corner. */
 function showUnder(dlg,btn){ dlg.showModal(); const r=btn.getBoundingClientRect(), w=dlg.offsetWidth; dlg.style.position='fixed'; dlg.style.margin='0'; dlg.style.left=Math.max(8,Math.min(r.left,innerWidth-w-8))+'px'; dlg.style.top=(r.bottom+4)+'px'; dlg.style.maxHeight=(innerHeight-r.bottom-12)+'px'; }
 function showString(){
@@ -1682,6 +1683,7 @@ function init(){
   document.addEventListener('keydown',ev=>{ if(ev.key==='Escape'&&!menu.hidden){ setMenu(false); mb.focus(); } });
   $('#mdev').onclick=showString; $('#bprev').onclick=()=>togglePrev();
   $('#pp-diag').oninput=()=>{ prefs.diag=+$('#pp-diag').value||0; savePrefs(); drawPrev(); };
+  $('#bset').onclick=()=>{ $('#pp-diag').value=prefs.diag||''; $('#dlg-set').showModal(); };
   togglePrev(prefs.prev!==false);   // shown unless it was switched off
   $('#cl-use').onclick=()=>useColor($('#cl-hex').value.trim().replace(/^#/,''));
   $('#cl-native').oninput=()=>{ $('#cl-hex').value=$('#cl-native').value.slice(1).toUpperCase(); };
