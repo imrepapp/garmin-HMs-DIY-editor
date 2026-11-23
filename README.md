@@ -67,7 +67,9 @@ gets the largest font of its family that fits the box.
 - **Preview on the device** (top bar): the layout on the device's screen, once for every position
   a field of this size has in Garmin's data screen layouts; a round screen shows what the bezel
   cuts off in each position.
-- **Preview** for 106 devices (screen size and font sizes) with sample values. Changing the
+- **Preview** for 106 devices (screen size and font sizes) with sample values. Devices that are
+  identical for the editor (same screen, fonts and field layouts) share one entry in the device
+  list, 53 entries in all; a loaded layout keeps its own device name. Changing the
   device offers to rescale the layout to the new screen.
 
 ### Getting it onto the device

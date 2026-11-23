@@ -519,7 +519,7 @@ const FONTFIX = {'Edge 830':{XTINY:1.09,TINY:1.02,SMALL:1.11,MEDIUM:1.055,LARGE:
 /* S_ fonts: where the device table lists no separate size for them they are the standard fonts (confirmed on an Edge 830 screenshot). */
 function baseFont(name){ const map=(DEV[S.device]||[])[3]||{}; return /^S_/.test(name)&&!map[name]?name.slice(2):name; }
 function advOf(font){ font=baseFont(font); const row=METRICS.dev[S.device], i=row?row[MNAMES.indexOf(font)]:-1; if(i==null||i<0) return null;
-  const fix=(FONTFIX[S.device]||{})[font]||1, key=i+'|'+fix;
+  const fix=(FONTFIX[S.device]||FONTFIX[devGroup(S.device).find(n=>FONTFIX[n])]||{})[font]||1, key=i+'|'+fix;   // a measured device speaks for its identical siblings
   let m=mCache.get(key); if(!m){ m={}; const hex=METRICS.fonts[i][2]; MCHARS.forEach((c,k)=>{ const w=parseInt(hex.substr(k*2,2),16); if(w) m[c]=w*(/^NR_/.test(font)&&(c===44||c===46||c===58)?(1+fix)/2:fix); }); mCache.set(key,m); } return m; }
 /* Width of a text on the device: real advances where known, the browser's measure for the rest. mctx.font must be set. */
 function realWidth(t,adv){ let w=0; for(const ch of t){ const a=adv[ch.codePointAt(0)]; w+=a!=null?a:mctx.measureText(ch).width; } return w; }
@@ -1381,8 +1381,13 @@ function showString(){
 }
 
 /* ---------- Device, zoom ---------- */
-function syncDevice(){ const s=$('#device'); if(![...s.options].some(o=>o.value===S.device)) s.append(el('option',{value:S.device},S.device+' (unknown)')); const d=DEV[S.device], custom=!!S.custom||!d||d[0]!==S.w||d[1]!==S.h||!!d[2]!==!!S.round; S.custom=custom;
-  s.options[0].textContent='Custom size… (fonts of '+S.device+')'; s.value=custom?'__custom':S.device; $('#customdim').hidden=!custom; $('#devw').value=S.w; $('#devh').value=S.h; $('#devround').checked=S.round; }
+/* Devices that are the same for the editor (screen, fonts, field layouts, measured character widths) share one entry in the device lists.
+   S.device keeps the name the layout was made or loaded with; the lists show the group it belongs to. */
+let DGROUP=null;
+function devGroup(name){ if(!DGROUP){ DGROUP={}; const by={}; for(const n of Object.keys(DEV)){ const d=DEV[n], k=JSON.stringify([d[0],d[1],d[2],d[3],FIELDS.dev[n]??null,METRICS.dev[n]??null]); (by[k]=by[k]||[]).push(n); }
+    for(const k in by){ const names=by[k].sort((a,b)=>a.localeCompare(b,'hu',{numeric:true})); for(const n of names) DGROUP[n]=names; } } return DGROUP[name]||[name]; }
+function syncDevice(){ const s=$('#device'); if(![...s.options].some(o=>o.value===devGroup(S.device)[0])) s.append(el('option',{value:S.device},S.device+' (unknown)')); const d=DEV[S.device], custom=!!S.custom||!d||d[0]!==S.w||d[1]!==S.h||!!d[2]!==!!S.round; S.custom=custom;
+  s.options[0].textContent='Custom size… (fonts of '+S.device+')'; s.value=custom?'__custom':devGroup(S.device)[0]; $('#customdim').hidden=!custom; $('#devw').value=S.w; $('#devh').value=S.h; $('#devround').checked=S.round; }
 let prevDim=null;
 function setDevice(name){ const d=DEV[name]; prevDim={w:S.w,h:S.h}; S.device=name; S.custom=false; if(d){ S.w=d[0]; S.h=d[1]; S.round=!!d[2]; } $('#rescale').hidden=true; commit(); syncDevice(); fitZoom(); refresh(); }
 function rescale(){ if(!prevDim) return; const fx=S.w/prevDim.w, fy=S.h/prevDim.h, fr=Math.min(fx,fy), R=v=>String(Math.round(v));
@@ -1552,7 +1557,7 @@ function sampleLayout(){
 
 /* ---------- Start-up, events ---------- */
 function init(){
-  const ds=$('#device'); ds.append(el('option',{value:'__custom'},'Custom size…')); for(const n of Object.keys(DEV).sort((a,b)=>a.localeCompare(b,'hu',{numeric:true}))) ds.append(el('option',{value:n},n+'  ('+DEV[n][0]+'×'+DEV[n][1]+')'));
+  const ds=$('#device'); ds.append(el('option',{value:'__custom'},'Custom size…')); for(const n of Object.keys(DEV).sort((a,b)=>a.localeCompare(b,'hu',{numeric:true}))){ const g=devGroup(n); if(g[0]===n) ds.append(el('option',{value:n,title:g.length>1?'These devices have the same screen, fonts and field layouts':''},g.join(', ')+'  ('+DEV[n][0]+'×'+DEV[n][1]+')')); }
   buildPalette();
   let loaded=false; try{ const j=localStorage.getItem(KEY); if(j){ const o=JSON.parse(j); if(o&&Array.isArray(o.els)){ S=o; loaded=true; } } }catch(e){}
   if(!loaded){ const d=DEV[S.device]; if(d){ S.w=d[0]; S.h=d[1]; S.round=!!d[2]; } sampleLayout(); }
@@ -1567,7 +1572,7 @@ function init(){
   cv.addEventListener('contextmenu',ev=>{ if(tool) ev.preventDefault(); });
   let pendDev=null;
   ds.onchange=()=>{ if(ds.value==='__custom'){ S.custom=true; commit(); syncDevice(); refresh(); $('#devw').focus(); return; }
-    const name=ds.value, d=DEV[name];
+    const name=devGroup(S.device).includes(ds.value)&&!S.custom?S.device:ds.value, d=DEV[name];
     if(!d||!S.els.some(e=>e.type<2)||(d[0]===S.w&&d[1]===S.h)){ setDevice(name); return; }
     pendDev=name; $('#dv-text').textContent='The layout was made for '+(S.custom?'a custom size':S.device)+' ('+S.w+' × '+S.h+' px). '+name+' has a '+d[0]+' × '+d[1]+' px screen.';
     $('#dlg-device').showModal(); };
@@ -1607,7 +1612,7 @@ function init(){
   $('#strcp').onclick=()=>{ const t=$('#strout'); const fb=()=>{ t.focus(); t.select(); toast('Selected – press Ctrl+C to copy.'); }; if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(t.value).then(()=>toast('Layout string copied.'),fb); else fb(); };
   const nd=$('#newdev'); for(const o of ds.options) if(o.value!=='__custom') nd.append(el('option',{value:o.value},o.textContent));
   nd.onchange=()=>{ newStep=1; newField=null; renderNew(); };
-  $('#bnew').onclick=()=>{ nd.value=DEV[S.device]?S.device:nd.options[0].value; newStep=1; newField=null; renderNew(); $('#dlg-new').showModal(); };
+  $('#bnew').onclick=()=>{ nd.value=DEV[S.device]?devGroup(S.device)[0]:nd.options[0].value; newStep=1; newField=null; renderNew(); $('#dlg-new').showModal(); };
   $('#new-back').onclick=()=>{ newStep=1; renderNew(); };
   $('#mesh-reset').onclick=()=>{ mesh=null; renderNew(); };
   $('#new-sample').onclick=()=>createNew(true);
