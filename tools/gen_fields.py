@@ -27,6 +27,9 @@ ALIAS = {
     'Edge 1040 / 1040 Solar': 'edge1040', 'Forerunner 955 / Solar': 'fr955',
     'Instinct 2 / Solar / Dual Power / dezl Edition': 'instinct2',
 }
+# devices added from the SDK by gen_sdk_devices.py: name -> SDK folder
+_extra = ROOT / 'tools' / 'sdk_devices.json'
+if _extra.exists(): ALIAS.update(json.loads(_extra.read_text(encoding='utf-8')))
 OBS = {'left': 1, 'top': 2, 'right': 4, 'bottom': 8}
 
 def norm(s):

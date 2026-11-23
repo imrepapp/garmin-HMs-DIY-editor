@@ -24,7 +24,7 @@ browser between visits.
    possible, all of them are listed instead of Custom. The dividing lines are drawn for you,
    optionally with a sample label and value in every cell.
 
-For 104 of the 106 devices the layouts and field rectangles are Garmin's own, taken from the
+For 178 of the 180 devices the layouts and field rectangles are Garmin's own, taken from the
 Connect IQ device files. The two without data (Forerunner 45, vívolife) use an even split.
 
 ### Tools
@@ -67,9 +67,11 @@ gets the largest font of its family that fits the box.
 - **Preview on the device** (top bar): the layout on the device's screen, once for every position
   a field of this size has in Garmin's data screen layouts; a round screen shows what the bezel
   cuts off in each position.
-- **Preview** for 106 devices (screen size and font sizes) with sample values. Devices that are
+- **Preview** for 180 devices (screen size and font sizes) with sample values: the 106 of the
+  HMs DIY Designer plus 74 newer ones known from the Connect IQ SDK (whether HMs DIY runs on
+  those is not known here). The device is chosen in a searchable dialog. Devices that are
   identical for the editor (same screen, fonts and field layouts) share one entry in the device
-  list, 53 entries in all; a loaded layout keeps its own device name. Changing the
+  list, 99 entries in all; a loaded layout keeps its own device name. Changing the
   device offers to rescale the layout to the new screen.
 
 ### Getting it onto the device
@@ -120,6 +122,7 @@ How it was checked:
 ## Development
 
     python3 tools/gen_devices.py /path/to/fonts.txt      # device and font table
+    python3 tools/gen_sdk_devices.py SDK_DIR --write     # devices the Designer's list lacks
     python3 tools/gen_fields.py DEVICES_DIR --write      # data screen layouts and field sizes
     python3 tools/gen_fontmetrics.py SDK_DIR --write     # real character widths of the device fonts
     python3 tools/layout_string.py layout.xml            # reference encoder
