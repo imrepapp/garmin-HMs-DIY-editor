@@ -83,6 +83,10 @@ aside{background:var(--bg);overflow:auto;padding:12px 16px;min-width:0}
 .scr i.pick{cursor:pointer}
 .scr i.pick:hover{background:var(--accent-soft)}
 .scr i.cur{background:var(--accent)!important}
+#prevgrid{display:flex;flex-wrap:wrap;gap:14px;max-height:min(70vh,640px);overflow:auto;padding:2px}
+#prevgrid figure{margin:0;display:flex;flex-direction:column;align-items:center;gap:5px;font-size:11px;color:var(--mute);max-width:100%}
+#prevgrid canvas{max-width:100%;height:auto;filter:drop-shadow(0 2px 6px rgba(0,0,0,.3))}
+#prevgrid figcaption{text-align:center;max-width:260px}
 #newmesh{position:relative;margin:4px auto 10px;touch-action:none;user-select:none;-webkit-user-select:none;background:var(--mute);border:1.5px solid var(--mute);box-sizing:content-box;cursor:crosshair}
 #newmesh .mc{position:absolute;background:var(--panel);box-shadow:inset 0 0 0 1px var(--line);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--mute);overflow:hidden}
 #newmesh .mc.big{background:var(--accent-soft);color:var(--ink)}
@@ -262,6 +266,7 @@ dialog li{margin:5px 0}
     <button class="btn" id="zfit" title="Zoom to fit" style="min-width:52px">100%</button>
     <button class="btn" id="zin" title="Zoom in">+</button>
     <button class="btn" id="night" title="Preview night mode">☾ Night</button>
+    <button class="btn" id="bprev" title="See the layout on the device, in every position a field of this size can have">Preview</button>
     <button class="btn on" id="snap" title="Snap to other elements and the centre lines">⌗ Snap</button>
   </div>
   <div class="sp"></div>
@@ -333,6 +338,12 @@ dialog li{margin:5px 0}
   </ol>
   <p class="hint">The encoding is the generation "C" format of HMs DIY Designer 3.4.2. If the device shows "Incompatible string!", the data field expects another generation. An existing string can be loaded back by pasting it into the Open dialog.</p>
   <div class="dlgbar"><button class="btn pri" id="strcp">Copy string</button><span class="sp"></span><button class="btn" data-close>Close</button></div>
+</dialog>
+<dialog id="dlg-prev" style="width:min(860px,calc(100vw - 32px))">
+  <h3>On the device</h3>
+  <p class="hint" id="prevnote" style="margin-top:0"></p>
+  <div id="prevgrid"></div>
+  <div class="dlgbar"><span class="sp"></span><button class="btn" data-close>Close</button></div>
 </dialog>
 <dialog id="dlg-help" style="width:min(560px,calc(100vw - 32px))">
   <h3>Help</h3>
@@ -629,11 +640,8 @@ function draw(){
   const c=cv.getContext('2d'); c.setTransform(dpr,0,0,dpr,0,0); c.clearRect(0,0,W,H);
   c.translate(PAD,PAD); c.scale(zoom,zoom);
   const shape=()=>{ c.beginPath(); if(S.round) c.ellipse(S.w/2,S.h/2,S.w/2,S.h/2,0,0,7); else c.rect(0,0,S.w,S.h); };
-  /* A single field of a round screen: S.bezel says where the field sits on it, so the part the bezel cuts off can be shown (greyed, nothing drawn there). */
-  const bz=!S.round&&S.bezel?S.bezel:null, glass=()=>{ c.beginPath(); c.ellipse(bz.w/2-bz.x,bz.h/2-bz.y,bz.w/2,bz.h/2,0,0,7); };
-  c.save(); shape(); c.shadowColor='rgba(0,0,0,.35)'; c.shadowBlur=14; c.shadowOffsetY=3; c.fillStyle=bz?(night?'#3a4047':'#aab1b9'):(night?'#000':'#fff'); c.fill(); c.restore();
+  c.save(); shape(); c.shadowColor='rgba(0,0,0,.35)'; c.shadowBlur=14; c.shadowOffsetY=3; c.fillStyle=night?'#000':'#fff'; c.fill(); c.restore();
   c.save(); shape(); c.clip();
-  if(bz){ glass(); c.fillStyle=night?'#000':'#fff'; c.fill(); glass(); c.clip(); }
   for(const e of S.els) if(!e.hide) drawEl(c,e);
   c.restore();
   if(!S.els.length){ c.fillStyle='#888'; c.font=`${12/zoom*1.2}px sans-serif`; c.textAlign='center'; c.fillText('Pick a tool on the left, then click here to place it', S.w/2, S.h/2); }
@@ -1177,7 +1185,7 @@ const HELP=[
   'The layout string has not been tested on a device. If the data field shows “Incompatible string!”, it expects a different format generation.',
   'Glyph shapes in the preview are approximations; positions and sizes of shapes are exact.',
   'Low-memory devices accept about 30 elements, medium 35, high 500. Colour rules count as elements.',
-  'On round screens the corners of a single field can be cut off by the bezel.']]];
+  'Preview (top bar) shows the layout on the device\'s screen, once for every position a field of this size can have; on a round screen you see what the bezel cuts off in each.']]];
 const KEYS=[['arrows','move 1 px'],['Shift + arrows','move 10 px'],['Alt + arrows','resize'],['Space','back to the pointer'],['Esc','leave the tool / clear the selection'],['Del','delete'],['Ctrl + D','duplicate'],['Ctrl + C / X / V','copy / cut / paste'],['Ctrl + A','select all'],['Ctrl + G','group'],['Ctrl + Shift + G','ungroup'],['Ctrl + Z / Y','undo / redo'],['Ctrl + S','save']];
 function renderInfo(){ const p=$('#info'); p.textContent='';
   HELP.forEach(([title,items],i)=>p.append(el('details',i===0?{open:''}:{},el('summary',{},title),el(i===0?'ol':'ul',{},items.map(t=>el('li',{},t))))));
@@ -1340,6 +1348,27 @@ function decodeLayout(str){
   return {gen:str[0],els,nid};
 }
 function autoLock(st){ for(const e of st.els){ const a=e.a; if(e.type===1&&a.eletype==='RF'&&Math.abs(N(a.x2)-N(a.x))>=st.w-2&&Math.abs(N(a.y2)-N(a.y))>=st.h-2) e.lock=true; } return st; }
+/* The layout on the whole screen of its device, once for every position a field of this size has in Garmin's data screen layouts.
+   A round screen clips it as the bezel would; the other fields of the layout are shown empty. */
+function showPreview(){
+  const d=DEV[S.device], box=$('#prevgrid'); box.textContent=''; clearTimeout(cTimer); commit();
+  if(!d){ $('#prevnote').textContent='The screen of “'+S.device+'” is not known, so there is nothing to place the layout on.'; $('#dlg-prev').showModal(); return; }
+  const W=d[0], H=d[1], round=!!d[2], L=layoutsOf(S.device,W,H,round), spots=[];
+  if(Math.abs(S.w-W)<=3&&Math.abs(S.h-H)<=3) spots.push({c:[0,0,W,H],lay:L.list.find(l=>l.cells.length===1)||{name:'Whole screen',cells:[[0,0,W,H,0]]},names:['Whole screen']});
+  else L.list.forEach(lay=>lay.cells.forEach(c=>{ if(Math.abs(c[2]-S.w)>1||Math.abs(c[3]-S.h)>1) return; const o=spots.find(o=>o.c[0]===c[0]&&o.c[1]===c[1]); if(o){ if(!o.names.includes(lay.name)) o.names.push(lay.name); } else spots.push({c,lay,names:[lay.name]}); }));
+  $('#prevnote').textContent=!spots.length?'No field of '+S.w+' × '+S.h+' px exists in the data screen layouts of '+S.device+(L.real?'':' (its layouts are an even split, not Garmin\'s own)')+'. Start from New layout to get a size that fits.'
+    :spots.length===1&&spots[0].names[0]==='Whole screen'?S.device+', the whole '+W+' × '+H+' px screen'+(round?', clipped by the round bezel.':'.')
+    :S.device+': a field of '+S.w+' × '+S.h+' px can sit in '+spots.length+' place'+(spots.length===1?'':'s')+'.'+(round?' The round bezel clips it differently in each.':'')+(L.real?'':' The layouts are an even split, not Garmin\'s own.');
+  const k=Math.min(2,Math.max(1,Math.floor(360/Math.max(W,H)*2)/2)), dpr=window.devicePixelRatio||1, z0=zoom;
+  for(const o of spots){ const cv=el('canvas',{width:Math.round(W*k*dpr),height:Math.round(H*k*dpr),style:`width:${W*k}px;height:${H*k}px`}), c=cv.getContext('2d'); c.setTransform(k*dpr,0,0,k*dpr,0,0);
+    const glass=()=>{ c.beginPath(); if(round) c.ellipse(W/2,H/2,W/2,H/2,0,0,7); else c.rect(0,0,W,H); };
+    glass(); c.fillStyle=night?'#000':'#fff'; c.fill(); c.save(); glass(); c.clip();
+    c.fillStyle=night?'#1b2026':'#e6e9ee'; for(const q of o.lay.cells) if(q!==o.c) c.fillRect(q[0],q[1],q[2],q[3]);   // the neighbours, left empty
+    c.save(); c.beginPath(); c.rect(o.c[0],o.c[1],o.c[2],o.c[3]); c.clip(); c.translate(o.c[0],o.c[1]); zoom=k; try{ for(const e of S.els) if(!e.hide) drawEl(c,e); } finally { zoom=z0; } c.restore();
+    c.restore(); if(round){ c.beginPath(); c.ellipse(W/2,H/2,W/2-.5,H/2-.5,0,0,7); c.strokeStyle='#888'; c.lineWidth=1; c.stroke(); }
+    box.append(el('figure',{},cv,el('figcaption',{},o.names.join(', ')+(o.names[0]==='Whole screen'?'':' · at '+o.c[0]+', '+o.c[1])))); }
+  $('#dlg-prev').showModal();
+}
 function showString(){
   clearTimeout(cTimer); commit(); const r=encodeClean(); $('#strout').value=r.str;
   if(r.moved.length) r.warn.push('The Garmin settings refuse a string with a backslash. To avoid one, these elements differ slightly in the string (the layout itself is unchanged): '+r.moved.join(', ')+'.');
@@ -1354,7 +1383,7 @@ function showString(){
 function syncDevice(){ const s=$('#device'); if(![...s.options].some(o=>o.value===S.device)) s.append(el('option',{value:S.device},S.device+' (unknown)')); const d=DEV[S.device], custom=!!S.custom||!d||d[0]!==S.w||d[1]!==S.h||!!d[2]!==!!S.round; S.custom=custom;
   s.options[0].textContent='Custom size… (fonts of '+S.device+')'; s.value=custom?'__custom':S.device; $('#customdim').hidden=!custom; $('#devw').value=S.w; $('#devh').value=S.h; $('#devround').checked=S.round; }
 let prevDim=null;
-function setDevice(name){ const d=DEV[name]; prevDim={w:S.w,h:S.h}; S.device=name; S.custom=false; delete S.bezel; if(d){ S.w=d[0]; S.h=d[1]; S.round=!!d[2]; } $('#rescale').hidden=true; commit(); syncDevice(); fitZoom(); refresh(); }
+function setDevice(name){ const d=DEV[name]; prevDim={w:S.w,h:S.h}; S.device=name; S.custom=false; if(d){ S.w=d[0]; S.h=d[1]; S.round=!!d[2]; } $('#rescale').hidden=true; commit(); syncDevice(); fitZoom(); refresh(); }
 function rescale(){ if(!prevDim) return; const fx=S.w/prevDim.w, fy=S.h/prevDim.h, fr=Math.min(fx,fy), R=v=>String(Math.round(v));
   for(const e of S.els){ if(e.type>1) continue; const a=e.a, k=kind(e); a.x=R(N(a.x)*fx); a.y=R(N(a.y)*fy); if(hasBox(e)){ a.x2=R(N(a.x2)*fx); a.y2=R(N(a.y2)*fy); } if(k==='circle'||k==='arc'||k==='dir'){ a.radius=R(N(a.radius)*fr); if(k==='dir') a.y2=R(N(a.y2)*fr); } }
   $('#rescale').hidden=true; commit(); refresh(); toast('Elements scaled to the new screen size.'); }
@@ -1474,7 +1503,6 @@ function fitFont(dev,w,h){ // the largest font whose line fits h and whose five-
 function createNew(sample){
   const n=newInfo(); if(!newField) newField=fieldsOf(n)[0]; const f=newField, gl=gridsOf(n,f), g=(!f.full&&!meshAll(f)&&newGrid===gl.length)?{cells:meshCells(f)}:(gl[newGrid]||gl[0]), cells=g.cells, R=v=>String(Math.round(v)), m=(DEV[n.name]||[])[3]||{}, labFont=m.XTINY?'XTINY':'TINY'; clearTimeout(cTimer); commit();
   S.device=n.name; S.w=f.full?n.w:f.c[2]; S.h=f.full?n.h:f.c[3]; S.round=f.full&&n.round; S.custom=!f.full; S.designer=null; S.els=[]; sel=[];
-  if(!f.full&&n.round) S.bezel={x:f.c[0],y:f.c[1],w:n.w,h:n.h}; else delete S.bezel;
   // a label and a value that fits, centred in one cell
   const fill=(k,x,y,w,h)=>{ const st=STARTERS[k%STARTERS.length], lh=textGeom(mkText({text:'A',font:labFont})).h+3, ff=fitFont(n.name,w-10,h-lh-6), cx=R(x+w/2);
     return [mkText({text:st[1],color:'555555',font:labFont,x:cx,y:R(y+3-textGeom(mkText({text:'A',font:labFont})).f.oy)}), mkVal(st[0],{text:st[2],precision:st[3],font:ff[0],x:cx,y:R(y+lh+(h-lh-ff[1])/2-ff[2])})]; };
@@ -1545,7 +1573,7 @@ function init(){
   $('#dv-scale').onclick=()=>{ const n=pendDev; pendDev=null; $('#dlg-device').close(); setDevice(n); rescale(); };
   $('#dv-keep').onclick=()=>{ const n=pendDev; pendDev=null; $('#dlg-device').close(); setDevice(n); };
   $('#dlg-device').addEventListener('close',()=>{ if(pendDev){ pendDev=null; syncDevice(); } });
-  const dim=()=>{ if(!S.custom) return; delete S.bezel; S.w=clamp(Math.round(N($('#devw').value))||S.w,50,1000); S.h=clamp(Math.round(N($('#devh').value))||S.h,50,1000); S.round=$('#devround').checked; commit(); fitZoom(); refresh(); };
+  const dim=()=>{ if(!S.custom) return; S.w=clamp(Math.round(N($('#devw').value))||S.w,50,1000); S.h=clamp(Math.round(N($('#devh').value))||S.h,50,1000); S.round=$('#devround').checked; commit(); fitZoom(); refresh(); };
   $('#devw').onchange=dim; $('#devh').onchange=dim; $('#devround').onchange=dim; $('#rescale').onclick=rescale;
   $('#bhelp').onclick=()=>{ renderInfo(); $('#dlg-help').showModal(); };
   const menu=$('#menu'), mb=$('#menubtn'), setMenu=o=>{ menu.hidden=!o; mb.setAttribute('aria-expanded',String(o)); mb.classList.toggle('on',o); if(o) menu.querySelector('button').focus(); };
@@ -1553,7 +1581,7 @@ function init(){
   menu.addEventListener('click',ev=>{ if(ev.target.closest('button')) setMenu(false); });
   document.addEventListener('click',ev=>{ if(!menu.hidden&&!menu.contains(ev.target)) setMenu(false); });
   document.addEventListener('keydown',ev=>{ if(ev.key==='Escape'&&!menu.hidden){ setMenu(false); mb.focus(); } });
-  $('#mdev').onclick=showString;
+  $('#mdev').onclick=showString; $('#bprev').onclick=showPreview;
   $('#cl-use').onclick=()=>useColor($('#cl-hex').value.trim().replace(/^#/,''));
   $('#cl-native').oninput=()=>{ $('#cl-hex').value=$('#cl-native').value.slice(1).toUpperCase(); };
   $('#cl-hex').addEventListener('keydown',ev=>{ if(ev.key==='Enter'){ ev.preventDefault(); $('#cl-use').click(); } });

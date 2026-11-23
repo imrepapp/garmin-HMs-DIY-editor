@@ -64,6 +64,9 @@ gets the largest font of its family that fits the box.
   "Colour rules" group at the bottom of the layer list. Filling elements (gauge arc, progress
   bar) take their range from the rule.
 - **Night colours**: "Invert at night" per element; the swatch shows the day and night colour.
+- **Preview on the device** (top bar): the layout on the device's screen, once for every position
+  a field of this size has in Garmin's data screen layouts; a round screen shows what the bezel
+  cuts off in each position.
 - **Preview** for 106 devices (screen size and font sizes) with sample values. Changing the
   device offers to rescale the layout to the new screen.
 
@@ -111,8 +114,6 @@ How it was checked:
 - The data screen layouts come from the Connect IQ device files as found in a public repository,
   not from Garmin directly, and were not compared with real devices. Garmin's files are known to
   miss a layout on some newer devices.
-- On round screens a single field shows the part the bezel cuts off, for the position the field
-  has in the layout it was picked from. The same field size at another position is cut differently.
 
 ## Development
 
