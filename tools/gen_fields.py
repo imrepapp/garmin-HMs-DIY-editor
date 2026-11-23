@@ -7,7 +7,8 @@ DEVICES_DIR holds one folder per device id with a simulator.json, as in the Conn
 (ConnectIQ/Devices). The table lists, for every device the editor knows, the data screen
 layouts Garmin offers and the rectangle of each field: {device: index into sets},
 sets = [[layout, ...]], layout = [name, [x, y, w, h, obscurity bits], ...]
-(obscurity bits: 1 left, 2 top, 4 right, 8 bottom). --write replaces the table in index.html.
+(obscurity bits: 1 left, 2 top, 4 right, 8 bottom). It also records the screen's pixel density
+(ppi) where the device file gives one. --write replaces the table in index.html.
 """
 import json, os, re, sys, pathlib
 
@@ -41,13 +42,14 @@ def main():
     html = (ROOT / 'index.html').read_text(encoding='utf-8')
     ours = json.loads(re.search(r'const DEV = /\*DATA\*/(\{.*?\})/\*END\*/', html, re.S).group(1))
     ids = {norm(d): d for d in os.listdir(src) if (src / d / 'simulator.json').exists()}
-    sets, index, table, missing = [], {}, {}, []
+    sets, index, table, missing, ppi = [], {}, {}, [], {}
     for name, spec in ours.items():
         did = ALIAS.get(name) or ids.get(norm(name))
         if not did or not (src / did / 'simulator.json').exists():
             missing.append(name); continue
         sim = json.loads((src / did / 'simulator.json').read_text(encoding='utf-8'))
         loc = sim['display']['location']; w, h = loc['width'], loc['height']
+        if sim.get('ppi'): ppi[name] = sim['ppi']
         rnd = 0 if sim['display'].get('shape', '').startswith('rect') else 1
         if (w, h, rnd) != tuple(spec[:3]):
             print(f'SCREEN DIFFERS  {name}: editor {spec[:3]}  device file {[w, h, rnd]} ({did})')
@@ -63,7 +65,7 @@ def main():
         if key not in index:
             index[key] = len(sets); sets.append(out)
         table[name] = index[key]
-    data = json.dumps({'dev': table, 'sets': sets}, separators=(',', ':'), ensure_ascii=False)
+    data = json.dumps({'dev': table, 'sets': sets, 'ppi': ppi}, separators=(',', ':'), ensure_ascii=False)
     print(f'{len(table)} of {len(ours)} devices, {len(sets)} distinct layout sets, {len(data)} bytes')
     if missing: print('no device file for:', ', '.join(missing))
     if write:

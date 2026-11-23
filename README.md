@@ -67,9 +67,12 @@ gets the largest font of its family that fits the box.
   "Colour rules" group at the bottom of the layer list. Filling elements (gauge arc, progress
   bar) take their range from the rule.
 - **Night colours**: "Invert at night" per element; the swatch shows the day and night colour.
-- **Preview on the device** (top bar): the layout on the device's screen, once for every position
-  a field of this size has in Garmin's data screen layouts; a round screen shows what the bezel
-  cuts off in each position.
+- **Preview panel** (top bar): a floating panel that shows the layout on the device's screen and
+  follows every change. Arrows step through every position a field of this size has in Garmin's
+  data screen layouts; a round screen shows what the bezel cuts off. With the diagonal of your
+  own display entered, the device is drawn at its real physical size. The device's pixel density
+  comes from the Connect IQ device file where it has one (72 devices), otherwise from the usual
+  screen diagonal of that resolution, marked as estimated.
 - **Preview** for 180 devices (screen size and font sizes) with sample values: the 106 of the
   HMs DIY Designer plus 74 newer ones known from the Connect IQ SDK (whether HMs DIY runs on
   those is not known here). The device is chosen in a searchable dialog. Devices that are
