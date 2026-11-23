@@ -55,8 +55,9 @@ gets the largest font of its family that fits the box.
   Select several with Shift+click or by dragging a box.
 - **Grid lines**: a line whose ends touch other lines or the screen edge moves parallel to itself,
   and the lines attached to it grow or shrink with it.
-- **Groups**: select layers and press Ctrl/Cmd+G. Clicking a member on the screen selects and
-  moves the whole group; a second click selects the single element. A group can be renamed,
+- **Groups**: select layers and press Ctrl/Cmd+G. On the screen a click and drag acts on
+  the single element; double-click a member to select the whole group (shown with its own frame),
+  then drag to move it. A group can be renamed,
   collapsed, locked, hidden, moved or deleted as a whole. In Designer XML a group is written as a
   separator.
 - **Properties**: value, format, decimals, sample, font and colour of the selected element. The

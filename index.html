@@ -696,6 +696,10 @@ function draw(){
   for(const g of guides){ c.beginPath(); if(g.x!=null){ c.moveTo(g.x,-PAD/zoom); c.lineTo(g.x,S.h+PAD/zoom); } else { c.moveTo(-PAD/zoom,g.y); c.lineTo(S.w+PAD/zoom,g.y); } c.stroke(); }
   c.strokeStyle=acc;
   for(const e of selX()){ if(e.type>1||e.hide) continue; const b=bbox(e); c.setLineDash([4*px,3*px]); c.strokeRect(b.x-2*px,b.y-2*px,b.w+4*px,b.h+4*px); c.setLineDash([]); }
+  // a selected group also gets one frame around everything in it, in another colour
+  for(const g of selEls()){ if(g.type!==3||isEnd(g)) continue; const bs=groupOf(g).filter(e=>e.type<2&&!e.hide).map(bbox); if(!bs.length) continue;
+    const x=Math.min(...bs.map(b=>b.x)), y=Math.min(...bs.map(b=>b.y)), x2=Math.max(...bs.map(b=>b.x+b.w)), y2=Math.max(...bs.map(b=>b.y+b.h));
+    c.save(); c.strokeStyle='#e8590c'; c.lineWidth=1.5*px; c.setLineDash([7*px,4*px]); c.strokeRect(x-6*px,y-6*px,x2-x+12*px,y2-y+12*px); c.restore(); }
   if(sel.length===1){ const e=byId(sel[0]); if(e&&e.type===1&&!e.hide) for(const h of handles(e)){ c.fillStyle='#fff'; c.beginPath(); if(h.k==='s'||h.k==='e'||h.k==='r') c.arc(h.x,h.y,4.5*px,0,7); else c.rect(h.x-4*px,h.y-4*px,8*px,8*px); c.fill(); c.lineWidth=1.5*px; c.stroke(); } }
   const junction=(x,y)=>{ c.save(); c.translate(x,y); c.rotate(Math.PI/4); c.fillStyle=acc; c.fillRect(-3.2*px,-3.2*px,6.4*px,6.4*px); c.strokeStyle='#fff'; c.lineWidth=px; c.strokeRect(-3.2*px,-3.2*px,6.4*px,6.4*px); c.restore(); };
   if(sel.length===1){ const e=byId(sel[0]), g=e&&!e.hide?gridInfo(e):null; if(g) for(const q of g.pts) junction(q.x,q.y); }
@@ -757,8 +761,8 @@ function onDown(ev){
   const e=pick(p); let drill=null;
   if(e){
     if(ev.shiftKey){ sel = sel.includes(e.id) ? sel.filter(i=>i!==e.id) : [...sel,e.id]; }
-    else if(!sel.includes(e.id)){ const h=headerOf(e);   // a group moves as one: the first click takes the group, a second click the element inside it
-      if(h&&sel.includes(h.id)) drill=e.id; else sel=[h?h.id:e.id]; }
+    else if(!sel.includes(e.id)){ const h=headerOf(e);   // a click takes the element; while its group is selected (double-click), a drag moves the group and a plain click goes back to the element
+      if(h&&sel.includes(h.id)) drill=e.id; else sel=[e.id]; }
     const items=selX().filter(i=>i.type<2&&!i.lock);
     drag={mode:'m',p,drill,items,orig:items.map(i=>({x:N(i.a.x),y:N(i.a.y),x2:N(i.a.x2),y2:N(i.a.y2)})),box:items.length?(bs=>{ const x=Math.min(...bs.map(b=>b.x)), y=Math.min(...bs.map(b=>b.y)); return {x,y,w:Math.max(...bs.map(b=>b.x+b.w))-x,h:Math.max(...bs.map(b=>b.y+b.h))-y}; })(items.map(bbox)):null,moved:false,grid:items.length===1?gridInfo(items[0]):null};
     refresh();
@@ -1217,7 +1221,7 @@ const HELP=[
  ['Layers and groups',[
   'The list on the right shows the elements from top to bottom. Drag a row to reorder; the lock and the dot lock or hide an element in the editor.',
   'Ctrl + G groups the selected elements, Ctrl + Shift + G ungroups.',
-  'On the screen a click on a group member selects and moves the whole group; a second click selects the single element.',
+  'On the screen a click and drag acts on the single element. Double-click a group member to select the whole group (an orange frame surrounds it); then a drag moves the group, and a plain click goes back to the element.',
   'Click a group name to collapse or expand it.']],
  ['Values',[
   'The value picker lists only what makes sense for the element; type in its search box to filter.',
@@ -1662,6 +1666,7 @@ function init(){
 
   const cv=$('#cv'); cv.addEventListener('pointerdown',onDown); cv.addEventListener('pointermove',onMove); cv.addEventListener('pointerup',onUp); cv.addEventListener('pointercancel',onUp);
   cv.addEventListener('dblclick',ev=>{ if(tool&&tool.draw){ const y=String(clamp(Math.round(devPt(ev).y),0,S.h)); addEls([mkG('LN',{x:'0',y,x2:String(S.w),y2:y})]); return; }
+    { const e=pick(devPt(ev)), h=e?headerOf(e):null; if(h){ sel=[h.id]; refresh(); return; } }   // double-click on a group member selects the whole group
     const f=document.getElementById('p-text'); if(f){ f.focus(); f.select(); } });
   // Space goes back to the plain pointer
   document.addEventListener('keydown',ev=>{ if(ev.key!==' '||!tool||ev.target.closest('input,textarea,select,dialog')) return; ev.preventDefault(); ev.stopPropagation(); if(document.activeElement&&document.activeElement.blur) document.activeElement.blur(); drag=null; disarm(); draw(); },true);
