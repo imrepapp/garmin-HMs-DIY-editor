@@ -478,7 +478,11 @@ function toast(msg){ const t=$('#toast'); t.textContent=msg; t.hidden=false; cle
 
 /* ---------- Undo, browser persistence ---------- */
 function persist(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
-function commit(){ const now = JSON.stringify(S); if(now===last) return; undoSt.push(last); if(undoSt.length>200) undoSt.shift(); redoSt=[]; last=now; persist(); updButtons(); }
+/* Groups are flat: a header (type 3) and the elements up to the next type 3. An "end marker" is a type 3 without a name that only
+   closes the group before it, so the elements after it stand on their own. Markers that close nothing are dropped. */
+const isEnd = e => e.type===3 && e.end===true;
+function tidySeps(){ let open=false, keep=[]; S.els.forEach((e,i)=>{ if(isEnd(e)){ const nx=S.els[i+1]; if(open&&nx&&nx.type!==3){ keep.push(e); open=false; } } else { if(e.type===3) open=true; keep.push(e); } }); if(keep.length!==S.els.length){ S.els=keep; sel=sel.filter(id=>byId(id)); } }
+function commit(){ tidySeps(); const now = JSON.stringify(S); if(now===last) return; undoSt.push(last); if(undoSt.length>200) undoSt.shift(); redoSt=[]; last=now; persist(); updButtons(); }
 let cTimer; function commitSoon(){ clearTimeout(cTimer); cTimer=setTimeout(commit,450); }
 function restore(json){ S = JSON.parse(json); last = json; sel = sel.filter(id=>byId(id)); persist(); syncDevice(); refresh(); }
 function undo(){ clearTimeout(cTimer); commit(); if(!undoSt.length) return; redoSt.push(last); restore(undoSt.pop()); }
@@ -857,10 +861,12 @@ function onUp(){ if(!drag) return; const d=drag; drag=null; guides=[]; marquee=n
 const selEls = () => sel.map(byId).filter(Boolean);
 /* selection with the members of every selected group header */
 function selX(){ const out=new Set(); for(const e of selEls()){ out.add(e); if(e.type===3) groupOf(e).forEach(m=>out.add(m)); } return S.els.filter(e=>out.has(e)); }
-function headerOf(e){ for(let i=S.els.indexOf(e);i>=0;i--) if(S.els[i].type===3) return S.els[i]; return null; }
+function headerOf(e){ for(let i=S.els.indexOf(e);i>=0;i--) if(S.els[i].type===3) return isEnd(S.els[i])?null:S.els[i]; return null; }
+/* New elements go on top and outside every group: if the list ends inside a group, that group is closed first. */
 function addEls(list, select){
-  let at=S.els.length; const s=selEls(); if(s.length) at=Math.max(...s.map(e=>S.els.indexOf(e)))+1;
-  S.els.splice(at,0,...list); sel=(select||list).map(e=>e.id); commit(); refresh();
+  let lastSep=null; for(let i=S.els.length-1;i>=0&&!lastSep;i--) if(S.els[i].type===3) lastSep=S.els[i];
+  if(lastSep&&!isEnd(lastSep)&&!(list[0]&&list[0].type===3)) S.els.push(mk(3,{text:''},{end:true}));
+  S.els.push(...list); sel=(select||list).map(e=>e.id); commit(); refresh();
 }
 function delSel(){ const rl=selEls().filter(e=>e.type===2); if(rl.length&&rl.length===sel.length){ rl.forEach(deleteRule); sel=[]; commit(); refresh(); return; }
   const x=selX().filter(e=>e.type!==2); if(!x.length) return; S.els=S.els.filter(e=>!x.includes(e)); sel=[]; pruneDyn(); commit(); refresh(); }
@@ -871,13 +877,14 @@ function askDelete(){ const rl=selEls().filter(e=>e.type===2); if(rl.length&&rl.
 function groupSel(name){ if(typeof name!=='string') name='';   // also used directly as a click handler
   const m=selX().filter(e=>e.type<2||(e.type===2&&false)); if(!m.length){ toast('Select the layers to group first.'); return; }
   let at=S.els.indexOf(m[m.length-1])+1; while(at<S.els.length&&S.els[at].type!==3) at++;
-  const anchor=S.els[at]||null, sep=mk(3,{text:name||'Group '+(S.els.filter(e=>e.type===3).length+1)});
+  const anchor=S.els[at]||null, sep=mk(3,{text:name||'Group '+(S.els.filter(e=>e.type===3&&!isEnd(e)).length+1)});
   S.els=S.els.filter(e=>!m.includes(e)); S.els.splice(anchor?S.els.indexOf(anchor):S.els.length,0,sep,...m);
   S.els=S.els.filter((e,i)=>e.type!==3||e===sep||(S.els[i+1]&&S.els[i+1].type!==3));
   sel=[sep.id]; commit(); refresh(); if(name) return; const f=document.getElementById('p-text'); if(f){ f.focus(); f.select(); }
 }
 function ungroupSel(){ const hs=new Set(); for(const e of selEls()){ const h=e.type===3?e:headerOf(e); if(h) hs.add(h); }
-  if(!hs.size){ toast('Nothing to ungroup.'); return; } const mem=[...hs].flatMap(h=>groupOf(h)); S.els=S.els.filter(e=>!hs.has(e)); sel=mem.filter(e=>e.type<2).map(e=>e.id); commit(); refresh(); }
+  if(!hs.size){ toast('Nothing to ungroup.'); return; } const mem=[...hs].flatMap(h=>groupOf(h)); for(const h of hs){ h.end=true; h.a.text=''; delete h.fold; }   // the header becomes an end marker, so the members do not fall into the group before
+  sel=mem.filter(e=>e.type<2).map(e=>e.id); commit(); refresh(); }
 function cloneEls(src, d){ return src.map(e=>{ const c=JSON.parse(JSON.stringify(e)); c.id=S.nid++; if(c.type<2){ c.a.x=String(N(c.a.x)+d); c.a.y=String(N(c.a.y)+d); if(hasBox(c)){ c.a.x2=String(N(c.a.x2)+d); c.a.y2=String(N(c.a.y2)+d); } } if(c.type===2){ c.a.replDC=uniqueKey(c.a.replDC); } return c; }); }
 function dupSel(){ const s=selX().filter(e=>e.type!==2); if(!s.length) return; const c=cloneEls(s,8); if(c[0].type===3){ S.els.push(...c); sel=[c[0].id]; commit(); refresh(); } else addEls(c); }
 function nudge(dx,dy,resize){ const s=selX().filter(e=>e.type<2); if(!s.length) return;
@@ -950,7 +957,7 @@ let dragId=null;
 function groupOf(sep){ const i=S.els.indexOf(sep); let j=i+1; while(j<S.els.length&&S.els[j].type!==3) j++; return S.els.slice(i+1,j); }
 function renderLayers(){
   const ul=$('#layers'); ul.textContent='';
-  const groups=[{sep:null,items:[]}]; for(const e of S.els){ if(e.type===3) groups.push({sep:e,items:[]}); else groups[groups.length-1].items.push(e); }
+  const groups=[{sep:null,items:[]}]; for(const e of S.els){ if(e.type===3) groups.push({sep:isEnd(e)?null:e,items:[]}); else groups[groups.length-1].items.push(e); }
   const row=(e,inGroup)=>{
     const li=el('li',{class:'t'+e.type+(sel.includes(e.id)?' sel':'')+(e.hide?' off':'')+(e.type===3?' sepr':'')+(inGroup?' ing':''),draggable:'true',
       onclick:ev=>{ if(ev.target.closest('.ic')) return; if(ev.shiftKey||ev.ctrlKey||ev.metaKey) sel=sel.includes(e.id)?sel.filter(x=>x!==e.id):[...sel,e.id]; else { sel=[e.id]; if(e.type===3){ e.fold=!e.fold; commit(); } } refresh(); },
@@ -1264,7 +1271,7 @@ function fromXML(text){
   for(const n of doc.querySelectorAll('LayoutElement')){
     const type=parseInt(n.getAttribute('type'),10)||0, a={}, rows={};
     for(const at of n.attributes){ if(at.name==='type') continue; const m=type===2&&at.name.match(/^(val|col|hide|blink)DC(\d+)$/); if(m){ (rows[m[2]]=rows[m[2]]||{val:0,col:'000000',hide:false,blink:false})[m[1]] = m[1]==='val'?parseInt(at.value,10)||0 : m[1]==='col'?at.value.toUpperCase() : at.value==='true'; } else a[at.name]=at.value; }
-    const e={id:ns.nid++,type,a}; if(type===2) e.dc=Object.keys(rows).sort().map(k=>rows[k]);
+    const e={id:ns.nid++,type,a}; if(type===2) e.dc=Object.keys(rows).sort().map(k=>rows[k]); if(type===3&&!(a.text||'').trim()) e.end=true;   // a nameless separator only closes the group before it
     if(type===1&&a.eletype==='RF'&&Math.abs(N(a.x2)-N(a.x))>=ns.w-2&&Math.abs(N(a.y2)-N(a.y))>=ns.h-2) e.lock=true;
     ns.els.push(e);
   }
