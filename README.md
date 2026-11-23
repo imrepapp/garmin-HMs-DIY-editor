@@ -132,8 +132,9 @@ How it was checked:
 SDK installation, and rewrites the `FIELDS` table in `index.html`. It also reports devices whose
 screen size differs from the editor's table.
 
-`gen_fontmetrics.py` reads the SDK's `Fonts/*.cft` files and stores only numbers (line height,
-ascent, character widths), no glyph images. Text in the preview is stretched to these widths.
+`gen_fontmetrics.py` reads the SDK's bitmap fonts (`Fonts/*.cft`) and vector fonts (`*.ttf`, scaled
+to each device's point size and ppi) and stores only numbers (line height, ascent, glyph height,
+character widths), no glyph images. Text in the preview is stretched to these widths.
 Devices whose fonts were not available keep the browser's own text measure.
 
 `tools/types.json` holds the value and graphic types (code, internal id, name, default format,
