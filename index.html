@@ -92,7 +92,9 @@ aside{background:var(--bg);overflow:auto;padding:12px 16px;min-width:0}
 .scr i.pick:hover{background:var(--accent-soft)}
 .scr i.cur{background:var(--accent)!important}
 #pick-q,#new-q{width:100%;margin:0 0 8px}
-#pick-list{height:min(60vh,520px)}
+#pick-list{height:min(60vh,520px);flex:0 1 auto;min-height:120px}
+#dlg-pick[open],#dlg-field[open]{display:flex;flex-direction:column}
+#dlg-field .tiles{min-height:0}
 .picklist{overflow:auto;align-content:flex-start;display:flex;flex-direction:column;gap:4px;padding:2px}
 .picklist button{text-align:left;border:1px solid var(--line);background:var(--raise);border-radius:6px;padding:7px 9px;cursor:pointer;display:flex;flex-direction:column;gap:2px;font-size:13px;color:var(--ink)}
 .picklist button:hover,.picklist button:focus-visible{border-color:var(--accent)}
@@ -153,15 +155,16 @@ h2 .sp{flex:1}
 #layers .ic.act{opacity:1;color:var(--accent)}
 #layers li:hover .ic{opacity:.8}
 #stagewrap{display:flex;flex-direction:column;min-width:0;min-height:0;background:var(--stage);position:relative}
-#prevpanel{position:absolute;left:12px;bottom:40px;z-index:6;background:var(--panel);border:1px solid var(--line);border-radius:8px;box-shadow:0 6px 24px rgba(0,0,0,.28);padding:8px;max-width:calc(100% - 24px);max-height:calc(100% - 56px);display:flex;flex-direction:column;gap:6px}
-#prevpanel .pph{display:flex;gap:6px;align-items:center;cursor:move;font-size:12px;user-select:none;-webkit-user-select:none;touch-action:none}
-#prevpanel .pph span{color:var(--mute)}
-#prevpanel .pph .sp{flex:1}
-#prevpanel .pph .ic{border:1px solid var(--line);background:var(--raise);border-radius:4px;width:22px;height:22px;cursor:pointer;line-height:1;padding:0;color:var(--ink)}
-#pp-body{overflow:auto;display:flex;background:var(--stage);padding:12px;border-radius:6px;min-height:0}
-#pp-cv{margin:auto;display:block;flex:none;filter:drop-shadow(0 2px 6px rgba(0,0,0,.35))}
-#prevpanel .ppf{display:flex;gap:12px;align-items:center;justify-content:space-between;font-size:11px;color:var(--mute)}
-#prevpanel .ppf label{display:flex;gap:4px;align-items:center;white-space:nowrap}
+#prevdock{flex:none;border-top:1px solid var(--line);background:var(--panel);display:flex;flex-direction:column;max-height:46%;min-height:0}
+#prevdock .pdh{display:flex;gap:10px;align-items:center;padding:5px 12px;font-size:11px;color:var(--mute);border-bottom:1px solid var(--line)}
+#prevdock .pdh b{color:var(--ink);font-size:12px}
+#prevdock .pdh .sp{flex:1}
+#prevdock .pdh label{display:flex;gap:4px;align-items:center;white-space:nowrap}
+#pp-row{display:flex;gap:18px;align-items:flex-start;overflow:auto;padding:12px 14px;background:var(--stage);min-height:0}
+#pp-row figure{margin:0;flex:none;display:flex;flex-direction:column;align-items:center;gap:5px;font-size:11px;color:var(--mute)}
+#pp-row canvas{display:block;filter:drop-shadow(0 2px 5px rgba(0,0,0,.3))}
+#pp-row figcaption{max-width:220px;text-align:center}
+#pp-row .none{font-size:12px;color:var(--mute);padding:6px 0}
 #pp-diag{width:52px;padding:2px 4px;font-size:11px}
 #stage{flex:1;overflow:auto;display:flex;min-height:0}
 #cvwrap{position:relative;margin:auto;flex:none}
@@ -305,10 +308,9 @@ dialog li{margin:5px 0}
   </aside>
   <div id="stagewrap">
     <div id="stage"><div id="cvwrap"><canvas id="cv"></canvas><div id="chips"></div></div></div>
-    <div id="prevpanel" hidden>
-      <div class="pph" id="pp-head" title="Drag to move"><b>On the device</b><span id="pp-pos"></span><span class="sp"></span><button type="button" class="ic" id="pp-prev" title="Previous position">‹</button><button type="button" class="ic" id="pp-next" title="Next position">›</button><button type="button" class="ic" id="pp-close" title="Close">×</button></div>
-      <div id="pp-body"><canvas id="pp-cv"></canvas></div>
-      <div class="ppf"><span id="pp-info"></span><label title="The diagonal of the display you are looking at, in inches. With it the preview is drawn at the device's real physical size.">Your display <input type="number" id="pp-diag" min="5" max="80" step="0.1" placeholder="?">″</label></div>
+    <div id="prevdock" hidden>
+      <div class="pdh"><b>On the device</b><span id="pp-pos"></span><span class="sp"></span><span id="pp-info"></span><label title="The diagonal of the display you are looking at, in inches. With it the preview is drawn at the device's real physical size.">Your display <input type="number" id="pp-diag" min="5" max="80" step="0.1" placeholder="?">″</label></div>
+      <div id="pp-row"></div>
     </div>
     <div id="status"><span id="st-pos">x – y –</span><span id="st-sel"></span><span class="sp"></span><span id="st-count"></span></div>
   </div>
@@ -1220,7 +1222,7 @@ const HELP=[
   'The layout string has not been tested on a device. If the data field shows “Incompatible string!”, it expects a different format generation.',
   'Glyph shapes in the preview are approximations; positions and sizes of shapes are exact.',
   'Low-memory devices accept about 30 elements, medium 35, high 500. Colour rules count as elements.',
-  'Preview (top bar) opens a panel that shows the layout on the device\'s screen and follows every change. The arrows step through each position a field of this size can have; on a round screen you see what the bezel cuts off. Enter the diagonal of your own display there and the panel shows the device at its real physical size. Drag the panel by its header.']]];
+  'The strip under the canvas shows the layout on the device\'s screen, once for every position a field of this size can have, and follows every change; on a round screen you see what the bezel cuts off. Enter the diagonal of your own display there and the device is shown at its real physical size. Preview in the top bar hides or shows the strip.']]];
 const KEYS=[['arrows','move 1 px'],['Shift + arrows','move 10 px'],['Alt + arrows','resize'],['Space','back to the pointer'],['Esc','leave the tool / clear the selection'],['Del','delete'],['Ctrl + D','duplicate'],['Ctrl + C / X / V','copy / cut / paste'],['Ctrl + A','select all'],['Ctrl + G','group'],['Ctrl + Shift + G','ungroup'],['Ctrl + Z / Y','undo / redo'],['Ctrl + S','save']];
 function renderInfo(){ const p=$('#info'); p.textContent='';
   HELP.forEach(([title,items],i)=>p.append(el('details',i===0?{open:''}:{},el('summary',{},title),el(i===0?'ol':'ul',{},items.map(t=>el('li',{},t))))));
@@ -1399,23 +1401,26 @@ function prevSpots(){ const d=DEV[S.device]; if(!d) return null; const W=d[0], H
   if(Math.abs(S.w-W)<=3&&Math.abs(S.h-H)<=3) spots.push({c:[0,0,W,H],lay:{name:'Screen',cells:[[0,0,W,H,0]]},names:['Screen']});
   else L.list.forEach(lay=>lay.cells.forEach(c=>{ if(Math.abs(c[2]-S.w)>1||Math.abs(c[3]-S.h)>1) return; const o=spots.find(o=>o.c[0]===c[0]&&o.c[1]===c[1]); if(o){ if(!o.names.includes(lay.name)) o.names.push(lay.name); } else spots.push({c,lay,names:[lay.name]}); }));
   return {W,H,round,spots}; }
-let ppIdx=0;
-function drawPrev(){ const panel=$('#prevpanel'); if(!panel||panel.hidden) return; const P=prevSpots(), cv=$('#pp-cv'), info=$('#pp-info');
-  const nav=n=>{ $('#pp-prev').hidden=$('#pp-next').hidden=n<2; };
-  if(!P||!P.spots.length){ cv.width=cv.height=0; cv.style.width=cv.style.height='0'; nav(0); $('#pp-pos').textContent=''; info.textContent=!P?'The screen of “'+S.device+'” is not known.':'No field of '+S.w+' × '+S.h+' px exists on '+S.device+'.'; return; }
-  ppIdx=((ppIdx%P.spots.length)+P.spots.length)%P.spots.length; const o=P.spots[ppIdx], {W,H,round}=P, dev=devPpi(S.device), view=viewPpi(), k=view.ppi/dev.ppi, dpr=window.devicePixelRatio||1, z0=zoom;
-  cv.width=Math.round(W*k*dpr); cv.height=Math.round(H*k*dpr); cv.style.width=(W*k)+'px'; cv.style.height=(H*k)+'px'; const c=cv.getContext('2d'); c.setTransform(k*dpr,0,0,k*dpr,0,0); c.clearRect(0,0,W,H);
-  const glass=()=>{ c.beginPath(); if(round) c.ellipse(W/2,H/2,W/2,H/2,0,0,7); else c.rect(0,0,W,H); };
-  glass(); c.fillStyle=night?'#000':'#fff'; c.fill(); c.save(); glass(); c.clip();
-  c.fillStyle=night?'#1b2026':'#e6e9ee'; for(const q of o.lay.cells) if(q!==o.c&&o.lay.cells.length>1) c.fillRect(q[0],q[1],q[2],q[3]);   // the neighbouring fields, left empty
-  c.save(); c.beginPath(); c.rect(o.c[0],o.c[1],o.c[2],o.c[3]); c.clip(); c.translate(o.c[0],o.c[1]); zoom=k; try{ for(const e of S.els) if(!e.hide) drawEl(c,e); } finally { zoom=z0; } c.restore();
-  c.restore(); if(round){ c.beginPath(); c.ellipse(W/2,H/2,W/2-.5/k,H/2-.5/k,0,0,7); c.strokeStyle='#888'; c.lineWidth=1/k; c.stroke(); }
-  nav(P.spots.length); $('#pp-pos').textContent=devShort(S.device)+(P.spots.length>1?' · position '+(ppIdx+1)+' of '+P.spots.length:'');
-  $('#pp-pos').title=devGroup(S.device).join(', ')+(o.names[0]==='Screen'?'':' — '+o.names.join(', ')+' at '+o.c[0]+', '+o.c[1]);
+/* The dock under the canvas: the device's screen once for every position, side by side, at real size when the user's display is known. */
+function drawPrev(){ const dock=$('#prevdock'); if(!dock||dock.hidden) return; const P=prevSpots(), row=$('#pp-row'), info=$('#pp-info');
+  if(!P||!P.spots.length){ row.textContent=''; row.append(el('div',{class:'none'},!P?'The screen of “'+S.device+'” is not known.':'No field of '+S.w+' × '+S.h+' px exists on '+devGroup(S.device).join(', ')+'.')); $('#pp-pos').textContent=''; info.textContent=''; return; }
+  const {W,H,round}=P, dev=devPpi(S.device), view=viewPpi(), k=view.ppi/dev.ppi, dpr=window.devicePixelRatio||1, z0=zoom;
+  const figs=[...row.querySelectorAll('figure')]; if(figs.length!==P.spots.length){ row.textContent=''; P.spots.forEach(()=>row.append(el('figure',{},el('canvas',{}),el('figcaption',{})))); }
+  P.spots.forEach((o,i)=>{ const fig=row.children[i], cv=fig.firstChild, pw=Math.round(W*k*dpr), ph=Math.round(H*k*dpr); if(cv.width!==pw||cv.height!==ph){ cv.width=pw; cv.height=ph; cv.style.width=(W*k)+'px'; cv.style.height=(H*k)+'px'; }
+    const c=cv.getContext('2d'); c.setTransform(k*dpr,0,0,k*dpr,0,0); c.clearRect(0,0,W,H);
+    const glass=()=>{ c.beginPath(); if(round) c.ellipse(W/2,H/2,W/2,H/2,0,0,7); else c.rect(0,0,W,H); };
+    glass(); c.fillStyle=night?'#000':'#fff'; c.fill(); c.save(); glass(); c.clip();
+    c.fillStyle=night?'#1b2026':'#e6e9ee'; if(o.lay.cells.length>1) for(const q of o.lay.cells) if(q!==o.c) c.fillRect(q[0],q[1],q[2],q[3]);   // the neighbouring fields, left empty
+    c.save(); c.beginPath(); c.rect(o.c[0],o.c[1],o.c[2],o.c[3]); c.clip(); c.translate(o.c[0],o.c[1]); zoom=k; try{ for(const e of S.els) if(!e.hide) drawEl(c,e); } finally { zoom=z0; } c.restore();
+    c.restore(); if(round){ c.beginPath(); c.ellipse(W/2,H/2,W/2-.5/k,H/2-.5/k,0,0,7); c.strokeStyle='#888'; c.lineWidth=1/k; c.stroke(); }
+    const cap=o.names[0]==='Screen'?'Screen':o.names.join(', '); if(fig.lastChild.textContent!==cap) fig.lastChild.textContent=cap; });
+  $('#pp-pos').textContent=devGroup(S.device).join(' · ')+(P.spots.length>1?' — '+P.spots.length+' positions':'');
   const mm=v=>Math.round(v/dev.ppi*25.4);
   info.textContent=(view.known?'Real size':'Not real size yet: enter your display')+' · screen '+mm(W)+' × '+mm(H)+' mm'+(dev.est?' (estimated)':'')+' · '+Math.round(k*100)+'%'; }
-function togglePrev(on){ prefs.prev=on==null?!prefs.prev:on; savePrefs(); const panel=$('#prevpanel'); panel.hidden=!prefs.prev; $('#bprev').classList.toggle('on',!!prefs.prev);
-  if(prefs.prev){ $('#pp-diag').value=prefs.diag||''; if(prefs.pos){ panel.style.left=prefs.pos[0]+'px'; panel.style.bottom=prefs.pos[1]+'px'; } drawPrev(); } }
+function togglePrev(on){ prefs.prev=on==null?!(prefs.prev!==false):on; savePrefs(); const show=prefs.prev!==false; $('#prevdock').hidden=!show; $('#bprev').classList.toggle('on',show); $('#bprev').setAttribute('aria-pressed',String(show));
+  if(show){ $('#pp-diag').value=prefs.diag||''; drawPrev(); } }
+/* Opens a dialog as a drop-down of the button that called it: its top left corner under the button's bottom left corner. */
+function showUnder(dlg,btn){ dlg.showModal(); const r=btn.getBoundingClientRect(), w=dlg.offsetWidth; dlg.style.position='fixed'; dlg.style.margin='0'; dlg.style.left=Math.max(8,Math.min(r.left,innerWidth-w-8))+'px'; dlg.style.top=(r.bottom+4)+'px'; dlg.style.maxHeight=(innerHeight-r.bottom-12)+'px'; }
 function showString(){
   clearTimeout(cTimer); commit(); const r=encodeClean(); $('#strout').value=r.str;
   if(r.moved.length) r.warn.push('The Garmin settings refuse a string with a backslash. To avoid one, these elements differ slightly in the string (the layout itself is unchanged): '+r.moved.join(', ')+'.');
@@ -1449,7 +1454,7 @@ function devList(list,q,count,cur,onPick,withCustom){ const fold=t=>t.normalize(
 function pickDevice(cur,cb,withCustom){ pickCb=cb; const q=$('#pick-q'), list=$('#pick-list');
   const done=v=>{ $('#dlg-pick').close(); const f=pickCb; pickCb=null; if(f) f(v); }, render=()=>devList(list,q,$('#pick-count'),cur,done,withCustom);
   q.value=''; q.oninput=render; q.onkeydown=ev=>{ if(ev.key==='Enter'){ ev.preventDefault(); const b=list.querySelector('button'+(q.value.trim()?'':'.on'))||list.querySelector('button'); if(b) b.click(); } };
-  render(); $('#dlg-pick').showModal(); q.focus(); const on=list.querySelector('.on'); if(on) on.scrollIntoView({block:'center'}); }
+  render(); showUnder($('#dlg-pick'),$('#devbtn')); q.focus(); const on=list.querySelector('.on'); if(on) on.scrollIntoView({block:'center'}); }
 /* A small picture of a screen or field with its cells; `cur` is filled. */
 function scrThumb(W,H,cells,cur,round){ const k=64/Math.max(W,H), pc=v=>(Math.round(v*k*10)/10)+'px'; return el('span',{class:'scr',style:`width:${pc(W)};height:${pc(H)};${round?'border-radius:50%;':''}`},cells.map((c,me)=>el('i',{class:me===cur?'cur':'',style:`left:${pc(c[0])};top:${pc(c[1])};width:${pc(c[2])};height:${pc(c[3])}`}))); }
 /* The fields of a device as tiles: the screen first, then every field size once, shown where it sits in a data screen layout. */
@@ -1658,7 +1663,7 @@ function init(){
     pendFld=u; $('#dv-text').textContent='The layout was made for '+S.w+' × '+S.h+' px. The chosen field is '+w+' × '+h+' px.'; $('#dlg-device').showModal(); };
   $('#fieldbtn').onclick=()=>{ const d=DEV[S.device]; if(!d) return; const n={name:S.device,w:d[0],h:d[1],round:!!d[2],list:layoutsOf(S.device,d[0],d[1],!!d[2]).list}, fields=fieldsOf(n);
     $('#fieldnote').textContent='The fields of '+devGroup(S.device).join(', ')+': the screen, then every field size once.';
-    fieldTiles($('#fieldgrid'),n,fields[fieldIndex(fields)],u=>{ $('#dlg-field').close(); chooseField(u); }); $('#dlg-field').showModal(); };
+    fieldTiles($('#fieldgrid'),n,fields[fieldIndex(fields)],u=>{ $('#dlg-field').close(); chooseField(u); }); showUnder($('#dlg-field'),$('#fieldbtn')); };
   $('#dv-scale').onclick=()=>{ const n=pendDev, u=pendFld; pendDev=pendFld=null; $('#dlg-device').close(); if(u){ setField(u); rescale(); } else { setDevice(n); rescale(); } };
   $('#dv-keep').onclick=()=>{ const n=pendDev, u=pendFld; pendDev=pendFld=null; $('#dlg-device').close(); if(u) setField(u); else setDevice(n); };
   $('#dlg-device').addEventListener('close',()=>{ if(pendDev||pendFld){ pendDev=pendFld=null; syncDevice(); } });
@@ -1671,13 +1676,8 @@ function init(){
   document.addEventListener('click',ev=>{ if(!menu.hidden&&!menu.contains(ev.target)) setMenu(false); });
   document.addEventListener('keydown',ev=>{ if(ev.key==='Escape'&&!menu.hidden){ setMenu(false); mb.focus(); } });
   $('#mdev').onclick=showString; $('#bprev').onclick=()=>togglePrev();
-  $('#pp-close').onclick=()=>togglePrev(false); $('#pp-prev').onclick=()=>{ ppIdx--; drawPrev(); }; $('#pp-next').onclick=()=>{ ppIdx++; drawPrev(); };
   $('#pp-diag').oninput=()=>{ prefs.diag=+$('#pp-diag').value||0; savePrefs(); drawPrev(); };
-  { const head=$('#pp-head'), panel=$('#prevpanel'); let st=null;   // drag the panel by its header, inside the stage
-    head.onpointerdown=ev=>{ if(ev.target.closest('button')) return; const r=panel.getBoundingClientRect(), w=$('#stagewrap').getBoundingClientRect(); st={x:ev.clientX,y:ev.clientY,l:r.left-w.left,b:w.bottom-r.bottom,w,r}; head.setPointerCapture(ev.pointerId); };
-    head.onpointermove=ev=>{ if(!st) return; const l=clamp(st.l+ev.clientX-st.x,0,Math.max(0,st.w.width-st.r.width)), b=clamp(st.b-(ev.clientY-st.y),0,Math.max(0,st.w.height-st.r.height)); panel.style.left=l+'px'; panel.style.bottom=b+'px'; prefs.pos=[Math.round(l),Math.round(b)]; };
-    head.onpointerup=()=>{ if(st){ st=null; savePrefs(); } }; }
-  togglePrev(!!prefs.prev);
+  togglePrev(prefs.prev!==false);   // shown unless it was switched off
   $('#cl-use').onclick=()=>useColor($('#cl-hex').value.trim().replace(/^#/,''));
   $('#cl-native').oninput=()=>{ $('#cl-hex').value=$('#cl-native').value.slice(1).toUpperCase(); };
   $('#cl-hex').addEventListener('keydown',ev=>{ if(ev.key==='Enter'){ ev.preventDefault(); $('#cl-use').click(); } });
